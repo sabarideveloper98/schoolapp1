@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar, Coins, Wallet, TrendingUp } from 'lucide-react';
 import Layout from '../../components/Layout';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -20,6 +20,22 @@ import StudentAttendance from './StudentAttendance';
 import StudentReport from './StudentReport';
 import AddMarks from './AddMarks';
 import ExamReport from './ExamReport';
+import SalarySetup from './SalarySetup';
+import PayrollProcess from './PayrollProcess';
+import SalarySlips from './SalarySlips';
+import SalaryReports from './SalaryReports';
+import FeeCategoryManagement from './FeeCategoryManagement';
+import FeeStructureManagement from './FeeStructureManagement';
+import StudentFeeAssignment from './StudentFeeAssignment';
+import FeeCollection from './FeeCollection';
+import DiscountManagement from './DiscountManagement';
+import RefundManagement from './RefundManagement';
+import FeeReports from './FeeReports';
+import FinanceDashboard from './FinanceDashboard';
+import ExpenseCategoryManagement from './ExpenseCategoryManagement';
+import ExpenseManagement from './ExpenseManagement';
+import IncomeManagement from './IncomeManagement';
+import FinanceReports from './FinanceReports';
 
 const StatCard = ({ title, value, icon: Icon, color }) => {
   const textColorClass = color.replace('bg-', 'text-').replace('-500', '-600');
@@ -48,37 +64,36 @@ const DashboardOverview = () => {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const { data } = await axios.get('http://localhost:5005/api/schooladmin/dashboard', config);
         setStats(data);
-        setLoading(false);
       } catch (error) {
         toast.error('Failed to fetch dashboard stats');
+      } finally {
         setLoading(false);
       }
     };
 
-    if (user?.token) fetchStats();
+    if (user?.token) {
+      fetchStats();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
-  if (loading) return <div className="flex justify-center py-12 text-slate-500 font-medium">Loading overview...</div>;
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-[400px] font-bold text-slate-400">Loading overview...</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header and Breadcrumb */}
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-black text-slate-800">Dashboard</h2>
-        <div className="text-xs font-bold text-slate-400 mt-1 flex items-center gap-1.5">
-          <span>Home</span>
-          <span>-</span>
-          <span className="text-blue-600">At-a-glance</span>
-        </div>
+        <h2 className="text-2xl font-black text-slate-800">School Overview</h2>
+        <p className="text-xs font-bold text-slate-400 mt-1">Real-time stats across all active school operations</p>
       </div>
 
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <StatCard title="Total Teachers" value={stats?.totalTeachers || 0} icon={UserSquare2} color="bg-blue-500" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Total Students" value={stats?.totalStudents || 0} icon={GraduationCap} color="bg-blue-500" />
+        <StatCard title="Total Teachers" value={stats?.totalTeachers || 0} icon={UserSquare2} color="bg-indigo-500" />
         <StatCard title="Total Staff" value={stats?.totalStaff || 0} icon={Users2} color="bg-emerald-500" />
-        <StatCard title="Total Classes" value={stats?.totalClasses || 0} icon={GraduationCap} color="bg-amber-500" />
-        <StatCard title="Total Subjects" value={stats?.totalSubjects || 0} icon={BookOpen} color="bg-indigo-500" />
-        <StatCard title="Total Students" value={stats?.totalStudents || 0} icon={Users} color="bg-pink-500" />
+        <StatCard title="Total Classes" value={stats?.totalClasses || 0} icon={BookOpen} color="bg-amber-500" />
       </div>
     </div>
   );
@@ -86,25 +101,23 @@ const DashboardOverview = () => {
 
 const SchoolAdminDashboard = () => {
   const menuItems = [
-    { label: 'Dashboard', path: '/school-admin/dashboard', icon: LayoutDashboard },
     {
-      label: 'Students Information',
-      icon: Users,
-      subItems: [
-        { label: 'Students List', path: '/school-admin/students' },
-      ],
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      path: '/school-admin/dashboard',
     },
     {
-      label: 'Student Attendance',
-      icon: Calendar,
+      label: 'Students Information',
+      icon: GraduationCap,
       subItems: [
+        { label: 'Students List', path: '/school-admin/students' },
         { label: 'Student Attendance', path: '/school-admin/student-attendance' },
         { label: 'Attendance Report', path: '/school-admin/student-report' },
       ],
     },
     {
-      label: 'Exam Module',
-      icon: GraduationCap,
+      label: 'Examinations',
+      icon: Calendar,
       subItems: [
         { label: 'Add Marks', path: '/school-admin/exam/add-marks' },
         { label: 'Exam Report', path: '/school-admin/exam/report' },
@@ -128,11 +141,47 @@ const SchoolAdminDashboard = () => {
         { label: 'Classes & Sections', path: '/school-admin/classes' },
       ],
     },
+    {
+      label: 'Payroll & Salary',
+      icon: Coins,
+      subItems: [
+        { label: 'Salary Setup', path: '/school-admin/salary/setup' },
+        { label: 'Payroll Process', path: '/school-admin/salary/process' },
+        { label: 'Salary Slips', path: '/school-admin/salary/slips' },
+        { label: 'Salary Reports', path: '/school-admin/salary/reports' },
+      ],
+    },
+    {
+      label: 'Fee Management',
+      icon: Wallet,
+      subItems: [
+        { label: 'Fee Categories', path: '/school-admin/fees/categories' },
+        { label: 'Fee Structures', path: '/school-admin/fees/structures' },
+        { label: 'Student Assignments', path: '/school-admin/fees/assignments' },
+        { label: 'Collect Fees', path: '/school-admin/fees/collect' },
+        { label: 'Discount Schemes', path: '/school-admin/fees/discounts' },
+        { label: 'Refund Claims', path: '/school-admin/fees/refunds' },
+        { label: 'Revenue Reports', path: '/school-admin/fees/reports' },
+      ],
+    },
+    {
+      label: 'Finance & Expenses',
+      icon: TrendingUp,
+      subItems: [
+        { label: 'Finance Dashboard', path: '/school-admin/finance/dashboard' },
+        { label: 'Expense Categories', path: '/school-admin/finance/categories' },
+        { label: 'Expenses Register', path: '/school-admin/finance/expenses' },
+        { label: 'Income Register', path: '/school-admin/finance/income' },
+        { label: 'Financial Reports', path: '/school-admin/finance/reports' },
+      ],
+    },
   ];
 
   return (
     <Layout menuItems={menuItems} title="School Admin Portal">
       <Routes>
+        <Route index element={<Navigate to="/school-admin/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/school-admin/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardOverview />} />
         <Route path="/teachers" element={<TeacherManagement />} />
         <Route path="/teachers/create" element={<TeacherCreate />} />
@@ -147,6 +196,22 @@ const SchoolAdminDashboard = () => {
         <Route path="/classes" element={<ClassManagement />} />
         <Route path="/students" element={<StudentManagement />} />
         <Route path="/students/create" element={<StudentCreate />} />
+        <Route path="/salary/setup" element={<SalarySetup />} />
+        <Route path="/salary/process" element={<PayrollProcess />} />
+        <Route path="/salary/slips" element={<SalarySlips />} />
+        <Route path="/salary/reports" element={<SalaryReports />} />
+        <Route path="/fees/categories" element={<FeeCategoryManagement />} />
+        <Route path="/fees/structures" element={<FeeStructureManagement />} />
+        <Route path="/fees/assignments" element={<StudentFeeAssignment />} />
+        <Route path="/fees/collect" element={<FeeCollection />} />
+        <Route path="/fees/discounts" element={<DiscountManagement />} />
+        <Route path="/fees/refunds" element={<RefundManagement />} />
+        <Route path="/fees/reports" element={<FeeReports />} />
+        <Route path="/finance/dashboard" element={<FinanceDashboard />} />
+        <Route path="/finance/categories" element={<ExpenseCategoryManagement />} />
+        <Route path="/finance/expenses" element={<ExpenseManagement />} />
+        <Route path="/finance/income" element={<IncomeManagement />} />
+        <Route path="/finance/reports" element={<FinanceReports />} />
         <Route path="*" element={<Navigate to="/school-admin/dashboard" replace />} />
       </Routes>
     </Layout>
