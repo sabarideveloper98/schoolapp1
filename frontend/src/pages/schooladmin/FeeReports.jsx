@@ -116,11 +116,11 @@ const FeeReports = () => {
 
       {/* Analytics Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
-        {/* Total Collections */}
+        {/* Total Collected */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase">Total Collected</p>
-            <h3 className="text-lg font-black text-slate-850 mt-1">${dashboardStats?.totalCollection || 0}</h3>
+            <h3 className="text-lg font-black text-slate-850 mt-1">₹{dashboardStats?.totalCollection || 0}</h3>
           </div>
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
             <DollarSign className="w-5 h-5" />
@@ -131,7 +131,7 @@ const FeeReports = () => {
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase">Today's Cash</p>
-            <h3 className="text-lg font-black text-slate-850 mt-1">${dashboardStats?.todayCollection || 0}</h3>
+            <h3 className="text-lg font-black text-slate-850 mt-1">₹{dashboardStats?.todayCollection || 0}</h3>
           </div>
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <TrendingUp className="w-5 h-5" />
@@ -142,7 +142,7 @@ const FeeReports = () => {
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase">Outstanding</p>
-            <h3 className="text-lg font-black text-red-500 mt-1">${dashboardStats?.pendingFees || 0}</h3>
+            <h3 className="text-lg font-black text-red-500 mt-1">₹{dashboardStats?.pendingFees || 0}</h3>
           </div>
           <div className="p-3 bg-red-50 text-red-500 rounded-xl">
             <AlertTriangle className="w-5 h-5" />
@@ -153,7 +153,7 @@ const FeeReports = () => {
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase">Waivers Applied</p>
-            <h3 className="text-lg font-black text-indigo-600 mt-1">${dashboardStats?.totalDiscounts || 0}</h3>
+            <h3 className="text-lg font-black text-indigo-600 mt-1">₹{dashboardStats?.totalDiscounts || 0}</h3>
           </div>
           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
             <Percent className="w-5 h-5" />
@@ -164,7 +164,7 @@ const FeeReports = () => {
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase">Disbursed Refunds</p>
-            <h3 className="text-lg font-black text-slate-800 mt-1">${dashboardStats?.totalRefunds || 0}</h3>
+            <h3 className="text-lg font-black text-slate-800 mt-1">₹{dashboardStats?.totalRefunds || 0}</h3>
           </div>
           <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
             <PieChart className="w-5 h-5" />
@@ -175,7 +175,7 @@ const FeeReports = () => {
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase">Est. Revenue</p>
-            <h3 className="text-lg font-black text-slate-850 mt-1">${dashboardStats?.monthlyRevenue || 0}</h3>
+            <h3 className="text-lg font-black text-slate-850 mt-1">₹{dashboardStats?.monthlyRevenue || 0}</h3>
           </div>
           <div className="p-3 bg-slate-900 text-white rounded-xl">
             <DollarSign className="w-5 h-5" />
@@ -293,7 +293,7 @@ const FeeReports = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-700">{rec.payment_method}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500">{rec.transaction_id || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-blue-600">${rec.amount_paid}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-blue-600">₹{rec.amount_paid}</td>
                 </tr>
               ))}
               {reportsData.length === 0 && (

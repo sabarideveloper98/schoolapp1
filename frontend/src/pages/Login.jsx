@@ -11,12 +11,15 @@ import {
   Users, 
   Info, 
   LogIn, 
-  UserCheck 
+  UserCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const Login = () => {
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuthStore();
   const navigate = useNavigate();
 
@@ -69,8 +72,8 @@ const Login = () => {
       <header className="relative z-20 border-b border-white/10 backdrop-blur-xl bg-white/5">
         <div className="flex items-center justify-between px-6 py-4 mx-auto max-w-7xl">
           <a href="#" className="flex items-center gap-3">
-            <GraduationCap className="w-10 h-10 text-blue-400" />
-            <span className="text-2xl font-black tracking-wider text-white">EduNexus</span>
+            <img src="/s1-logo.png" alt="S1 Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-blue-500/30" />
+            <span className="text-2xl font-black tracking-wider text-white">S1 School</span>
           </a>
         </div>
       </header>
@@ -200,14 +203,26 @@ const Login = () => {
                       <Lock className="w-5 h-5 text-lg" />
                     </span>
                     <input 
-                      type="password" 
+                      type={showPassword ? 'text' : 'password'} 
                       name="password" 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       placeholder="Enter Password"
-                      className="w-full h-16 pr-5 text-white transition duration-300 border outline-none rounded-2xl border-white/10 bg-white/10 pl-14 placeholder-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20"
+                      className="w-full h-16 pl-14 pr-14 text-white transition duration-300 border outline-none rounded-2xl border-white/10 bg-white/10 placeholder-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -294,7 +309,7 @@ const Login = () => {
       <footer className="relative z-10 border-t border-white/10 bg-black/30 backdrop-blur-xl">
         <div className="px-6 py-6 mx-auto text-center max-w-7xl">
           <p className="text-sm text-slate-400 md:text-base">
-            © {new Date().getFullYear()} <span className="font-semibold text-blue-400">EduNexus</span> — All Rights Reserved.
+            © {new Date().getFullYear()} <span className="font-semibold text-blue-400">S1 School</span> — All Rights Reserved.
           </p>
         </div>
       </footer>

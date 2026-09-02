@@ -151,9 +151,9 @@ const SalarySlips = () => {
           {/* School Header Info */}
           <div className="flex flex-col md:flex-row justify-between items-center md:items-start border-b border-slate-150 pb-6 gap-4">
             <div className="text-center md:text-left">
-              <h1 className="text-xl font-black text-slate-800 tracking-wide">MIGHTY ACADEMY</h1>
+              <h1 className="text-xl font-black text-slate-800 tracking-wide">S1 ACADEMY</h1>
               <p className="text-xs font-bold text-slate-450 mt-1">Sts. Boston Avenue, NY, USA</p>
-              <p className="text-[10px] font-semibold text-slate-400">Phone: +1 555 0199 | Email: info@mightyacademy.edu</p>
+              <p className="text-[10px] font-semibold text-slate-400">Phone: +1 555 0199 | Email: info@s1academy.edu</p>
             </div>
             
             <div className="text-center md:text-right">
@@ -200,23 +200,23 @@ const SalarySlips = () => {
               <div className="p-4 space-y-2 text-xs font-bold text-slate-700">
                 <div className="flex justify-between">
                   <span>HRA Allowance</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.allowances?.hra || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.allowances?.hra || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Transport Allowance</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.allowances?.transport || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.allowances?.transport || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Medical Allowance</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.allowances?.medical || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.allowances?.medical || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Other Allowances</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.allowances?.other || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.allowances?.other || 0}</span>
                 </div>
                 <div className="flex justify-between border-t border-slate-100 pt-2 font-black text-slate-800">
                   <span>Total Earnings</span>
-                  <span className="text-emerald-600">+${activeSlip.salary_breakdown.allowances_total}</span>
+                  <span className="text-emerald-600">+₹{activeSlip.salary_breakdown.allowances_total}</span>
                 </div>
               </div>
             </div>
@@ -229,23 +229,23 @@ const SalarySlips = () => {
               <div className="p-4 space-y-2 text-xs font-bold text-slate-700">
                 <div className="flex justify-between">
                   <span>Provident Fund (PF)</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.deductions?.pf || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.deductions?.pf || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>ESI Contribution</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.deductions?.esi || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.deductions?.esi || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Professional Tax</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.deductions?.professional_tax || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.deductions?.professional_tax || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Other Deductions</span>
-                  <span className="text-slate-850">${activeSlip.salary_breakdown.deductions?.other || 0}</span>
+                  <span className="text-slate-850">₹{activeSlip.salary_breakdown.deductions?.other || 0}</span>
                 </div>
                 <div className="flex justify-between border-t border-slate-100 pt-2 font-black text-slate-800">
                   <span>Total Deductions</span>
-                  <span className="text-red-500">-${activeSlip.salary_breakdown.deductions_total}</span>
+                  <span className="text-red-500">-₹{activeSlip.salary_breakdown.deductions_total}</span>
                 </div>
               </div>
             </div>
@@ -256,13 +256,13 @@ const SalarySlips = () => {
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Calculation Base Formulas</p>
               <div className="text-xs text-slate-300 font-semibold mt-1">
-                Base monthly: ${activeSlip.salary_breakdown.monthly_salary} | Gross (Payable days): ${activeSlip.salary_breakdown.gross_salary}
+                Base monthly: ₹{activeSlip.salary_breakdown.monthly_salary} | Gross (Payable days): ₹{activeSlip.salary_breakdown.gross_salary}
               </div>
             </div>
 
             <div className="text-center md:text-right">
               <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Net Settled Salary</span>
-              <span className="text-3xl font-black text-white">${activeSlip.salary_breakdown.net_salary}</span>
+              <span className="text-3xl font-black text-white">₹{activeSlip.salary_breakdown.net_salary}</span>
             </div>
           </div>
 

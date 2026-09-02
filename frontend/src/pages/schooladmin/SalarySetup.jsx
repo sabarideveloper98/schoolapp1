@@ -205,13 +205,13 @@ const SalarySetup = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">
-                      {isConfigured ? `$${emp.setup.monthly_salary}` : '-'}
+                      {isConfigured ? `₹${emp.setup.monthly_salary}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-emerald-600">
-                      {isConfigured ? `+$${allowancesTotal}` : '-'}
+                      {isConfigured ? `+₹${allowancesTotal}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-red-600">
-                      {isConfigured ? `-$${deductionsTotal}` : '-'}
+                      {isConfigured ? `-₹${deductionsTotal}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1 text-xs font-bold ${
@@ -314,7 +314,7 @@ const SalarySetup = () => {
 
                 {/* Monthly Salary */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Monthly Salary ($)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Monthly Salary (₹)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -327,7 +327,7 @@ const SalarySetup = () => {
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1.5">Per Day Salary (Auto Cal.)</label>
                   <div className="flex items-center h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-500">
-                    ${watchMonthlySalary ? (watchMonthlySalary / 30).toFixed(2) : '0.00'}
+                    ₹{watchMonthlySalary ? (watchMonthlySalary / 30).toFixed(2) : '0.00'}
                   </div>
                 </div>
               </div>
@@ -339,19 +339,19 @@ const SalarySetup = () => {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">HRA ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">HRA (₹)</label>
                     <input type="number" step="0.01" {...register('allowances.hra')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-emerald-500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Transport ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Transport (₹)</label>
                     <input type="number" step="0.01" {...register('allowances.transport')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-emerald-500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Medical ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Medical (₹)</label>
                     <input type="number" step="0.01" {...register('allowances.medical')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-emerald-500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other (₹)</label>
                     <input type="number" step="0.01" {...register('allowances.other')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-emerald-500" />
                   </div>
                 </div>
@@ -364,19 +364,19 @@ const SalarySetup = () => {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">PF ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">PF (₹)</label>
                     <input type="number" step="0.01" {...register('deductions.pf')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-red-500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ESI ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ESI (₹)</label>
                     <input type="number" step="0.01" {...register('deductions.esi')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-red-500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Prof. Tax ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Prof. Tax (₹)</label>
                     <input type="number" step="0.01" {...register('deductions.professional_tax')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-red-500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other (₹)</label>
                     <input type="number" step="0.01" {...register('deductions.other')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-red-500" />
                   </div>
                 </div>
@@ -447,7 +447,7 @@ const SalarySetup = () => {
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-slate-400">{new Date(hist.date).toLocaleString()}</span>
                     <span className="text-xs font-bold text-slate-700 mt-1">
-                      Adjusted monthly salary to <span className="text-blue-600 font-extrabold">${hist.monthly_salary}</span>
+                      Adjusted monthly salary to <span className="text-blue-600 font-extrabold">₹{hist.monthly_salary}</span>
                     </span>
                     <span className="text-[10px] font-medium text-slate-450 mt-1">Changed by: {hist.changed_by}</span>
                   </div>

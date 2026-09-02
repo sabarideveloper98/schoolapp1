@@ -106,7 +106,7 @@ const ExamReport = () => {
 
       // Get School details for layout heading
       const schoolRes = await axios.get('http://localhost:5005/api/schooladmin/students', config); // To trigger school context or fallback
-      setSchoolName(user.school_name || 'Mighty School');
+      setSchoolName(user.school_name || 'S1 School');
 
       setSearched(true);
       setLoadingReport(false);

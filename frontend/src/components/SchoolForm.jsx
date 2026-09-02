@@ -13,7 +13,7 @@ const SchoolForm = ({ onSubmit, defaultValues, isLoading, onCancel }) => {
           <input 
             {...register('name', { required: 'Name is required' })} 
             className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-            placeholder="e.g. Mighty Academy"
+            placeholder="e.g. S1 Academy"
           />
           {errors.name && <span className="text-red-500 text-xs mt-1 block">{errors.name.message}</span>}
         </div>

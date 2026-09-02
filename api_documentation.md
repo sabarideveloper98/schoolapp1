@@ -2,7 +2,7 @@
 
 This document provides the complete API list and valid payload details for mobile and frontend integration.
 
----
+
 
 ## 1. Authentication Module
 
@@ -10,25 +10,25 @@ This document provides the complete API list and valid payload details for mobil
 - **Method**: `POST`
 - **URL**: `/api/auth/login`
 - **Headers**:
-  ```http
+  http
   Content-Type: application/json
-  ```
+  
 - **Request Payload**:
-  ```json
+  json
   {
     "email": "superadmin@gmail.com",
     "password": "superadmin_password"
   }
-  ```
+  
 - **Success Response (200 OK)**:
-  ```json
+  json
   {
     "_id": "60d5ec49ad4d67327092305a",
     "email": "superadmin@gmail.com",
     "role": "SuperAdmin",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
-  ```
+  
 
 ---
 
@@ -457,4 +457,3 @@ This document provides the complete API list and valid payload details for mobil
       }
     ]
   }
-  ```

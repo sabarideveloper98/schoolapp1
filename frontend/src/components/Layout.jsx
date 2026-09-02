@@ -1,14 +1,48 @@
-import { useState } from 'react';
-import { Menu, Sun, ChevronDown, ExternalLink } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Menu, Sun, ChevronDown, ExternalLink, User, KeyRound, LogOut, ShieldCheck } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { toast } from 'react-toastify';
+import useAuthStore from '../store/useAuthStore';
 
 const Layout = ({ children, menuItems, title }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const profileDropdownRef = useRef(null);
 
   const handleCacheClear = () => {
     toast.success("Cache Cleared successfully!");
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast.info("Logged out successfully");
+    navigate('/login');
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getProfilePath = () => {
+    switch (user?.role) {
+      case 'SuperAdmin': return '/super-admin/profile';
+      case 'SchoolAdmin': return '/school-admin/profile';
+      case 'Teacher': return '/teacher/profile';
+      case 'Parent': return '/parent/profile';
+      default: return '/school-admin/profile';
+    }
   };
 
   return (
@@ -49,24 +83,14 @@ const Layout = ({ children, menuItems, title }) => {
               <Menu className="w-5 h-5" />
             </button>
             
-            {/* Collapse Sidebar Button for Desktop */}
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="hidden lg:flex p-2 -ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors"
-              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            {/* Breadcrumb info */}
-            <div className="hidden sm:block text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              {title}
+            <div className="flex flex-col">
+              <h1 className="text-base sm:text-lg font-black text-slate-800 tracking-tight leading-tight">{title}</h1>
+              {/* Optional Subtitle / Breadcrumb hint */}
             </div>
           </div>
 
-          {/* Right side navigation items matching the screenshot */}
-          <div className="flex items-center gap-3 md:gap-4">
-            {/* Cache Clear Button */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Cache Clear */}
             <button
               onClick={handleCacheClear}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-[0_4px_12px_rgba(37,99,235,0.15)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
@@ -74,31 +98,70 @@ const Layout = ({ children, menuItems, title }) => {
               Cache Clear
             </button>
 
-            {/* Branch Selector Dropdown */}
-            <div className="relative hidden md:block">
-              <button className="border border-blue-100 bg-blue-50/30 hover:bg-blue-50 text-blue-600 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Branch (Branch 1)</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Session Selector Dropdown */}
-            <div className="relative hidden md:block">
-              <button className="border border-slate-200 hover:border-slate-300 text-slate-600 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors bg-white">
-                <span>Session (2024-2025)</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
             {/* Theme Toggle Sun Icon */}
             <button className="p-2 text-slate-400 hover:text-amber-500 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
               <Sun className="w-5 h-5" />
             </button>
 
-            {/* User Profile Avatar */}
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-bold text-sm shadow-[0_4px_10px_rgba(37,99,235,0.1)] border-2 border-white ring-1 ring-slate-100">
-              U
+            {/* User Profile Dropdown Menu */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all cursor-pointer focus:outline-none"
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-sm shadow-[0_4px_10px_rgba(37,99,235,0.2)] border-2 border-white ring-1 ring-slate-100">
+                  {(user?.email?.[0] || user?.role?.[0] || 'U').toUpperCase()}
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+              </button>
+
+              {/* Profile Dropdown Popup */}
+              {isProfileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl border border-slate-100 shadow-[0_10px_30px_rgba(0,0,0,0.08)] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* Dropdown Header */}
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-base shrink-0">
+                      {(user?.email?.[0] || user?.role?.[0] || 'U').toUpperCase()}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-black text-slate-800 truncate">
+                        {user?.email || user?.phone || 'User Account'}
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-600 flex items-center gap-1 mt-0.5">
+                        <ShieldCheck className="w-3 h-3" /> {user?.role || 'Member'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Options */}
+                  <div className="py-1">
+                    <Link
+                      to={getProfilePath()}
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                    >
+                      <User className="w-4 h-4 text-slate-400" /> My Account Profile
+                    </Link>
+                    
+                    <Link
+                      to={getProfilePath()}
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                    >
+                      <KeyRound className="w-4 h-4 text-slate-400" /> Security & Password
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-1 mt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500" /> Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </nav>

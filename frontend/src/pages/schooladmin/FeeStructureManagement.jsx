@@ -316,13 +316,13 @@ const FeeStructureManagement = () => {
                           {item.category_id?.name || 'Fee Category'}
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap text-xs font-black text-slate-800">
-                          ${item.amount}
+                          ₹{item.amount}
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap text-xs font-semibold text-slate-500">
                           {new Date(item.due_date).toLocaleDateString()}
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap text-xs font-semibold text-slate-500">
-                          {item.fine_type !== 'None' ? `${item.fine_type} Fine ($${item.fine_amount})` : 'No fine'}
+                          {item.fine_type !== 'None' ? `${item.fine_type} Fine (₹${item.fine_amount})` : 'No fine'}
                         </td>
                       </tr>
                     ))}
@@ -416,7 +416,7 @@ const FeeStructureManagement = () => {
                         <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Amount *</label>
                         <input
                           type="number"
-                          placeholder="$"
+                          placeholder="₹"
                           value={item.amount}
                           onChange={(e) => handleItemChange(idx, 'amount', Number(e.target.value))}
                           className="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-[11px] font-bold text-slate-700"
@@ -451,7 +451,7 @@ const FeeStructureManagement = () => {
                         <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Fine Amount</label>
                         <input
                           type="number"
-                          placeholder="$"
+                          placeholder="₹"
                           value={item.fine_amount}
                           onChange={(e) => handleItemChange(idx, 'fine_amount', Number(e.target.value))}
                           disabled={item.fine_type === 'None'}

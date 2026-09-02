@@ -309,19 +309,19 @@ const FeeCollection = () => {
                 <div className="grid grid-cols-4 gap-4 p-4 bg-slate-50/50 rounded-xl">
                   <div>
                     <span className="text-[9px] font-bold text-slate-400 block uppercase">Total Base</span>
-                    <strong className="text-xs font-black text-slate-800">${totalAssigned}</strong>
+                    <strong className="text-xs font-black text-slate-800">₹{totalAssigned}</strong>
                   </div>
                   <div>
                     <span className="text-[9px] font-bold text-slate-400 block uppercase">Waivers</span>
-                    <strong className="text-xs font-black text-emerald-600">${totalWaivers}</strong>
+                    <strong className="text-xs font-black text-emerald-600">₹{totalWaivers}</strong>
                   </div>
                   <div>
                     <span className="text-[9px] font-bold text-slate-400 block uppercase">Setted Paid</span>
-                    <strong className="text-xs font-black text-blue-600">${totalPaid}</strong>
+                    <strong className="text-xs font-black text-blue-600">₹{totalPaid}</strong>
                   </div>
                   <div>
                     <span className="text-[9px] font-bold text-slate-400 block uppercase">Outstanding</span>
-                    <strong className="text-xs font-black text-red-500">${totalDue > 0 ? totalDue : 0}</strong>
+                    <strong className="text-xs font-black text-red-500">₹{totalDue > 0 ? totalDue : 0}</strong>
                   </div>
                 </div>
               </div>
@@ -374,7 +374,7 @@ const FeeCollection = () => {
                     <div className="md:col-span-2">
                       <strong className="text-xs font-bold text-slate-700 block">{item.name}</strong>
                       <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Base: ${item.amount} | Waiver: ${item.discount_amount} | Paid: ${item.paid_amount}
+                        Base: ₹{item.amount} | Waiver: ₹{item.discount_amount} | Paid: ₹{item.paid_amount}
                       </span>
                     </div>
 
@@ -383,7 +383,7 @@ const FeeCollection = () => {
                       <span className="text-[9px] font-bold text-slate-400 block uppercase">Overdue Fine</span>
                       {item.fine_calculated > 0 ? (
                         <strong className="text-xs font-bold text-amber-600 flex items-center">
-                          <AlertTriangle className="w-3.5 h-3.5 mr-1" /> ${item.fine_calculated}
+                          <AlertTriangle className="w-3.5 h-3.5 mr-1" /> ₹{item.fine_calculated}
                         </strong>
                       ) : (
                         <strong className="text-xs font-semibold text-slate-500">No Fine</strong>
@@ -406,7 +406,7 @@ const FeeCollection = () => {
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Pay Base Amount</label>
                       <input
                         type="number"
-                        placeholder={`Max $${item.remaining}`}
+                        placeholder={`Max ₹${item.remaining}`}
                         value={item.amount_to_pay}
                         onChange={(e) => handlePayoutItemChange(idx, 'amount_to_pay', e.target.value)}
                         className="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-[11px] font-bold text-slate-750"
@@ -418,7 +418,7 @@ const FeeCollection = () => {
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Pay Late Fine</label>
                       <input
                         type="number"
-                        placeholder={`Fine $${item.fine_calculated}`}
+                        placeholder={`Fine ₹${item.fine_calculated}`}
                         value={item.fine_to_pay}
                         onChange={(e) => handlePayoutItemChange(idx, 'fine_to_pay', e.target.value)}
                         disabled={item.fine_calculated === 0}
@@ -506,7 +506,7 @@ const FeeCollection = () => {
                 >
                   <strong className="text-xs font-bold text-slate-800 block">{disc.name}</strong>
                   <span className="text-[10px] text-slate-400 block mt-0.5">
-                    Waiver: {disc.type === 'Percentage' ? `${disc.amount}%` : `$${disc.amount}`} | Reason: {disc.reason || 'None'}
+                    Waiver: {disc.type === 'Percentage' ? `${disc.amount}%` : `₹${disc.amount}`} | Reason: {disc.reason || 'None'}
                   </span>
                 </button>
               ))}
@@ -587,9 +587,9 @@ const FeeCollection = () => {
                   {receiptData.breakdown?.map((item, idx) => (
                     <tr key={idx} className="text-xs">
                       <td className="px-4 py-2 font-bold text-slate-700">Fee Category Line</td>
-                      <td className="px-4 py-2 text-right text-emerald-600 font-semibold">${item.discount_applied || 0}</td>
-                      <td className="px-4 py-2 text-right text-amber-600 font-semibold">${item.fine_paid || 0}</td>
-                      <td className="px-4 py-2 text-right font-black text-slate-850">${item.amount + item.fine_paid}</td>
+                      <td className="px-4 py-2 text-right text-emerald-600 font-semibold">₹{item.discount_applied || 0}</td>
+                      <td className="px-4 py-2 text-right text-amber-600 font-semibold">₹{item.fine_paid || 0}</td>
+                      <td className="px-4 py-2 text-right font-black text-slate-850">₹{item.amount + item.fine_paid}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -599,7 +599,7 @@ const FeeCollection = () => {
             {/* Total Paid Display */}
             <div className="flex justify-between items-center p-4 bg-slate-900 text-white rounded-xl">
               <span className="text-xs font-black uppercase tracking-wider">TOTAL AMOUNT SETTLED</span>
-              <strong className="text-lg font-black">${receiptData.amount_paid}</strong>
+              <strong className="text-lg font-black">₹{receiptData.amount_paid}</strong>
             </div>
 
             {/* Signature Block */}

@@ -129,8 +129,8 @@ const DiscountManagement = () => {
                         <span className="text-sm font-bold text-slate-800">{scheme.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs font-black text-slate-850">
-                      {scheme.type === 'Percentage' ? `${scheme.amount}% Off` : `$${scheme.amount} Flat`}
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-black text-slate-855">
+                      {scheme.type === 'Percentage' ? `${scheme.amount}% Off` : `₹${scheme.amount} Flat`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500">
                       {scheme.reason || 'Concession program'}
@@ -193,7 +193,7 @@ const DiscountManagement = () => {
                   {...register('type', { required: true })}
                   className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none cursor-pointer"
                 >
-                  <option value="Fixed">Fixed Amount ($)</option>
+                  <option value="Fixed">Fixed Amount (₹)</option>
                   <option value="Percentage">Percentage waiver (%)</option>
                 </select>
               </div>

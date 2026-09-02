@@ -14,30 +14,35 @@ const connectDB = async () => {
     }
 };
 
-const seedSuperAdmin = async () => {
+const seedAllUsers = async () => {
     try {
         await connectDB();
 
-        const superAdminExists = await User.findOne({ email: 'admin@system.com' });
+        const defaultUsers = [
+            { email: 'admin@system.com', password: 'Admin@123', role: 'SuperAdmin' },
+            { email: 'schooladmin@system.com', password: 'Admin@123', role: 'SchoolAdmin' },
+            { email: 'teacher@system.com', password: 'Admin@123', role: 'Teacher' },
+            { email: 'staff@system.com', password: 'Admin@123', role: 'Staff' },
+            { email: 'parent@system.com', password: 'Admin@123', role: 'Parent' },
+        ];
 
-        if (superAdminExists) {
-            console.log('Super Admin already exists!');
-            process.exit(0);
+        for (const u of defaultUsers) {
+            const exists = await User.findOne({ email: u.email });
+            if (!exists) {
+                const newUser = new User(u);
+                await newUser.save();
+                console.log(`Created demo user: ${u.email} (${u.role})`);
+            } else {
+                console.log(`Demo user already exists: ${u.email}`);
+            }
         }
 
-        const superAdmin = new User({
-            email: 'admin@system.com',
-            password: 'Admin@123',
-            role: 'SuperAdmin'
-        });
-
-        await superAdmin.save();
-        console.log('Super Admin account created successfully!');
+        console.log('Seeding completed successfully!');
         process.exit(0);
     } catch (error) {
-        console.error('Error seeding Super Admin: ', error);
+        console.error('Error seeding users: ', error);
         process.exit(1);
     }
 };
 
-seedSuperAdmin();
+seedAllUsers();

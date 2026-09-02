@@ -20,7 +20,7 @@ const StudentManagement = () => {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // Table Filters (Mighty School style)
+  // Table Filters (S1 School style)
   const [classFilter, setClassFilter] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
   const [appliedClassFilter, setAppliedClassFilter] = useState('');

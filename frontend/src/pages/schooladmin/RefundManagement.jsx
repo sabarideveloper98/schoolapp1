@@ -79,7 +79,7 @@ const RefundManagement = () => {
                       <span className="text-xs font-semibold text-slate-400">Class: {ref.class?.class} - {ref.class?.section}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-red-500">${ref.amount}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-red-500">₹{ref.amount}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500 max-w-xs truncate">{ref.reason}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500">{new Date(ref.date).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">

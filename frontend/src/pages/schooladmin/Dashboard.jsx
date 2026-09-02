@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar, Coins, Wallet, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar, Coins, Wallet, TrendingUp, User } from 'lucide-react';
 import Layout from '../../components/Layout';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -36,6 +36,7 @@ import ExpenseCategoryManagement from './ExpenseCategoryManagement';
 import ExpenseManagement from './ExpenseManagement';
 import IncomeManagement from './IncomeManagement';
 import FinanceReports from './FinanceReports';
+import AccountProfile from '../AccountProfile';
 
 const StatCard = ({ title, value, icon: Icon, color }) => {
   const textColorClass = color.replace('bg-', 'text-').replace('-500', '-600');
@@ -175,6 +176,11 @@ const SchoolAdminDashboard = () => {
         { label: 'Financial Reports', path: '/school-admin/finance/reports' },
       ],
     },
+    {
+      label: 'My Account',
+      icon: User,
+      path: '/school-admin/profile',
+    },
   ];
 
   return (
@@ -212,6 +218,7 @@ const SchoolAdminDashboard = () => {
         <Route path="/finance/expenses" element={<ExpenseManagement />} />
         <Route path="/finance/income" element={<IncomeManagement />} />
         <Route path="/finance/reports" element={<FinanceReports />} />
+        <Route path="/profile" element={<AccountProfile />} />
         <Route path="*" element={<Navigate to="/school-admin/dashboard" replace />} />
       </Routes>
     </Layout>

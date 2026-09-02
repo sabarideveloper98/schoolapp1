@@ -226,7 +226,7 @@ const StudentFeeAssignment = () => {
                 </option>
                 {filteredStructures.map(s => (
                   <option key={s._id} value={s._id}>
-                    {s.items.length} items (${s.items.reduce((sum, item) => sum + item.amount, 0)} total)
+                    {s.items.length} items (₹{s.items.reduce((sum, item) => sum + item.amount, 0)} total)
                   </option>
                 ))}
               </select>
@@ -281,7 +281,7 @@ const StudentFeeAssignment = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {assigned ? (
                         <span className="inline-flex items-center text-xs font-bold text-emerald-600">
-                          <CheckCircle className="w-4 h-4 mr-1 inline" /> Configured (${assigned.items.reduce((s, i) => s + i.amount, 0)})
+                          <CheckCircle className="w-4 h-4 mr-1 inline" /> Configured (₹{assigned.items.reduce((s, i) => s + i.amount, 0)})
                         </span>
                       ) : (
                         <span className="inline-flex items-center text-xs font-bold text-amber-500">

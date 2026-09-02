@@ -196,7 +196,7 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Total Bill</span>
                 <h3 className="text-xl font-black text-slate-800 mt-1">
-                  ${activeChildFee.items.reduce((s, i) => s + i.amount, 0)}
+                  ₹{activeChildFee.items.reduce((s, i) => s + i.amount, 0)}
                 </h3>
               </div>
               <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
@@ -208,7 +208,7 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Concessions</span>
                 <h3 className="text-xl font-black text-emerald-600 mt-1">
-                  ${activeChildFee.items.reduce((s, i) => s + i.discount_amount, 0)}
+                  ₹{activeChildFee.items.reduce((s, i) => s + i.discount_amount, 0)}
                 </h3>
               </div>
               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -220,7 +220,7 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Total Paid</span>
                 <h3 className="text-xl font-black text-blue-600 mt-1">
-                  ${activeChildFee.items.reduce((s, i) => s + i.paid_amount, 0)}
+                  ₹{activeChildFee.items.reduce((s, i) => s + i.paid_amount, 0)}
                 </h3>
               </div>
               <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
@@ -232,14 +232,14 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Outstanding Balance</span>
                 <h3 className="text-xl font-black text-red-500 mt-1">
-                  ${activeChildFee.items.reduce((s, i) => {
+                  ₹{activeChildFee.items.reduce((s, i) => {
                     const o = i.amount - i.discount_amount - i.paid_amount;
                     return s + (o > 0 ? o : 0);
                   }, 0)}
                 </h3>
               </div>
-              <div className="p-3 bg-red-50 text-red-550 rounded-xl">
-                <Clock className="w-5 h-5" />
+              <div className="p-3 bg-red-50 text-red-500 rounded-xl">
+                <AlertTriangle className="w-5 h-5" />
               </div>
             </div>
           </div>
@@ -247,25 +247,25 @@ const ParentFees = () => {
           {/* Active Bills Table */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Fee Structure Details</h3>
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Assigned Fee Schedule</h3>
               <button
                 onClick={() => setIsRefundModalOpen(true)}
-                className="text-[10px] font-bold text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
-                Request Payout Refund
+                Request Fee Refund
               </button>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50/50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Billing Description</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Fee Line Item</th>
                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Waiver Applied</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Overdue Fine</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Concession</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Fine</th>
                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Due Date</th>
                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Checkout</th>
+                    <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -276,10 +276,10 @@ const ParentFees = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-850">
                           {item.category_id?.name || 'Category'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-700">${item.amount}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-emerald-600">${item.discount_amount}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-700">₹{item.amount}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-emerald-600">₹{item.discount_amount}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-amber-600">
-                          ${item.fine_calculated || 0}
+                          ₹{item.fine_calculated || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500">
                           {new Date(item.due_date).toLocaleDateString()}
@@ -330,7 +330,7 @@ const ParentFees = () => {
                     {activeChildFee.refunds.map(ref => (
                       <tr key={ref._id} className="text-xs">
                         <td className="px-4 py-2.5 font-bold text-slate-700">{ref.ref_no}</td>
-                        <td className="px-4 py-2.5 font-black text-red-500">${ref.amount}</td>
+                        <td className="px-4 py-2.5 font-black text-red-500">₹{ref.amount}</td>
                         <td className="px-4 py-2.5 font-semibold text-slate-500">{ref.reason}</td>
                         <td className="px-4 py-2.5">
                           <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold ${
@@ -369,7 +369,7 @@ const ParentFees = () => {
                       <td className="px-4 py-2.5 font-bold text-slate-800">{pay.receipt_number}</td>
                       <td className="px-4 py-2.5 font-semibold text-slate-500">{new Date(pay.payment_date).toLocaleDateString()}</td>
                       <td className="px-4 py-2.5 font-bold text-slate-600">{pay.payment_method}</td>
-                      <td className="px-4 py-2.5 font-black text-blue-600">${pay.amount_paid}</td>
+                      <td className="px-4 py-2.5 font-black text-blue-600">₹{pay.amount_paid}</td>
                       <td className="px-4 py-2.5 text-right">
                         <button
                           onClick={() => showPastReceipt(pay)}
@@ -419,7 +419,7 @@ const ParentFees = () => {
 
             <div className="bg-slate-800/50 p-4 rounded-xl space-y-1">
               <span className="text-[10px] text-slate-400 block uppercase font-bold">Billing Payout Amount</span>
-              <strong className="text-xl font-black text-white">${payoutAmount}</strong>
+              <strong className="text-xl font-black text-white">₹{payoutAmount}</strong>
             </div>
 
             <form onSubmit={handleSimulatePayment} className="space-y-4">
@@ -459,7 +459,7 @@ const ParentFees = () => {
                 disabled={processing}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white h-11 rounded-xl text-xs font-black shadow-lg transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
               >
-                {processing ? 'Authorizing Payout...' : `Pay Securely $${payoutAmount}`}
+                {processing ? 'Authorizing Payout...' : `Pay Securely ₹${payoutAmount}`}
               </button>
             </form>
 
@@ -475,7 +475,7 @@ const ParentFees = () => {
             
             <form onSubmit={handleRequestRefund} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Refund Amount ($) *</label>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Refund Amount (₹) *</label>
                 <input
                   type="number"
                   placeholder="e.g. 500"
@@ -571,9 +571,9 @@ const ParentFees = () => {
                   {receiptData.breakdown?.map((item, idx) => (
                     <tr key={idx} className="text-xs">
                       <td className="px-4 py-2 font-bold text-slate-700">Fee Category Line</td>
-                      <td className="px-4 py-2 text-right text-emerald-600 font-semibold">${item.discount_applied || 0}</td>
-                      <td className="px-4 py-2 text-right text-amber-600 font-semibold">${item.fine_paid || 0}</td>
-                      <td className="px-4 py-2 text-right font-black text-slate-850">${item.amount + item.fine_paid}</td>
+                      <td className="px-4 py-2 text-right text-emerald-600 font-semibold">₹{item.discount_applied || 0}</td>
+                      <td className="px-4 py-2 text-right text-amber-600 font-semibold">₹{item.fine_paid || 0}</td>
+                      <td className="px-4 py-2 text-right font-black text-slate-850">₹{item.amount + item.fine_paid}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -582,7 +582,7 @@ const ParentFees = () => {
 
             <div className="flex justify-between items-center p-4 bg-slate-900 text-white rounded-xl">
               <span className="text-xs font-black uppercase tracking-wider">TOTAL AMOUNT SETTLED</span>
-              <strong className="text-lg font-black">${receiptData.amount_paid}</strong>
+              <strong className="text-lg font-black">₹{receiptData.amount_paid}</strong>
             </div>
 
             <div className="flex justify-between items-end pt-8 text-xs font-bold text-slate-400">

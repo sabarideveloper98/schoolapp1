@@ -179,7 +179,7 @@ const SalaryReports = () => {
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase">Paid Expense</p>
-            <h3 className="text-xl font-black text-slate-800 mt-1">${dashboardStats?.monthlySalaryExpense || 0}</h3>
+            <h3 className="text-xl font-black text-slate-800 mt-1">₹{dashboardStats?.monthlySalaryExpense || 0}</h3>
           </div>
           <div className="p-3 bg-slate-900 text-white rounded-xl">
             <BarChart3 className="w-5 h-5" />
@@ -277,8 +277,8 @@ const SalaryReports = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-700">{rec.attendance_summary.working_days}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-emerald-600">{rec.attendance_summary.present_days}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-red-500">{rec.attendance_summary.absent_days}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">${rec.salary_breakdown.gross_salary}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-blue-600">${rec.salary_breakdown.net_salary}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">₹{rec.salary_breakdown.gross_salary}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-blue-600">₹{rec.salary_breakdown.net_salary}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
                       rec.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600' :

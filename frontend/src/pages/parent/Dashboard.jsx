@@ -3,9 +3,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
-import { Users, Wallet } from 'lucide-react';
+import { Users, Wallet, User } from 'lucide-react';
 import Layout from '../../components/Layout';
 import ParentFees from './ParentFees';
+import AccountProfile from '../AccountProfile';
 
 const ParentOverview = ({ childrenList }) => {
   return (
@@ -79,6 +80,7 @@ const ParentDashboard = () => {
   const menuItems = [
     { label: 'My Children', path: '/parent/dashboard', icon: Users },
     { label: 'Fee Details', path: '/parent/fees', icon: Wallet },
+    { label: 'My Account', path: '/parent/profile', icon: User },
   ];
 
   if (loading) return <div className="flex justify-center py-12 text-slate-500 font-medium">Loading dashboard...</div>;
@@ -88,6 +90,7 @@ const ParentDashboard = () => {
       <Routes>
         <Route path="/dashboard" element={<ParentOverview childrenList={dashboardData?.children} />} />
         <Route path="/fees" element={<ParentFees />} />
+        <Route path="/profile" element={<AccountProfile />} />
         <Route path="*" element={<Navigate to="/parent/dashboard" replace />} />
       </Routes>
     </Layout>

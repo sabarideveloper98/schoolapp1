@@ -1,10 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Users, BookOpen, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, MessageSquare, User } from 'lucide-react';
 import Layout from '../../components/Layout';
 
 import TeacherStudents from './TeacherStudents';
 import TeacherClasses from './TeacherClasses';
 import TeacherMessages from './TeacherMessages';
+import AccountProfile from '../AccountProfile';
 
 const TeacherDashboard = () => {
   const menuItems = [
@@ -28,6 +29,11 @@ const TeacherDashboard = () => {
       subItems: [
         { label: 'Messages & Chat', path: '/teacher/messages' }
       ]
+    },
+    {
+      label: 'My Account',
+      icon: User,
+      path: '/teacher/profile'
     }
   ];
 
@@ -37,6 +43,7 @@ const TeacherDashboard = () => {
         <Route path="/students" element={<TeacherStudents />} />
         <Route path="/classes" element={<TeacherClasses />} />
         <Route path="/messages" element={<TeacherMessages />} />
+        <Route path="/profile" element={<AccountProfile />} />
         <Route path="*" element={<Navigate to="/teacher/students" replace />} />
       </Routes>
     </Layout>

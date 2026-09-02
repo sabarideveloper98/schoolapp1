@@ -12,7 +12,7 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
   useEffect(() => {
     menuItems.forEach((item) => {
       if (item.subItems) {
-        const hasActiveChild = item.subItems.some(sub => 
+        const hasActiveChild = item.subItems.some(sub =>
           location.pathname === sub.path || (sub.path !== '/' && location.pathname.startsWith(sub.path))
         );
         if (hasActiveChild) {
@@ -35,13 +35,15 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
       {/* Brand Header */}
       <div className="p-5 border-b border-slate-100 flex justify-between items-center h-[70px]">
         <div className="flex items-center gap-3 overflow-hidden">
-          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20 shrink-0">
-            <GraduationCap className="w-5 h-5" />
-          </span>
+          <img
+            src="/s1-logo.png"
+            alt="S1 Logo"
+            className="w-9 h-9 rounded-xl object-cover shrink-0 shadow-md shadow-blue-500/20"
+          />
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="text-lg font-black text-blue-700 tracking-tight leading-tight">Mighty</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Manager</span>
+              <span className="text-lg font-black text-blue-700 tracking-tight leading-tight">S1</span>
+              {/* <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Manager</span> */}
             </div>
           )}
         </div>
@@ -59,10 +61,10 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
       <div className="flex-1 overflow-y-auto py-5 flex flex-col gap-1.5 px-3 custom-scrollbar">
         {menuItems.map((item, index) => {
           const Icon = item.icon || LayoutDashboard;
-          
+
           if (item.subItems) {
             const isExpanded = expandedGroup === item.label;
-            const hasActiveChild = item.subItems.some(sub => 
+            const hasActiveChild = item.subItems.some(sub =>
               location.pathname === sub.path || (sub.path !== '/' && location.pathname.startsWith(sub.path))
             );
 
@@ -70,11 +72,10 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
               <div key={index} className="flex flex-col gap-1 w-full">
                 <button
                   onClick={() => toggleGroup(item.label)}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                    hasActiveChild && !isCollapsed
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${hasActiveChild && !isCollapsed
                       ? 'text-blue-600 bg-blue-50/20'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className={`w-5 h-5 shrink-0 ${hasActiveChild ? 'text-blue-600' : 'text-slate-400'}`} />
@@ -94,11 +95,10 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
                           key={sIndex}
                           to={sub.path}
                           onClick={onClose}
-                          className={`flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                            isSubActive
+                          className={`flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${isSubActive
                               ? 'bg-blue-50/80 text-blue-700 shadow-sm shadow-blue-500/5'
                               : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50/50'
-                          }`}
+                            }`}
                         >
                           {sub.label}
                         </Link>
@@ -117,11 +117,10 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
               key={index}
               to={item.path}
               onClick={onClose}
-              className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 text-sm font-semibold ${
-                isActive
+              className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 text-sm font-semibold ${isActive
                   ? 'bg-blue-50/80 text-blue-700 shadow-sm shadow-blue-500/5'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
               {!isCollapsed && <span className="truncate">{item.label}</span>}

@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, Users, UserSquare2, GraduationCap, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UserSquare2, GraduationCap, UserCheck, User } from 'lucide-react';
 import Layout from '../../components/Layout';
 import SchoolManagement from './SchoolManagement';
+import AccountProfile from '../AccountProfile';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -26,46 +27,46 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
 
 const DashboardOverview = () => {
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const res = await axios.get('http://localhost:5005/api/superadmin/dashboard', config);
-        setStats(res.data);
-        setLoading(false);
+        const { data } = await axios.get('http://localhost:5005/api/superadmin/stats', config);
+        setStats(data);
       } catch (error) {
-        toast.error('Failed to fetch dashboard stats');
-        setLoading(false);
+        toast.error('Failed to fetch superadmin stats');
       }
     };
-
-    if (user?.token) fetchStats();
+    if (user?.token) {
+      fetchStats();
+    }
   }, [user]);
-
-  if (loading) return <div className="flex justify-center py-12 text-slate-500 font-medium">Loading overview...</div>;
 
   return (
     <div className="space-y-6">
-      {/* Page Header and Breadcrumb */}
       <div>
-        <h2 className="text-2xl font-black text-slate-800">Dashboard</h2>
+        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Super Admin System Overview</h2>
         <div className="text-xs font-bold text-slate-400 mt-1 flex items-center gap-1.5">
           <span>Home</span>
           <span>-</span>
-          <span className="text-blue-600">At-a-glance</span>
+          <span className="text-blue-600">Global System Metrics</span>
         </div>
       </div>
 
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard
-          title="Total Schools"
+          title="Registered Schools"
           value={stats?.totalSchools || 0}
           icon={Building2}
           color="bg-blue-500"
+        />
+        <StatCard
+          title="Total Students"
+          value={stats?.totalStudents || 0}
+          icon={GraduationCap}
+          color="bg-indigo-500"
         />
         <StatCard
           title="Total Teachers"
@@ -78,12 +79,6 @@ const DashboardOverview = () => {
           value={stats?.totalStaff || 0}
           icon={Users}
           color="bg-amber-500"
-        />
-        <StatCard
-          title="Total Students"
-          value={stats?.totalStudents || 0}
-          icon={GraduationCap}
-          color="bg-indigo-500"
         />
         <StatCard
           title="Total Parents"
@@ -100,6 +95,7 @@ const SuperAdminDashboard = () => {
   const menuItems = [
     { label: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
     { label: 'School Management', path: '/super-admin/schools', icon: Building2 },
+    { label: 'My Account', path: '/super-admin/profile', icon: User },
   ];
 
   return (
@@ -107,6 +103,7 @@ const SuperAdminDashboard = () => {
       <Routes>
         <Route path="/dashboard" element={<DashboardOverview />} />
         <Route path="/schools" element={<SchoolManagement />} />
+        <Route path="/profile" element={<AccountProfile />} />
         <Route path="*" element={<Navigate to="/super-admin/dashboard" replace />} />
       </Routes>
     </Layout>

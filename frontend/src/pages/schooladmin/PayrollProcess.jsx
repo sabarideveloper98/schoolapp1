@@ -311,13 +311,13 @@ const PayrollProcess = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">
-                      ${rec.salary_breakdown.monthly_salary}
+                      ₹{rec.salary_breakdown.monthly_salary}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-extrabold text-slate-700">
                       {rec.salary_breakdown.payable_days} / {summary.working_days} Days
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-blue-600">
-                      ${rec.salary_breakdown.net_salary}
+                      ₹{rec.salary_breakdown.net_salary}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
@@ -433,19 +433,19 @@ const PayrollProcess = () => {
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide mb-3">Adjust Allowances</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">HRA ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">HRA (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.allowances.hra')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Transport ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Transport (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.allowances.transport')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Medical ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Medical (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.allowances.medical')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.allowances.other')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                 </div>
@@ -456,19 +456,19 @@ const PayrollProcess = () => {
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide mb-3">Adjust Deductions</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">PF ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">PF (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.deductions.pf')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ESI ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ESI (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.deductions.esi')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Prof. Tax ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Prof. Tax (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.deductions.professional_tax')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other ($)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Other (₹)</label>
                     <input type="number" step="0.01" {...register('salary_breakdown.deductions.other')} className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
                   </div>
                 </div>
@@ -478,14 +478,14 @@ const PayrollProcess = () => {
               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row gap-6 justify-between items-center shadow-inner">
                 <div>
                   <h4 className="text-xs font-black text-slate-850 uppercase">Formulas Calculations Summary</h4>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1">Per day: ${(activeRecord?.salary_breakdown.monthly_salary / (watchWorkingDays || 1)).toFixed(2)} | Payable: {Number(watchPresentDays) + Number(watchPaidLeaves) + (Number(watchHalfDays) * 0.5)} Days</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">Per day: ₹{(activeRecord?.salary_breakdown.monthly_salary / (watchWorkingDays || 1)).toFixed(2)} | Payable: {Number(watchPresentDays) + Number(watchPaidLeaves) + (Number(watchHalfDays) * 0.5)} Days</p>
                 </div>
                 
                 <div className="flex gap-6 items-center">
                   <div className="text-right">
                     <span className="text-[10px] font-black text-slate-400 block uppercase">Calculated Net Payable</span>
                     <span className="text-2xl font-black text-blue-600">
-                      ${(
+                      ₹{(
                         ((activeRecord?.salary_breakdown.monthly_salary / (watchWorkingDays || 1)) * 
                         (Number(watchPresentDays) + Number(watchPaidLeaves) + (Number(watchHalfDays) * 0.5))) +
                         (Number(watchHra) + Number(watchTransport) + Number(watchMedical) + Number(watchOtherAllowances)) -
@@ -558,7 +558,7 @@ const PayrollProcess = () => {
               
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
                 <span className="text-[10px] font-black text-slate-400 uppercase">Settlement Net Payable</span>
-                <span className="block text-2xl font-black text-emerald-600 mt-0.5">${paymentRecord?.salary_breakdown.net_salary}</span>
+                <span className="block text-2xl font-black text-emerald-600 mt-0.5">₹{paymentRecord?.salary_breakdown.net_salary}</span>
               </div>
             </div>
 
