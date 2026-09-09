@@ -23,6 +23,7 @@ const superAdminRoutes = require('./routes/superAdminRoutes');
 const schoolAdminRoutes = require('./routes/schoolAdminRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const parentRoutes = require('./routes/parentRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
 
 // Mount routers
 app.use('/api/auth', authRoutes);
@@ -30,6 +31,7 @@ app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/schooladmin', schoolAdminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/parent', parentRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 app.get('/', (req, res) => {
     res.send('School Management System API is running...');
 });
