@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, Users, UserSquare2, GraduationCap, UserCheck, User, Coins } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UserSquare2, GraduationCap, UserCheck, User, Coins, TrendingUp, Wallet } from 'lucide-react';
 import Layout from '../../components/Layout';
 import SchoolManagement from './SchoolManagement';
 import AccountProfile from '../AccountProfile';
@@ -9,7 +9,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 
-const StatCard = ({ title, value, icon: Icon, color }) => {
+const StatCard = ({ title, value, icon: Icon, color, isCurrency = false, subtitle }) => {
   // Map background utility color class to text color class
   const textColorClass = color.replace('bg-', 'text-').replace('-500', '-600');
   
@@ -17,9 +17,14 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
     <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-6 border border-slate-100 flex items-center justify-between transition-all hover:scale-[1.02] duration-300">
       <div>
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-3xl font-black text-slate-800">{value}</h3>
+        <h3 className="text-2xl sm:text-3xl font-black text-slate-800">
+          {isCurrency ? `₹${(Number(value) || 0).toLocaleString()}` : (Number(value) || 0).toLocaleString()}
+        </h3>
+        {subtitle && (
+          <p className="text-[11px] font-semibold text-slate-400 mt-1">{subtitle}</p>
+        )}
       </div>
-      <div className={`p-4 rounded-2xl ${color} bg-opacity-10`}>
+      <div className={`p-4 rounded-2xl ${color} bg-opacity-10 shrink-0`}>
         <Icon className={`w-7 h-7 ${textColorClass}`} />
       </div>
     </div>
@@ -56,7 +61,7 @@ const DashboardOverview = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Registered Schools"
           value={stats?.totalSchools || 0}
@@ -82,10 +87,18 @@ const DashboardOverview = () => {
           color="bg-amber-500"
         />
         <StatCard
+          title="Total Expense Amount"
+          value={stats?.totalExpenses || 0}
+          icon={TrendingUp}
+          color="bg-rose-500"
+          isCurrency={true}
+          subtitle={`General: ₹${(stats?.generalExpenses || 0).toLocaleString()} • Payroll: ₹${(stats?.payrollExpenses || 0).toLocaleString()}`}
+        />
+        <StatCard
           title="Total Parents"
           value={stats?.totalParents || 0}
           icon={UserCheck}
-          color="bg-pink-500"
+          color="bg-purple-500"
         />
       </div>
     </div>

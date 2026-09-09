@@ -38,6 +38,9 @@ import IncomeManagement from './IncomeManagement';
 import FinanceReports from './FinanceReports';
 import AccountProfile from '../AccountProfile';
 import SubscriptionManagement from './SubscriptionManagement';
+import TransportManagement from './TransportManagement';
+import HomeworkManagement from './HomeworkManagement';
+import { Navigation } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, color }) => {
   const textColorClass = color.replace('bg-', 'text-').replace('-500', '-600');
@@ -102,6 +105,34 @@ const DashboardOverview = () => {
 };
 
 const SchoolAdminDashboard = () => {
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [loadingSub, setLoadingSub] = useState(true);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    const checkSubscriptionStatus = async () => {
+      try {
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const { data } = await axios.get('http://localhost:5005/api/subscription/schooladmin/current', config);
+        
+        const activeSub = data?.activeSubscription;
+        const isCurrentlyActive = activeSub && activeSub.status === 'Active' && new Date(activeSub.subscription_end_date) > new Date();
+        
+        setHasActiveSubscription(!!isCurrentlyActive);
+      } catch (error) {
+        setHasActiveSubscription(false);
+      } finally {
+        setLoadingSub(false);
+      }
+    };
+
+    if (user?.token) {
+      checkSubscriptionStatus();
+    } else {
+      setLoadingSub(false);
+    }
+  }, [user]);
+
   const menuItems = [
     {
       label: 'Dashboard',
@@ -143,7 +174,8 @@ const SchoolAdminDashboard = () => {
         { label: 'Classes & Sections', path: '/school-admin/classes' },
       ],
     },
-    {
+    // Conditionally include Payroll & Salary menu ONLY if active subscription exists
+    ...(hasActiveSubscription ? [{
       label: 'Payroll & Salary',
       icon: Coins,
       subItems: [
@@ -152,7 +184,7 @@ const SchoolAdminDashboard = () => {
         { label: 'Salary Slips', path: '/school-admin/salary/slips' },
         { label: 'Salary Reports', path: '/school-admin/salary/reports' },
       ],
-    },
+    }] : []),
     {
       label: 'Fee Management',
       icon: Wallet,
@@ -178,7 +210,17 @@ const SchoolAdminDashboard = () => {
       ],
     },
     {
-      label: 'SaaS Subscription',
+      label: 'Transport Management',
+      icon: Navigation,
+      path: '/school-admin/transport',
+    },
+    {
+      label: 'Homework Assignment',
+      icon: BookOpen,
+      path: '/school-admin/homework',
+    },
+    {
+      label: 'Subscription',
       icon: CreditCard,
       path: '/school-admin/subscription',
     },
@@ -208,10 +250,13 @@ const SchoolAdminDashboard = () => {
         <Route path="/classes" element={<ClassManagement />} />
         <Route path="/students" element={<StudentManagement />} />
         <Route path="/students/create" element={<StudentCreate />} />
-        <Route path="/salary/setup" element={<SalarySetup />} />
-        <Route path="/salary/process" element={<PayrollProcess />} />
-        <Route path="/salary/slips" element={<SalarySlips />} />
-        <Route path="/salary/reports" element={<SalaryReports />} />
+        
+        {/* Payroll routes - protected by active subscription */}
+        <Route path="/salary/setup" element={hasActiveSubscription ? <SalarySetup /> : <Navigate to="/school-admin/subscription" replace />} />
+        <Route path="/salary/process" element={hasActiveSubscription ? <PayrollProcess /> : <Navigate to="/school-admin/subscription" replace />} />
+        <Route path="/salary/slips" element={hasActiveSubscription ? <SalarySlips /> : <Navigate to="/school-admin/subscription" replace />} />
+        <Route path="/salary/reports" element={hasActiveSubscription ? <SalaryReports /> : <Navigate to="/school-admin/subscription" replace />} />
+        
         <Route path="/fees/categories" element={<FeeCategoryManagement />} />
         <Route path="/fees/structures" element={<FeeStructureManagement />} />
         <Route path="/fees/assignments" element={<StudentFeeAssignment />} />
@@ -224,6 +269,10 @@ const SchoolAdminDashboard = () => {
         <Route path="/finance/expenses" element={<ExpenseManagement />} />
         <Route path="/finance/income" element={<IncomeManagement />} />
         <Route path="/finance/reports" element={<FinanceReports />} />
+        <Route path="/transport" element={<TransportManagement />} />
+        <Route path="/transport/*" element={<TransportManagement />} />
+        <Route path="/homework" element={<HomeworkManagement />} />
+        <Route path="/homework/*" element={<HomeworkManagement />} />
         <Route path="/subscription" element={<SubscriptionManagement />} />
         <Route path="/profile" element={<AccountProfile />} />
         <Route path="*" element={<Navigate to="/school-admin/dashboard" replace />} />

@@ -8,6 +8,9 @@ import SuperAdminDashboard from './pages/superadmin/Dashboard';
 import SchoolAdminDashboard from './pages/schooladmin/Dashboard';
 import TeacherDashboard from './pages/teacher/Dashboard';
 import ParentDashboard from './pages/parent/Dashboard';
+import StudentDashboard from './pages/student/Dashboard';
+import DriverLogin from './pages/driver/DriverLogin';
+import DriverPortal from './pages/driver/DriverPortal';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const user = useAuthStore((state) => state.user);
@@ -29,6 +32,8 @@ function App() {
       <div className="min-h-screen bg-background">
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/driver/login" element={<DriverLogin />} />
+          <Route path="/driver/portal" element={<DriverPortal />} />
           
           <Route path="/super-admin/*" element={
             <ProtectedRoute allowedRoles={['SuperAdmin']}>
@@ -45,6 +50,12 @@ function App() {
           <Route path="/teacher/*" element={
             <ProtectedRoute allowedRoles={['Teacher']}>
               <TeacherDashboard />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/student/*" element={
+            <ProtectedRoute allowedRoles={['Student']}>
+              <StudentDashboard />
             </ProtectedRoute>
           } />
 

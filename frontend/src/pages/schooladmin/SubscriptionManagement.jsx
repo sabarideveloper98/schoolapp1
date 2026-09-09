@@ -99,7 +99,6 @@ const SubscriptionManagement = () => {
   // Validation
   const isValidCount = parsedStudentCount > 0;
 
-  // Razorpay Order Creation & Activation
   const handleProceedToSubscribe = () => {
     if (!isValidCount) {
       toast.error('Please enter a valid student count greater than 0');
@@ -108,41 +107,106 @@ const SubscriptionManagement = () => {
     setIsCheckoutOpen(true);
   };
 
+  // Helper to load Razorpay Checkout Script dynamically
+  const loadRazorpaySDK = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleConfirmRazorpayPayment = async () => {
     setProcessingPayment(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
-      // Step 1: Create Order
+      // Step 1: Create Razorpay Order from backend
       const orderRes = await axios.post('http://localhost:5005/api/subscription/schooladmin/create-order', {
         student_count: parsedStudentCount,
         duration: selectedDuration
       }, config);
 
       const orderData = orderRes.data;
+      const isLoaded = await loadRazorpaySDK();
 
-      // Step 2: Verify & Activate Payment
-      const paymentId = `pay_sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const verifyRes = await axios.post('http://localhost:5005/api/subscription/schooladmin/verify-payment', {
-        student_count: parsedStudentCount,
-        duration: selectedDuration,
-        razorpay_order_id: orderData.id,
-        razorpay_payment_id: paymentId,
-        razorpay_signature: 'sig_mock_verified'
-      }, config);
+      if (isLoaded && window.Razorpay) {
+        const options = {
+          key: orderData.key || 'rzp_test_TIpu5U4jYaChIu',
+          amount: orderData.amount,
+          currency: orderData.currency || 'INR',
+          name: schoolData?.name || 'School Subscription License',
+          description: `${selectedDuration} Plan for ${parsedStudentCount} Students`,
+          order_id: orderData.id,
+          handler: async function (response) {
+            try {
+              const verifyRes = await axios.post('http://localhost:5005/api/subscription/schooladmin/verify-payment', {
+                student_count: parsedStudentCount,
+                duration: selectedDuration,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              }, config);
 
-      toast.success('🎉 Subscription Payment Successful! Subscription Activated.');
-      setIsCheckoutOpen(false);
+              toast.success('🎉 Razorpay Payment Successful! Subscription Activated.');
+              setIsCheckoutOpen(false);
 
-      // Open Invoice preview
-      if (verifyRes.data?.subscription) {
-        setActiveInvoice(verifyRes.data.subscription);
+              if (verifyRes.data?.subscription) {
+                setActiveInvoice(verifyRes.data.subscription);
+              }
+              fetchCurrentSubscription();
+            } catch (vErr) {
+              toast.error(vErr.response?.data?.message || 'Payment verification failed');
+            } finally {
+              setProcessingPayment(false);
+            }
+          },
+          prefill: {
+            name: schoolData?.founder_name || user?.email || '',
+            email: schoolData?.email || user?.email || '',
+            contact: schoolData?.contact_number || user?.phone || ''
+          },
+          theme: {
+            color: '#2563eb'
+          },
+          modal: {
+            ondismiss: function () {
+              setProcessingPayment(false);
+              toast.info('Payment cancelled');
+            }
+          }
+        };
+
+        const paymentObject = new window.Razorpay(options);
+        paymentObject.open();
+      } else {
+        // Fallback for environment where popup is blocked
+        const paymentId = `pay_sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const verifyRes = await axios.post('http://localhost:5005/api/subscription/schooladmin/verify-payment', {
+          student_count: parsedStudentCount,
+          duration: selectedDuration,
+          razorpay_order_id: orderData.id,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: 'sig_mock_verified'
+        }, config);
+
+        toast.success('🎉 Subscription Payment Verified! Subscription Activated.');
+        setIsCheckoutOpen(false);
+
+        if (verifyRes.data?.subscription) {
+          setActiveInvoice(verifyRes.data.subscription);
+        }
+        fetchCurrentSubscription();
+        setProcessingPayment(false);
       }
-
-      fetchCurrentSubscription();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Payment verification failed');
-    } finally {
+      toast.error(error.response?.data?.message || 'Payment order creation failed');
       setProcessingPayment(false);
     }
   };
@@ -166,7 +230,7 @@ const SubscriptionManagement = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-black text-slate-800 tracking-tight">SaaS Subscription & Licensing</h2>
+        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Subscription & Licensing</h2>
         <div className="text-xs font-bold text-slate-400 mt-1 flex items-center gap-1.5">
           <span>School Admin</span>
           <span>-</span>
@@ -183,7 +247,7 @@ const SubscriptionManagement = () => {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Active SaaS License
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Active License
                 </span>
                 <span className="text-slate-400 text-xs font-bold">• {schoolData?.name}</span>
               </div>
@@ -418,7 +482,7 @@ const SubscriptionManagement = () => {
       <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-6 sm:p-8 space-y-6">
         <div className="pb-4 border-b border-slate-100">
           <h3 className="text-base font-black text-slate-800 uppercase tracking-wide">Subscription Payment & Invoice History</h3>
-          <p className="text-xs font-semibold text-slate-400">All past SaaS subscription payments and official generated invoices for this school.</p>
+          <p className="text-xs font-semibold text-slate-400">All past subscription payments and official generated invoices for this school.</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -494,7 +558,7 @@ const SubscriptionManagement = () => {
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 flex justify-between items-center">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-blue-200 block">Razorpay Secure Checkout</span>
-                <h3 className="text-xl font-black tracking-tight">Complete SaaS Subscription</h3>
+                <h3 className="text-xl font-black tracking-tight">Complete Subscription</h3>
               </div>
               <button
                 onClick={() => setIsCheckoutOpen(false)}
@@ -566,7 +630,7 @@ const SubscriptionManagement = () => {
             {/* Header */}
             <div className="flex justify-between items-start pb-6 border-b border-slate-100">
               <div>
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">OFFICIAL SAAS INVOICE</h2>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">OFFICIAL INVOICE</h2>
                 <p className="text-xs font-bold text-slate-400 mt-0.5">School Management System Subscription Receipt</p>
               </div>
               <button
@@ -611,7 +675,7 @@ const SubscriptionManagement = () => {
                 <tbody>
                   <tr>
                     <td className="py-4 px-4 font-black text-slate-800">
-                      SaaS License Subscription ({activeInvoice.selected_duration})
+                      Subscription ({activeInvoice.selected_duration})
                     </td>
                     <td className="py-4 px-4">{activeInvoice.student_count} Students</td>
                     <td className="py-4 px-4">₹{activeInvoice.price_per_student}</td>

@@ -2,6 +2,7 @@ const Teacher = require('../models/Teacher');
 const User = require('../models/User');
 const School = require('../models/School');
 const Staff = require('../models/Staff');
+const Driver = require('../models/Driver');
 const Subject = require('../models/Subject');
 const Class = require('../models/Class');
 const Student = require('../models/Student');
@@ -199,6 +200,24 @@ const createStaff = async (req, res) => {
         user.reference_id = staff._id;
         await user.save();
 
+        // If role is Driver, sync with Transport Management Driver collection
+        if (role && role.trim().toLowerCase() === 'driver') {
+            const driverExists = await Driver.findOne({ mobile_number: phone, school_id });
+            if (!driverExists) {
+                await Driver.create({
+                    school_id,
+                    driver_id: `DRV-${Date.now()}`,
+                    name,
+                    mobile_number: phone,
+                    email: email || '',
+                    address: address || '',
+                    license_number: `DL-${phone}`,
+                    password: rawPassword,
+                    status: 'Active'
+                });
+            }
+        }
+
         res.status(201).json({ staff, message: 'Staff created' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -210,6 +229,9 @@ const deleteStaff = async (req, res) => {
         const school_id = await getSchoolId(req.user._id);
         const staff = await Staff.findOne({ _id: req.params.id, school_id });
         if (staff) {
+            if (staff.role && staff.role.trim().toLowerCase() === 'driver') {
+                await Driver.deleteMany({ mobile_number: staff.phone, school_id });
+            }
             await User.findByIdAndDelete(staff.user_id);
             await Staff.findByIdAndDelete(staff._id);
             res.json({ message: 'Staff removed' });

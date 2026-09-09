@@ -44,6 +44,7 @@ const Login = () => {
       if (user.role === 'SuperAdmin') navigate('/super-admin');
       else if (user.role === 'SchoolAdmin') navigate('/school-admin');
       else if (user.role === 'Teacher') navigate('/teacher');
+      else if (user.role === 'Student') navigate('/student/homework');
       else if (user.role === 'Parent') navigate('/parent');
       else if (user.role === 'Staff') navigate('/staff');
     } catch (error) {

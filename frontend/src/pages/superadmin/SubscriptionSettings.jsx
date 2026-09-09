@@ -102,7 +102,7 @@ const SubscriptionSettings = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-black text-slate-800 tracking-tight">SaaS Subscription & Pricing Settings</h2>
+        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Subscription & Pricing Settings</h2>
         <div className="text-xs font-bold text-slate-400 mt-1 flex items-center gap-1.5">
           <span>Super Admin</span>
           <span>-</span>
@@ -114,7 +114,7 @@ const SubscriptionSettings = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Total SaaS Revenue</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Subscription Revenue</span>
             <h3 className="text-2xl font-black text-slate-800">₹{totalRevenue.toLocaleString()}</h3>
           </div>
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">

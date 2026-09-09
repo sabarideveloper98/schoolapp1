@@ -1,5 +1,10 @@
 const School = require('../models/School');
 const User = require('../models/User');
+const Student = require('../models/Student');
+const Teacher = require('../models/Teacher');
+const Staff = require('../models/Staff');
+const Expense = require('../models/Expense');
+const Payroll = require('../models/Payroll');
 
 // @desc    Get all schools
 // @route   GET /api/superadmin/schools
@@ -133,19 +138,46 @@ const deleteSchool = async (req, res) => {
 const getDashboardStats = async (req, res) => {
     try {
         const totalSchools = await School.countDocuments();
-        const totalTeachers = await User.countDocuments({ role: 'Teacher' });
-        const totalStaff = await User.countDocuments({ role: 'Staff' });
-        const totalStudents = 0; // We'll implement Student model later
+        
+        // Count teachers & staff from models or User role fallback
+        const teacherCountFromModel = await Teacher.countDocuments();
+        const teacherCountFromUser = await User.countDocuments({ role: 'Teacher' });
+        const totalTeachers = Math.max(teacherCountFromModel, teacherCountFromUser);
+
+        const staffCountFromModel = await Staff.countDocuments();
+        const staffCountFromUser = await User.countDocuments({ role: 'Staff' });
+        const totalStaff = Math.max(staffCountFromModel, staffCountFromUser);
+
+        const totalStudents = await Student.countDocuments();
         const totalParents = await User.countDocuments({ role: 'Parent' });
+
+        // Aggregate General Expenses
+        const generalExpenseAggr = await Expense.aggregate([
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+        const generalExpenses = generalExpenseAggr.length > 0 ? generalExpenseAggr[0].total : 0;
+
+        // Aggregate Paid Payroll Expenses
+        const payrollAggr = await Payroll.aggregate([
+            { $match: { status: 'Paid' } },
+            { $group: { _id: null, total: { $sum: '$salary_breakdown.net_salary' } } }
+        ]);
+        const payrollExpenses = payrollAggr.length > 0 ? payrollAggr[0].total : 0;
+
+        const totalExpenses = generalExpenses + payrollExpenses;
 
         res.json({
             totalSchools,
             totalTeachers,
             totalStaff,
             totalStudents,
-            totalParents
+            totalParents,
+            totalExpenses,
+            generalExpenses,
+            payrollExpenses
         });
     } catch (error) {
+        console.error('Error fetching superadmin stats:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
