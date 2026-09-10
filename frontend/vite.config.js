@@ -8,8 +8,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5005',
-        // target: 'https://api.school1.in',
+        // target: 'http://localhost:5005',
+        target: 'https://api.school1.in',
         changeOrigin: true,
       },
     },
