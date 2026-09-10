@@ -58,8 +58,8 @@ const StaffReport = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const [teachersRes, staffRes] = await Promise.all([
-          axios.get('http://localhost:5005/api/schooladmin/teachers', config),
-          axios.get('http://localhost:5005/api/schooladmin/staff', config)
+          axios.get('/api/schooladmin/teachers', config),
+          axios.get('/api/schooladmin/staff', config)
         ]);
         setTeachersList(teachersRes.data);
         setStaffList(staffRes.data);
@@ -98,7 +98,7 @@ const StaffReport = () => {
     try {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      let url = 'http://localhost:5005/api/schooladmin/attendance/report?';
+      let url = '/api/schooladmin/attendance/report?';
 
       if (activeTab === 'individual') {
         url += `user_id=${selectedUserId}`;

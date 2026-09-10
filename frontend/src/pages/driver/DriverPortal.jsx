@@ -28,7 +28,7 @@ const DriverPortal = () => {
       }
 
       const config = { headers: { Authorization: `Bearer ${driverToken}` } };
-      const res = await axios.get('http://localhost:5005/api/transport/driver/portal-data', config);
+      const res = await axios.get('/api/transport/driver/portal-data', config);
       setData(res.data);
 
       if (res.data.activeTrip) {
@@ -70,7 +70,7 @@ const DriverPortal = () => {
 
         try {
           const config = { headers: { Authorization: `Bearer ${driverToken}` } };
-          await axios.post('http://localhost:5005/api/transport/driver/update-location', {
+          await axios.post('/api/transport/driver/update-location', {
             latitude,
             longitude,
             speed: speed ? Math.round(speed * 3.6) : 0 // km/h
@@ -94,7 +94,7 @@ const DriverPortal = () => {
   const handleStartTrip = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${driverToken}` } };
-      const res = await axios.post('http://localhost:5005/api/transport/driver/start-trip', {}, config);
+      const res = await axios.post('/api/transport/driver/start-trip', {}, config);
       
       toast.success('🚀 Trip Started! GPS Live Tracking is active.');
       setIsTripActive(true);
@@ -110,7 +110,7 @@ const DriverPortal = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${driverToken}` } };
-      await axios.post('http://localhost:5005/api/transport/driver/end-trip', {}, config);
+      await axios.post('/api/transport/driver/end-trip', {}, config);
 
       if (watchIdRef.current) {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -132,7 +132,7 @@ const DriverPortal = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${driverToken}` } };
-      await axios.post('http://localhost:5005/api/transport/driver/emergency', {}, config);
+      await axios.post('/api/transport/driver/emergency', {}, config);
       toast.error('🚨 EMERGENCY ALERT SENT TO SCHOOL ADMIN!');
     } catch (error) {
       toast.error('Failed to send emergency alert');

@@ -33,8 +33,8 @@ const ExamReport = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const [examsRes, classesRes] = await Promise.all([
-          axios.get('http://localhost:5005/api/schooladmin/exams', config),
-          axios.get('http://localhost:5005/api/schooladmin/classes', config)
+          axios.get('/api/schooladmin/exams', config),
+          axios.get('/api/schooladmin/classes', config)
         ]);
         setExams(examsRes.data);
         setClasses(classesRes.data);
@@ -73,7 +73,7 @@ const ExamReport = () => {
       }
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/schooladmin/students', config);
+        const { data } = await axios.get('/api/schooladmin/students', config);
         const filtered = data.filter(s => s.class_id?._id === sectionFilter);
         setStudentsList(filtered);
         setSelectedStudentId(''); // Default to all students
@@ -95,7 +95,7 @@ const ExamReport = () => {
       setLoadingReport(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
-      let url = `http://localhost:5005/api/schooladmin/exam-report?exam_id=${selectedExamId}&class_id=${sectionFilter}`;
+      let url = `/api/schooladmin/exam-report?exam_id=${selectedExamId}&class_id=${sectionFilter}`;
       if (selectedStudentId) {
         url += `&student_id=${selectedStudentId}`;
       }
@@ -105,7 +105,7 @@ const ExamReport = () => {
       setReportSummary(data.summary || []);
 
       // Get School details for layout heading
-      const schoolRes = await axios.get('http://localhost:5005/api/schooladmin/students', config); // To trigger school context or fallback
+      const schoolRes = await axios.get('/api/schooladmin/students', config); // To trigger school context or fallback
       setSchoolName(user.school_name || 'S1 School');
 
       setSearched(true);

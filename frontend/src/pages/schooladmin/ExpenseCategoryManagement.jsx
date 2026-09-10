@@ -27,7 +27,7 @@ export default function ExpenseCategoryManagement() {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/finance/categories', config);
+      const res = await axios.get('/api/schooladmin/finance/categories', config);
       setCategories(res.data);
     } catch (error) {
       toast.error('Failed to load expense categories');
@@ -78,10 +78,10 @@ export default function ExpenseCategoryManagement() {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/finance/categories/${editingId}`, formData, config);
+        await axios.put(`/api/schooladmin/finance/categories/${editingId}`, formData, config);
         toast.success('Category updated successfully');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/finance/categories', formData, config);
+        await axios.post('/api/schooladmin/finance/categories', formData, config);
         toast.success('Expense Category created successfully');
       }
       setIsModalOpen(false);
@@ -96,7 +96,7 @@ export default function ExpenseCategoryManagement() {
     if (!window.confirm('Are you sure you want to delete this expense category?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/schooladmin/finance/categories/${id}`, config);
+      await axios.delete(`/api/schooladmin/finance/categories/${id}`, config);
       toast.success('Category deleted successfully');
       fetchCategories();
     } catch (error) {

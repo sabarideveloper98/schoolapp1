@@ -43,8 +43,8 @@ export default function ExpenseManagement() {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [resExp, resCat] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/finance/expenses', config),
-        axios.get('http://localhost:5005/api/schooladmin/finance/categories', config)
+        axios.get('/api/schooladmin/finance/expenses', config),
+        axios.get('/api/schooladmin/finance/categories', config)
       ]);
       setExpenses(resExp.data);
       setCategories(resCat.data.filter(c => c.status === 'Active'));
@@ -110,10 +110,10 @@ export default function ExpenseManagement() {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/finance/expenses/${editingId}`, formData, config);
+        await axios.put(`/api/schooladmin/finance/expenses/${editingId}`, formData, config);
         toast.success('Expense record updated');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/finance/expenses', formData, config);
+        await axios.post('/api/schooladmin/finance/expenses', formData, config);
         toast.success('Expense record created successfully');
       }
       setIsModalOpen(false);
@@ -128,7 +128,7 @@ export default function ExpenseManagement() {
     if (!window.confirm('Are you sure you want to delete this expense record?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/schooladmin/finance/expenses/${id}`, config);
+      await axios.delete(`/api/schooladmin/finance/expenses/${id}`, config);
       toast.success('Expense record deleted');
       fetchData();
     } catch (error) {

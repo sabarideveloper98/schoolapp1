@@ -20,7 +20,7 @@ const SalarySlips = () => {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5005/api/schooladmin/payroll?month=${selectedMonth}&year=${selectedYear}`, config);
+      const res = await axios.get(`/api/schooladmin/payroll?month=${selectedMonth}&year=${selectedYear}`, config);
       setPayrolls(res.data);
       if (res.data.length > 0) {
         setSelectedPayrollId(res.data[0]._id);

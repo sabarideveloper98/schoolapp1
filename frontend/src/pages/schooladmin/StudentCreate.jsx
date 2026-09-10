@@ -35,7 +35,7 @@ const StudentCreate = () => {
     const fetchClasses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/schooladmin/classes', config);
+        const { data } = await axios.get('/api/schooladmin/classes', config);
         setClasses(data);
         setLoading(false);
       } catch (error) {
@@ -92,7 +92,7 @@ const StudentCreate = () => {
         photo: photoBase64
       };
 
-      const res = await axios.post('http://localhost:5005/api/schooladmin/students', payload, config);
+      const res = await axios.post('/api/schooladmin/students', payload, config);
       if (res.data.parentPassword) {
         toast.success(`Student created! Parent Password: ${res.data.parentPassword}`, { autoClose: false });
       } else {

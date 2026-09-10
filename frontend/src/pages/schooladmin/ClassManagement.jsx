@@ -36,10 +36,10 @@ const ClassManagement = () => {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [clsRes, assignRes, techRes, subRes] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/classes', config),
-        axios.get('http://localhost:5005/api/schooladmin/assignments', config),
-        axios.get('http://localhost:5005/api/schooladmin/teachers', config),
-        axios.get('http://localhost:5005/api/schooladmin/subjects', config),
+        axios.get('/api/schooladmin/classes', config),
+        axios.get('/api/schooladmin/assignments', config),
+        axios.get('/api/schooladmin/teachers', config),
+        axios.get('/api/schooladmin/subjects', config),
       ]);
       setClasses(clsRes.data);
       setAssignments(assignRes.data);
@@ -60,10 +60,10 @@ const ClassManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/classes/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/classes/${editingId}`, data, config);
         toast.success('Class updated!');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/classes', data, config);
+        await axios.post('/api/schooladmin/classes', data, config);
         toast.success('Class created!');
       }
       closeClassForm();
@@ -93,10 +93,10 @@ const ClassManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/assignments/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/assignments/${editingId}`, data, config);
         toast.success('Assignment updated!');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/assignments', data, config);
+        await axios.post('/api/schooladmin/assignments', data, config);
         toast.success('Subject assigned to teacher!');
       }
       closeAssignmentForm();
@@ -126,7 +126,7 @@ const ClassManagement = () => {
     if (window.confirm('Delete this class?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/classes/${id}`, config);
+        await axios.delete(`/api/schooladmin/classes/${id}`, config);
         toast.success('Class deleted');
         fetchData();
       } catch (error) {
@@ -139,7 +139,7 @@ const ClassManagement = () => {
     if (window.confirm('Remove this assignment?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/assignments/${id}`, config);
+        await axios.delete(`/api/schooladmin/assignments/${id}`, config);
         toast.success('Assignment removed');
         fetchData();
       } catch (error) {

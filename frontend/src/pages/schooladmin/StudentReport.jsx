@@ -60,7 +60,7 @@ const StudentReport = () => {
     const fetchClasses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/schooladmin/classes', config);
+        const { data } = await axios.get('/api/schooladmin/classes', config);
         setClasses(data);
         setLoadingConfig(false);
 
@@ -95,7 +95,7 @@ const StudentReport = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         // Fetch students under selected section
-        const { data } = await axios.get(`http://localhost:5005/api/schooladmin/students`, config);
+        const { data } = await axios.get(`/api/schooladmin/students`, config);
         // Filter students locally to match the sectionFilter
         const matched = data.filter(s => s.class_id?._id === sectionFilter);
         setStudentsList(matched);
@@ -125,7 +125,7 @@ const StudentReport = () => {
     try {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      let url = `http://localhost:5005/api/schooladmin/student-attendance/report?class_id=${sectionFilter}`;
+      let url = `/api/schooladmin/student-attendance/report?class_id=${sectionFilter}`;
 
       if (activeTab === 'individual') {
         url += `&student_id=${selectedStudentId}`;

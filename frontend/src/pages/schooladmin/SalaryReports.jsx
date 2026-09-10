@@ -19,7 +19,7 @@ const SalaryReports = () => {
   const fetchDashboardStats = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5005/api/schooladmin/payroll/dashboard?month=${selectedMonth}&year=${selectedYear}`, config);
+      const res = await axios.get(`/api/schooladmin/payroll/dashboard?month=${selectedMonth}&year=${selectedYear}`, config);
       setDashboardStats(res.data);
     } catch (error) {
       console.error('Failed to fetch payroll dashboard stats');
@@ -30,7 +30,7 @@ const SalaryReports = () => {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      let url = `http://localhost:5005/api/schooladmin/payroll/reports?month=${selectedMonth}&year=${selectedYear}`;
+      let url = `/api/schooladmin/payroll/reports?month=${selectedMonth}&year=${selectedYear}`;
       
       // Map report type filters
       if (reportType === 'Teacher Salary') url += '&role=Teacher';

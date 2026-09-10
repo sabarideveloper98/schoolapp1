@@ -13,7 +13,7 @@ const ParentBusTracking = () => {
   const fetchTracking = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/transport/parent-tracking', config);
+      const res = await axios.get('/api/transport/parent-tracking', config);
       setTrackingData(res.data);
     } catch (error) {
       toast.error('Failed to load bus tracking info');

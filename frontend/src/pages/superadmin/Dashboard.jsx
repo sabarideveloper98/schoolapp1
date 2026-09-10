@@ -39,7 +39,7 @@ const DashboardOverview = () => {
     const fetchStats = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/superadmin/stats', config);
+        const { data } = await axios.get('/api/superadmin/stats', config);
         setStats(data);
       } catch (error) {
         toast.error('Failed to fetch superadmin stats');

@@ -44,9 +44,9 @@ const TeacherHomework = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [listRes, classesRes, studentsRes] = await Promise.all([
-        axios.get('http://localhost:5005/api/homework/list', config),
-        axios.get('http://localhost:5005/api/schooladmin/classes', config),
-        axios.get('http://localhost:5005/api/schooladmin/students', config)
+        axios.get('/api/homework/list', config),
+        axios.get('/api/schooladmin/classes', config),
+        axios.get('/api/schooladmin/students', config)
       ]);
       setHomeworkList(listRes.data || []);
       setClassesList(classesRes.data || []);
@@ -66,7 +66,7 @@ const TeacherHomework = () => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/homework/create', form, config);
+      await axios.post('/api/homework/create', form, config);
       toast.success('Homework assigned successfully');
       setIsModalOpen(false);
       fetchData();
@@ -78,7 +78,7 @@ const TeacherHomework = () => {
   const handleFetchDetails = async (hwId) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5005/api/homework/details/${hwId}`, config);
+      const res = await axios.get(`/api/homework/details/${hwId}`, config);
       setSelectedHomework(res.data);
     } catch (error) {
       toast.error('Failed to fetch submission details');
@@ -90,7 +90,7 @@ const TeacherHomework = () => {
     if (!selectedSubmission) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/homework/evaluate', {
+      await axios.post('/api/homework/evaluate', {
         submission_id: selectedSubmission._id,
         ...reviewForm
       }, config);

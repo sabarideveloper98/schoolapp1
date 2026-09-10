@@ -41,7 +41,7 @@ const AccountProfile = () => {
     const fetchFullProfile = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/auth/me', config);
+        const { data } = await axios.get('/api/auth/me', config);
         setProfileDetails(data);
         setEmail(data.email || '');
         setPhone(data.phone || '');
@@ -63,7 +63,7 @@ const AccountProfile = () => {
     setSavingContact(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.put('http://localhost:5005/api/auth/profile', { email, phone }, config);
+      const { data } = await axios.put('/api/auth/profile', { email, phone }, config);
       
       // Update store and localStorage
       const updatedUser = { ...user, email: data.email, phone: data.phone, token: data.token };
@@ -97,7 +97,7 @@ const AccountProfile = () => {
     setSavingSecurity(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.put('http://localhost:5005/api/auth/profile', {
+      const { data } = await axios.put('/api/auth/profile', {
         currentPassword,
         newPassword
       }, config);

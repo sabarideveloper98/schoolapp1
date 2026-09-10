@@ -31,7 +31,7 @@ const SalarySetup = () => {
   const fetchEmployees = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/payroll/setup', config);
+      const res = await axios.get('/api/schooladmin/payroll/setup', config);
       setEmployees(res.data);
       setLoading(false);
     } catch (error) {
@@ -80,7 +80,7 @@ const SalarySetup = () => {
   const handleViewHistory = async (emp) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5005/api/schooladmin/payroll/setup/history/${emp.user_id}`, config);
+      const res = await axios.get(`/api/schooladmin/payroll/setup/history/${emp.user_id}`, config);
       setHistoryList(res.data);
       setActiveEmployee(emp);
       setIsHistoryOpen(true);
@@ -98,7 +98,7 @@ const SalarySetup = () => {
         employee_name: activeEmployee.name,
         employee_role: activeEmployee.role
       };
-      await axios.post('http://localhost:5005/api/schooladmin/payroll/setup', payload, config);
+      await axios.post('/api/schooladmin/payroll/setup', payload, config);
       toast.success('Salary structure configured successfully!');
       setIsModalOpen(false);
       fetchEmployees();

@@ -39,7 +39,7 @@ export default function FinanceReports() {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/finance/reports', config);
+      const res = await axios.get('/api/schooladmin/finance/reports', config);
       setReportData(res.data);
     } catch (error) {
       toast.error('Failed to load financial reports');

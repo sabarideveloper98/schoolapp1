@@ -35,7 +35,7 @@ export default function IncomeManagement() {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/finance/income', config);
+      const res = await axios.get('/api/schooladmin/finance/income', config);
       setIncomes(res.data);
     } catch (error) {
       toast.error('Failed to load income entries');
@@ -90,10 +90,10 @@ export default function IncomeManagement() {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/finance/income/${editingId}`, formData, config);
+        await axios.put(`/api/schooladmin/finance/income/${editingId}`, formData, config);
         toast.success('Income record updated');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/finance/income', formData, config);
+        await axios.post('/api/schooladmin/finance/income', formData, config);
         toast.success('Income entry created successfully');
       }
       setIsModalOpen(false);
@@ -108,7 +108,7 @@ export default function IncomeManagement() {
     if (!window.confirm('Are you sure you want to delete this income entry?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/schooladmin/finance/income/${id}`, config);
+      await axios.delete(`/api/schooladmin/finance/income/${id}`, config);
       toast.success('Income entry deleted');
       fetchIncomes();
     } catch (error) {

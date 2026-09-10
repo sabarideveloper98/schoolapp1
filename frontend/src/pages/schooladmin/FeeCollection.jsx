@@ -35,8 +35,8 @@ const FeeCollection = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [resClasses, resDiscounts] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/classes', config),
-        axios.get('http://localhost:5005/api/schooladmin/fees/discounts', config)
+        axios.get('/api/schooladmin/classes', config),
+        axios.get('/api/schooladmin/fees/discounts', config)
       ]);
       setClasses(resClasses.data);
       setDiscounts(resDiscounts.data.filter(d => d.status === 'Active'));
@@ -54,7 +54,7 @@ const FeeCollection = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const res = await axios.get(
-        `http://localhost:5005/api/schooladmin/fees/search?query=${searchQuery}&class_id=${selectedClassId}&academic_year=${academicYear}`,
+        `/api/schooladmin/fees/search?query=${searchQuery}&class_id=${selectedClassId}&academic_year=${academicYear}`,
         config
       );
       setAssignedFees(res.data);
@@ -125,7 +125,7 @@ const FeeCollection = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.post('http://localhost:5005/api/schooladmin/fees/collect', payload, config);
+      const res = await axios.post('/api/schooladmin/fees/collect', payload, config);
       toast.success(res.data.message || 'Fee transaction completed successfully!');
       
       // Load receipt
@@ -194,7 +194,7 @@ const FeeCollection = () => {
         };
       });
 
-      await axios.post('http://localhost:5005/api/schooladmin/fees/assignments', {
+      await axios.post('/api/schooladmin/fees/assignments', {
         student_id: activeFeeRecord.student?._id,
         class_id: activeFeeRecord.student?.class_id?._id,
         academic_year: academicYear,

@@ -25,9 +25,9 @@ const StudentFeeAssignment = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [resClasses, resStructures, resCategories] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/classes', config),
-        axios.get('http://localhost:5005/api/schooladmin/fees/structures', config),
-        axios.get('http://localhost:5005/api/schooladmin/fees/categories', config)
+        axios.get('/api/schooladmin/classes', config),
+        axios.get('/api/schooladmin/fees/structures', config),
+        axios.get('/api/schooladmin/fees/categories', config)
       ]);
       setClasses(resClasses.data);
       setStructures(resStructures.data);
@@ -58,7 +58,7 @@ const StudentFeeAssignment = () => {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5005/api/schooladmin/fees/assignments?class_id=${selectedClassId}&academic_year=${academicYear}`, config);
+      const res = await axios.get(`/api/schooladmin/fees/assignments?class_id=${selectedClassId}&academic_year=${academicYear}`, config);
       setStudentsData(res.data);
       setLoading(false);
     } catch (error) {
@@ -75,7 +75,7 @@ const StudentFeeAssignment = () => {
     if (window.confirm('Apply this fee structure blueprint to all students in the selected class?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.post('http://localhost:5005/api/schooladmin/fees/assignments/bulk', {
+        await axios.post('/api/schooladmin/fees/assignments/bulk', {
           class_id: selectedClassId,
           academic_year: academicYear,
           structure_id: structureId
@@ -136,7 +136,7 @@ const StudentFeeAssignment = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/schooladmin/fees/assignments', {
+      await axios.post('/api/schooladmin/fees/assignments', {
         student_id: selectedStudent._id,
         class_id: selectedClassId,
         academic_year: academicYear,

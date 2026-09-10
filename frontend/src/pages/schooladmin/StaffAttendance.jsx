@@ -37,7 +37,7 @@ const StaffAttendance = () => {
     try {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`http://localhost:5005/api/schooladmin/attendance?role=${role}&date=${date}`, config);
+      const { data } = await axios.get(`/api/schooladmin/attendance?role=${role}&date=${date}`, config);
       setRecords(data.records || []);
       setNotifyVia(data.notify_via || 'Do not send');
       setLoading(false);
@@ -98,7 +98,7 @@ const StaffAttendance = () => {
         notify_via: notifyVia
       };
 
-      await axios.post('http://localhost:5005/api/schooladmin/attendance', payload, config);
+      await axios.post('/api/schooladmin/attendance', payload, config);
       toast.success('Attendance saved successfully!');
       setLoading(false);
     } catch (error) {

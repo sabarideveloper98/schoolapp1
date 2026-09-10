@@ -47,8 +47,8 @@ const StudentManagement = () => {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [studentRes, classRes] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/students', config),
-        axios.get('http://localhost:5005/api/schooladmin/classes', config)
+        axios.get('/api/schooladmin/students', config),
+        axios.get('/api/schooladmin/classes', config)
       ]);
       setStudents(studentRes.data);
       setClasses(classRes.data);
@@ -86,7 +86,7 @@ const StudentManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/students/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/students/${editingId}`, data, config);
         toast.success('Student updated!');
       }
       closeForm();
@@ -140,7 +140,7 @@ const StudentManagement = () => {
     if (window.confirm('Delete this student?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/students/${id}`, config);
+        await axios.delete(`/api/schooladmin/students/${id}`, config);
         toast.success('Student deleted');
         fetchData();
       } catch (error) {

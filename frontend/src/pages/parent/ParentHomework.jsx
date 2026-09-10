@@ -12,7 +12,7 @@ const ParentHomework = () => {
   const fetchChildHomework = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/homework/student-feed', config);
+      const res = await axios.get('/api/homework/student-feed', config);
       setChildHomeworkFeed(res.data || []);
     } catch (error) {
       toast.error('Failed to load child homework feed');

@@ -20,7 +20,7 @@ const TeacherStudents = () => {
   const fetchStudents = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get('http://localhost:5005/api/teacher/students', config);
+      const { data } = await axios.get('/api/teacher/students', config);
       setStudents(data);
       setLoading(false);
     } catch (error) {
@@ -32,7 +32,7 @@ const TeacherStudents = () => {
   const fetchClasses = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get('http://localhost:5005/api/teacher/classes', config);
+      const { data } = await axios.get('/api/teacher/classes', config);
       setAllClasses(data);
       setInchargeClasses(data.filter(c => c.isIncharge));
     } catch (error) {
@@ -50,7 +50,7 @@ const TeacherStudents = () => {
   const onSubmit = async (data) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.post('http://localhost:5005/api/teacher/students', data, config);
+      const res = await axios.post('/api/teacher/students', data, config);
       
       if (res.data.parentPassword) {
         toast.success(`Student created! Parent Password is: ${res.data.parentPassword}`, { autoClose: false });

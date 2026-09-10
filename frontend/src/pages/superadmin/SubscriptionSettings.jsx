@@ -40,8 +40,8 @@ const SubscriptionSettings = () => {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
       const [configRes, subsRes] = await Promise.all([
-        axios.get('http://localhost:5005/api/subscription/config', config),
-        axios.get('http://localhost:5005/api/subscription/superadmin/subscriptions', config)
+        axios.get('/api/subscription/config', config),
+        axios.get('/api/subscription/superadmin/subscriptions', config)
       ]);
 
       if (configRes.data) {
@@ -70,7 +70,7 @@ const SubscriptionSettings = () => {
     setSaving(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put('http://localhost:5005/api/subscription/superadmin/config', rates, config);
+      await axios.put('/api/subscription/superadmin/config', rates, config);
       toast.success('Subscription per-student pricing updated successfully!');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update rates');

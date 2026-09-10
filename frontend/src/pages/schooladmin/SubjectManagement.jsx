@@ -17,7 +17,7 @@ const SubjectManagement = () => {
   const fetchSubjects = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/subjects', config);
+      const res = await axios.get('/api/schooladmin/subjects', config);
       setSubjects(res.data);
       setLoading(false);
     } catch (error) {
@@ -34,10 +34,10 @@ const SubjectManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/subjects/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/subjects/${editingId}`, data, config);
         toast.success('Subject updated!');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/subjects', data, config);
+        await axios.post('/api/schooladmin/subjects', data, config);
         toast.success('Subject created!');
       }
       closeForm();
@@ -66,7 +66,7 @@ const SubjectManagement = () => {
     if (window.confirm('Delete this subject?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/subjects/${id}`, config);
+        await axios.delete(`/api/schooladmin/subjects/${id}`, config);
         toast.success('Subject deleted');
         fetchSubjects();
       } catch (error) {

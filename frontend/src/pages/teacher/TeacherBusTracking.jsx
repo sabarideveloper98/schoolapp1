@@ -13,7 +13,7 @@ const TeacherBusTracking = () => {
   const fetchTrips = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/transport/active-trips', config);
+      const res = await axios.get('/api/transport/active-trips', config);
       setActiveTrips(res.data);
     } catch (error) {
       toast.error('Failed to load active school bus trips');

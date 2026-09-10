@@ -28,9 +28,9 @@ const TeacherMessages = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const [msgRes, clsRes, stdRes] = await Promise.all([
-          axios.get('http://localhost:5005/api/teacher/messages', config),
-          axios.get('http://localhost:5005/api/teacher/classes', config),
-          axios.get('http://localhost:5005/api/teacher/students', config)
+          axios.get('/api/teacher/messages', config),
+          axios.get('/api/teacher/classes', config),
+          axios.get('/api/teacher/students', config)
         ]);
         
         setMessages(msgRes.data);
@@ -55,14 +55,14 @@ const TeacherMessages = () => {
         receiver_ids: Array.isArray(data.receiver_ids) ? data.receiver_ids : [data.receiver_ids]
       };
 
-      await axios.post('http://localhost:5005/api/teacher/messages', payload, config);
+      await axios.post('/api/teacher/messages', payload, config);
       toast.success('Message sent successfully!');
       
       setIsFormOpen(false);
       reset();
       
       // Refresh messages
-      const msgRes = await axios.get('http://localhost:5005/api/teacher/messages', config);
+      const msgRes = await axios.get('/api/teacher/messages', config);
       setMessages(msgRes.data);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to send message');

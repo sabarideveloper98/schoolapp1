@@ -22,7 +22,7 @@ const StudentHomework = () => {
   const fetchStudentFeed = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/homework/student-feed', config);
+      const res = await axios.get('/api/homework/student-feed', config);
       setHomeworkFeed(res.data || []);
     } catch (error) {
       toast.error('Failed to load homework feed');
@@ -40,7 +40,7 @@ const StudentHomework = () => {
     if (!selectedHomeworkForSubmit) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/homework/submit', {
+      await axios.post('/api/homework/submit', {
         homework_id: selectedHomeworkForSubmit.homework._id,
         ...submissionForm
       }, config);

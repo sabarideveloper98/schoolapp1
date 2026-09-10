@@ -34,7 +34,7 @@ const TeacherManagement = () => {
     try {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/teachers', config);
+      const res = await axios.get('/api/schooladmin/teachers', config);
       setTeachers(res.data);
       setLoading(false);
     } catch (error) {
@@ -58,7 +58,7 @@ const TeacherManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/teachers/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/teachers/${editingId}`, data, config);
         toast.success('Teacher updated successfully!');
       }
       closeForm();
@@ -85,7 +85,7 @@ const TeacherManagement = () => {
     if (window.confirm('Delete this teacher?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/teachers/${id}`, config);
+        await axios.delete(`/api/schooladmin/teachers/${id}`, config);
         toast.success('Teacher deleted');
         fetchTeachers();
       } catch (error) {

@@ -47,7 +47,7 @@ const PayrollProcess = () => {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5005/api/schooladmin/payroll/draft?month=${selectedMonth}&year=${selectedYear}`, config);
+      const res = await axios.get(`/api/schooladmin/payroll/draft?month=${selectedMonth}&year=${selectedYear}`, config);
       setPayrolls(res.data);
       setLoading(false);
     } catch (error) {
@@ -158,7 +158,7 @@ const PayrollProcess = () => {
         }))
       };
       
-      await axios.post('http://localhost:5005/api/schooladmin/payroll', payload, config);
+      await axios.post('/api/schooladmin/payroll', payload, config);
       toast.success('Monthly payroll generated successfully!');
       fetchDraftPayrolls();
     } catch (error) {
@@ -173,7 +173,7 @@ const PayrollProcess = () => {
     }
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put(`http://localhost:5005/api/schooladmin/payroll/${rec.existing_payroll_id}`, { status: 'Approved' }, config);
+      await axios.put(`/api/schooladmin/payroll/${rec.existing_payroll_id}`, { status: 'Approved' }, config);
       toast.success('Payroll approved successfully!');
       fetchDraftPayrolls();
     } catch (error) {
@@ -203,7 +203,7 @@ const PayrollProcess = () => {
           payment_date: new Date()
         }
       };
-      await axios.put(`http://localhost:5005/api/schooladmin/payroll/${paymentRecord.existing_payroll_id}`, payload, config);
+      await axios.put(`/api/schooladmin/payroll/${paymentRecord.existing_payroll_id}`, payload, config);
       toast.success('Payment recorded successfully!');
       setIsPaymentOpen(false);
       fetchDraftPayrolls();

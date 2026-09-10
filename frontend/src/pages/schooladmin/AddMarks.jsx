@@ -38,8 +38,8 @@ const AddMarks = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [examsRes, classesRes] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/exams', config),
-        axios.get('http://localhost:5005/api/schooladmin/classes', config)
+        axios.get('/api/schooladmin/exams', config),
+        axios.get('/api/schooladmin/classes', config)
       ]);
       setExams(examsRes.data);
       setClasses(classesRes.data);
@@ -84,7 +84,7 @@ const AddMarks = () => {
       setCreatingExam(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.post(
-        'http://localhost:5005/api/schooladmin/exams',
+        '/api/schooladmin/exams',
         { name: newExamName, term: newExamTerm },
         config
       );
@@ -112,7 +112,7 @@ const AddMarks = () => {
       setLoadingSearch(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.get(
-        `http://localhost:5005/api/schooladmin/exam-marks?exam_id=${selectedExamId}&class_id=${sectionFilter}`,
+        `/api/schooladmin/exam-marks?exam_id=${selectedExamId}&class_id=${sectionFilter}`,
         config
       );
 
@@ -189,7 +189,7 @@ const AddMarks = () => {
         })
       };
 
-      await axios.post('http://localhost:5005/api/schooladmin/exam-marks', payload, config);
+      await axios.post('/api/schooladmin/exam-marks', payload, config);
       toast.success('Student marks saved successfully!');
       setLoadingSearch(false);
     } catch (error) {

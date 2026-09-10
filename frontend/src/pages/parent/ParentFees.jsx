@@ -34,7 +34,7 @@ const ParentFees = () => {
   const fetchParentFees = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/parent/fees', config);
+      const res = await axios.get('/api/parent/fees', config);
       setChildrenFees(res.data.fees);
       setPayments(res.data.payments);
       setLoading(false);
@@ -74,7 +74,7 @@ const ParentFees = () => {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         
         // Mock order payload
-        const resOrder = await axios.post('http://localhost:5005/api/parent/fees/pay-order', {
+        const resOrder = await axios.post('/api/parent/fees/pay-order', {
           amount: payoutAmount
         }, config);
 
@@ -100,7 +100,7 @@ const ParentFees = () => {
           ]
         };
 
-        const resVerify = await axios.post('http://localhost:5005/api/parent/fees/pay-verify', payPayload, config);
+        const resVerify = await axios.post('/api/parent/fees/pay-verify', payPayload, config);
         toast.success('Online checkout payment processed successfully!');
         
         // Display Receipt
@@ -130,7 +130,7 @@ const ParentFees = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/parent/fees/refund', {
+      await axios.post('/api/parent/fees/refund', {
         student_id: activeChildFee.student_id?._id,
         academic_year: activeChildFee.academic_year,
         amount: Number(refundAmount),

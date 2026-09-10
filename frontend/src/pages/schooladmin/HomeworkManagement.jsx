@@ -57,11 +57,11 @@ const HomeworkManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [statsRes, listRes, classesRes, studentsRes, subjectsRes] = await Promise.all([
-        axios.get('http://localhost:5005/api/homework/stats', config),
-        axios.get('http://localhost:5005/api/homework/list', config),
-        axios.get('http://localhost:5005/api/schooladmin/classes', config),
-        axios.get('http://localhost:5005/api/schooladmin/students', config),
-        axios.get('http://localhost:5005/api/schooladmin/subjects', config)
+        axios.get('/api/homework/stats', config),
+        axios.get('/api/homework/list', config),
+        axios.get('/api/schooladmin/classes', config),
+        axios.get('/api/schooladmin/students', config),
+        axios.get('/api/schooladmin/subjects', config)
       ]);
 
       setStats(statsRes.data);
@@ -107,10 +107,10 @@ const HomeworkManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editingHomework) {
-        await axios.put(`http://localhost:5005/api/homework/update/${editingHomework._id}`, form, config);
+        await axios.put(`/api/homework/update/${editingHomework._id}`, form, config);
         toast.success('Homework updated successfully');
       } else {
-        await axios.post('http://localhost:5005/api/homework/create', form, config);
+        await axios.post('/api/homework/create', form, config);
         toast.success('Homework created & assigned successfully');
       }
       setIsModalOpen(false);
@@ -124,7 +124,7 @@ const HomeworkManagement = () => {
     if (!window.confirm('Delete this homework assignment and all student submissions?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/homework/delete/${id}`, config);
+      await axios.delete(`/api/homework/delete/${id}`, config);
       toast.success('Homework deleted successfully');
       fetchAllData();
     } catch (error) {
@@ -135,7 +135,7 @@ const HomeworkManagement = () => {
   const handleFetchHomeworkDetails = async (id) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get(`http://localhost:5005/api/homework/details/${id}`, config);
+      const res = await axios.get(`/api/homework/details/${id}`, config);
       setSelectedHomeworkDetails(res.data);
       setActiveTab('grading');
     } catch (error) {
@@ -148,7 +148,7 @@ const HomeworkManagement = () => {
     if (!selectedSubmissionForReview) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/homework/evaluate', {
+      await axios.post('/api/homework/evaluate', {
         submission_id: selectedSubmissionForReview._id,
         ...reviewForm
       }, config);

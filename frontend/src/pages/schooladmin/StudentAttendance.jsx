@@ -38,7 +38,7 @@ const StudentAttendance = () => {
     const fetchClasses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/schooladmin/classes', config);
+        const { data } = await axios.get('/api/schooladmin/classes', config);
         setClasses(data);
         setLoadingConfig(false);
 
@@ -83,7 +83,7 @@ const StudentAttendance = () => {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
       const { data } = await axios.get(
-        `http://localhost:5005/api/schooladmin/student-attendance?class_id=${sectionFilter}&date=${date}`,
+        `/api/schooladmin/student-attendance?class_id=${sectionFilter}&date=${date}`,
         config
       );
 
@@ -146,7 +146,7 @@ const StudentAttendance = () => {
         records
       };
 
-      await axios.post('http://localhost:5005/api/schooladmin/student-attendance', payload, config);
+      await axios.post('/api/schooladmin/student-attendance', payload, config);
       toast.success('Student attendance saved successfully!');
       setLoadingRecords(false);
     } catch (error) {

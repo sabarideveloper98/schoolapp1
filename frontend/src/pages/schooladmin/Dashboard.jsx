@@ -67,7 +67,7 @@ const DashboardOverview = () => {
     const fetchStats = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/schooladmin/dashboard', config);
+        const { data } = await axios.get('/api/schooladmin/dashboard', config);
         setStats(data);
       } catch (error) {
         toast.error('Failed to fetch dashboard stats');
@@ -113,7 +113,7 @@ const SchoolAdminDashboard = () => {
     const checkSubscriptionStatus = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/subscription/schooladmin/current', config);
+        const { data } = await axios.get('/api/subscription/schooladmin/current', config);
         
         const activeSub = data?.activeSubscription;
         const isCurrentlyActive = activeSub && activeSub.status === 'Active' && new Date(activeSub.subscription_end_date) > new Date();

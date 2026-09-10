@@ -29,9 +29,9 @@ const FeeStructureManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [resStructures, resCategories, resClasses] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/fees/structures', config),
-        axios.get('http://localhost:5005/api/schooladmin/fees/categories', config),
-        axios.get('http://localhost:5005/api/schooladmin/classes', config)
+        axios.get('/api/schooladmin/fees/structures', config),
+        axios.get('/api/schooladmin/fees/categories', config),
+        axios.get('/api/schooladmin/classes', config)
       ]);
 
       setStructures(resStructures.data);
@@ -89,7 +89,7 @@ const FeeStructureManagement = () => {
     if (window.confirm('Delete this class fee structure configuration?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/fees/structures/${id}`, config);
+        await axios.delete(`/api/schooladmin/fees/structures/${id}`, config);
         toast.success('Fee structure removed!');
         fetchData();
       } catch (error) {
@@ -128,10 +128,10 @@ const FeeStructureManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/fees/structures/${editingId}`, payload, config);
+        await axios.put(`/api/schooladmin/fees/structures/${editingId}`, payload, config);
         toast.success('Structure updated successfully!');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/fees/structures', payload, config);
+        await axios.post('/api/schooladmin/fees/structures', payload, config);
         toast.success('Structure created successfully!');
       }
       closeForm();
@@ -176,7 +176,7 @@ const FeeStructureManagement = () => {
         };
 
         try {
-          await axios.post('http://localhost:5005/api/schooladmin/fees/structures', payload, config);
+          await axios.post('/api/schooladmin/fees/structures', payload, config);
           copiedCount++;
         } catch (err) {
           // ignore duplicate conflicts

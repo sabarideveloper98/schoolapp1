@@ -18,7 +18,7 @@ const FeeCategoryManagement = () => {
   const fetchCategories = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/fees/categories', config);
+      const res = await axios.get('/api/schooladmin/fees/categories', config);
       setCategories(res.data);
       setLoading(false);
     } catch (error) {
@@ -35,10 +35,10 @@ const FeeCategoryManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/fees/categories/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/fees/categories/${editingId}`, data, config);
         toast.success('Category updated!');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/fees/categories', data, config);
+        await axios.post('/api/schooladmin/fees/categories', data, config);
         toast.success('Category created!');
       }
       closeForm();
@@ -63,7 +63,7 @@ const FeeCategoryManagement = () => {
     if (window.confirm('Are you sure you want to delete this fee category?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/fees/categories/${id}`, config);
+        await axios.delete(`/api/schooladmin/fees/categories/${id}`, config);
         toast.success('Category deleted');
         fetchCategories();
       } catch (error) {

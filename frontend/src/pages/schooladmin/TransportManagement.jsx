@@ -99,13 +99,13 @@ const TransportManagement = () => {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
       const [statsRes, busesRes, driversRes, routesRes, allocRes, tripsRes, historyRes] = await Promise.all([
-        axios.get('http://localhost:5005/api/transport/stats', config),
-        axios.get('http://localhost:5005/api/transport/buses', config),
-        axios.get('http://localhost:5005/api/transport/drivers', config),
-        axios.get('http://localhost:5005/api/transport/routes', config),
-        axios.get('http://localhost:5005/api/transport/student-allocations', config),
-        axios.get('http://localhost:5005/api/transport/active-trips', config),
-        axios.get('http://localhost:5005/api/transport/trip-history', config)
+        axios.get('/api/transport/stats', config),
+        axios.get('/api/transport/buses', config),
+        axios.get('/api/transport/drivers', config),
+        axios.get('/api/transport/routes', config),
+        axios.get('/api/transport/student-allocations', config),
+        axios.get('/api/transport/active-trips', config),
+        axios.get('/api/transport/trip-history', config)
       ]);
 
       setStats(statsRes.data);
@@ -118,8 +118,8 @@ const TransportManagement = () => {
 
       // Fetch students & classes for dropdowns
       const [studentsApi, classesApi] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/students', config),
-        axios.get('http://localhost:5005/api/schooladmin/classes', config)
+        axios.get('/api/schooladmin/students', config),
+        axios.get('/api/schooladmin/classes', config)
       ]);
       setStudentsList(studentsApi.data || []);
       setClassesList(classesApi.data || []);
@@ -143,10 +143,10 @@ const TransportManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editingBus) {
-        await axios.put(`http://localhost:5005/api/transport/buses/${editingBus._id}`, busForm, config);
+        await axios.put(`/api/transport/buses/${editingBus._id}`, busForm, config);
         toast.success('Bus updated successfully');
       } else {
-        await axios.post('http://localhost:5005/api/transport/buses', busForm, config);
+        await axios.post('/api/transport/buses', busForm, config);
         toast.success('Bus added successfully');
       }
       setIsBusModalOpen(false);
@@ -161,7 +161,7 @@ const TransportManagement = () => {
     if (!window.confirm('Are you sure you want to delete this bus?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/transport/buses/${id}`, config);
+      await axios.delete(`/api/transport/buses/${id}`, config);
       toast.success('Bus deleted successfully');
       fetchAllData();
     } catch (error) {
@@ -175,10 +175,10 @@ const TransportManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editingDriver) {
-        await axios.put(`http://localhost:5005/api/transport/drivers/${editingDriver._id}`, driverForm, config);
+        await axios.put(`/api/transport/drivers/${editingDriver._id}`, driverForm, config);
         toast.success('Driver updated successfully');
       } else {
-        await axios.post('http://localhost:5005/api/transport/drivers', driverForm, config);
+        await axios.post('/api/transport/drivers', driverForm, config);
         toast.success('Driver registered successfully');
       }
       setIsDriverModalOpen(false);
@@ -193,7 +193,7 @@ const TransportManagement = () => {
     if (!window.confirm('Are you sure you want to delete this driver?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/transport/drivers/${id}`, config);
+      await axios.delete(`/api/transport/drivers/${id}`, config);
       toast.success('Driver deleted successfully');
       fetchAllData();
     } catch (error) {
@@ -207,10 +207,10 @@ const TransportManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editingRoute) {
-        await axios.put(`http://localhost:5005/api/transport/routes/${editingRoute._id}`, routeForm, config);
+        await axios.put(`/api/transport/routes/${editingRoute._id}`, routeForm, config);
         toast.success('Route updated successfully');
       } else {
-        await axios.post('http://localhost:5005/api/transport/routes', routeForm, config);
+        await axios.post('/api/transport/routes', routeForm, config);
         toast.success('Route created successfully');
       }
       setIsRouteModalOpen(false);
@@ -225,7 +225,7 @@ const TransportManagement = () => {
     if (!window.confirm('Are you sure you want to delete this route and its stops?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/transport/routes/${id}`, config);
+      await axios.delete(`/api/transport/routes/${id}`, config);
       toast.success('Route deleted successfully');
       fetchAllData();
     } catch (error) {
@@ -238,7 +238,7 @@ const TransportManagement = () => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/transport/stops', {
+      await axios.post('/api/transport/stops', {
         ...stopForm,
         route_id: selectedRouteForStops._id
       }, config);
@@ -254,7 +254,7 @@ const TransportManagement = () => {
     if (!window.confirm('Delete this stop?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/transport/stops/${stopId}`, config);
+      await axios.delete(`/api/transport/stops/${stopId}`, config);
       toast.success('Stop deleted successfully');
       fetchAllData();
     } catch (error) {
@@ -267,7 +267,7 @@ const TransportManagement = () => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/transport/assign-driver', assignDriverBusForm, config);
+      await axios.post('/api/transport/assign-driver', assignDriverBusForm, config);
       toast.success('Driver assigned to Bus & Route successfully');
       setIsAssignDriverModalOpen(false);
       fetchAllData();
@@ -280,7 +280,7 @@ const TransportManagement = () => {
     if (!window.confirm('Are you sure you want to unassign this driver from their vehicle?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/transport/unassign-driver', { driver_id: driverId }, config);
+      await axios.post('/api/transport/unassign-driver', { driver_id: driverId }, config);
       toast.success('Driver unassigned successfully');
       fetchAllData();
     } catch (error) {
@@ -293,7 +293,7 @@ const TransportManagement = () => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5005/api/transport/student-allocations', assignForm, config);
+      await axios.post('/api/transport/student-allocations', assignForm, config);
       toast.success('Student transport assigned successfully');
       setIsAssignModalOpen(false);
       fetchAllData();
@@ -306,7 +306,7 @@ const TransportManagement = () => {
     if (!window.confirm('Remove this student transport allocation?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`http://localhost:5005/api/transport/student-allocations/${id}`, config);
+      await axios.delete(`/api/transport/student-allocations/${id}`, config);
       toast.success('Student unassigned successfully');
       fetchAllData();
     } catch (error) {
@@ -318,7 +318,7 @@ const TransportManagement = () => {
     if (!window.confirm('Force stop this active bus trip?')) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`http://localhost:5005/api/transport/force-stop-trip/${tripId}`, {}, config);
+      await axios.post(`/api/transport/force-stop-trip/${tripId}`, {}, config);
       toast.info('Trip force stopped by Admin');
       fetchAllData();
     } catch (error) {

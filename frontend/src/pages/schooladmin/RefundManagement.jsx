@@ -12,7 +12,7 @@ const RefundManagement = () => {
   const fetchRefunds = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/fees/refunds', config);
+      const res = await axios.get('/api/schooladmin/fees/refunds', config);
       setRefunds(res.data);
       setLoading(false);
     } catch (error) {
@@ -29,7 +29,7 @@ const RefundManagement = () => {
     if (window.confirm(`Are you sure you want to set this refund status to ${newStatus}?`)) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.put('http://localhost:5005/api/schooladmin/fees/refunds', {
+        await axios.put('/api/schooladmin/fees/refunds', {
           student_fee_id: stuFeeId,
           refund_id: refundId,
           status: newStatus

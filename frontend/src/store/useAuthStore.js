@@ -9,7 +9,7 @@ const useAuthStore = create((set) => ({
   login: async (credentials) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await axios.post('http://localhost:5005/api/auth/login', credentials);
+      const { data } = await axios.post('/api/auth/login', credentials);
       localStorage.setItem('user', JSON.stringify(data));
       set({ user: data, isLoading: false });
       return data;

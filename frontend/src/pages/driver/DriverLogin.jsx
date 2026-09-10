@@ -21,7 +21,7 @@ const DriverLogin = () => {
 
     setLoading(true);
     try {
-      const { data } = await axios.post('http://localhost:5005/api/transport/driver/login', {
+      const { data } = await axios.post('/api/transport/driver/login', {
         mobile_number: mobileNumber,
         password
       });

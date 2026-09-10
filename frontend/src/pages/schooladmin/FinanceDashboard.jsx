@@ -31,7 +31,7 @@ export default function FinanceDashboard() {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/finance/dashboard', config);
+      const res = await axios.get('/api/schooladmin/finance/dashboard', config);
       setStats(res.data);
     } catch (error) {
       toast.error('Failed to load finance analytics dashboard');

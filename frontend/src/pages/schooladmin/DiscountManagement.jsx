@@ -18,7 +18,7 @@ const DiscountManagement = () => {
   const fetchDiscounts = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/fees/discounts', config);
+      const res = await axios.get('/api/schooladmin/fees/discounts', config);
       setDiscounts(res.data);
       setLoading(false);
     } catch (error) {
@@ -35,10 +35,10 @@ const DiscountManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/fees/discounts/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/fees/discounts/${editingId}`, data, config);
         toast.success('Discount scheme updated!');
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/fees/discounts', data, config);
+        await axios.post('/api/schooladmin/fees/discounts', data, config);
         toast.success('Discount scheme created!');
       }
       closeForm();
@@ -63,7 +63,7 @@ const DiscountManagement = () => {
     if (window.confirm('Are you sure you want to delete this discount scheme?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/fees/discounts/${id}`, config);
+        await axios.delete(`/api/schooladmin/fees/discounts/${id}`, config);
         toast.success('Discount scheme deleted');
         fetchDiscounts();
       } catch (error) {

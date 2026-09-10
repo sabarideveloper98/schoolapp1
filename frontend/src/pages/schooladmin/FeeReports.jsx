@@ -22,8 +22,8 @@ const FeeReports = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const [resStats, resClasses] = await Promise.all([
-        axios.get('http://localhost:5005/api/schooladmin/fees/dashboard', config),
-        axios.get('http://localhost:5005/api/schooladmin/classes', config)
+        axios.get('/api/schooladmin/fees/dashboard', config),
+        axios.get('/api/schooladmin/classes', config)
       ]);
       setDashboardStats(resStats.data);
       setClasses(resClasses.data);
@@ -40,7 +40,7 @@ const FeeReports = () => {
       if (reportType === 'Monthly Collection') typeParam = 'Monthly';
       if (reportType === 'Class Wise') typeParam = 'Class';
 
-      let url = `http://localhost:5005/api/schooladmin/fees/reports?type=${typeParam}&date=${selectedDate}&month=${selectedMonth}&year=${selectedYear}`;
+      let url = `/api/schooladmin/fees/reports?type=${typeParam}&date=${selectedDate}&month=${selectedMonth}&year=${selectedYear}`;
       if (selectedClassId) url += `&class_id=${selectedClassId}`;
 
       const res = await axios.get(url, config);

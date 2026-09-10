@@ -53,7 +53,7 @@ const SubscriptionManagement = () => {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get('http://localhost:5005/api/subscription/schooladmin/current', config);
+      const { data } = await axios.get('/api/subscription/schooladmin/current', config);
       
       setSchoolData(data.school || null);
       setActiveSubscription(data.activeSubscription || null);
@@ -128,7 +128,7 @@ const SubscriptionManagement = () => {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
       // Step 1: Create Razorpay Order from backend
-      const orderRes = await axios.post('http://localhost:5005/api/subscription/schooladmin/create-order', {
+      const orderRes = await axios.post('/api/subscription/schooladmin/create-order', {
         student_count: parsedStudentCount,
         duration: selectedDuration
       }, config);
@@ -146,7 +146,7 @@ const SubscriptionManagement = () => {
           order_id: orderData.id,
           handler: async function (response) {
             try {
-              const verifyRes = await axios.post('http://localhost:5005/api/subscription/schooladmin/verify-payment', {
+              const verifyRes = await axios.post('/api/subscription/schooladmin/verify-payment', {
                 student_count: parsedStudentCount,
                 duration: selectedDuration,
                 razorpay_order_id: response.razorpay_order_id,
@@ -188,7 +188,7 @@ const SubscriptionManagement = () => {
       } else {
         // Fallback for environment where popup is blocked
         const paymentId = `pay_sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const verifyRes = await axios.post('http://localhost:5005/api/subscription/schooladmin/verify-payment', {
+        const verifyRes = await axios.post('/api/subscription/schooladmin/verify-payment', {
           student_count: parsedStudentCount,
           duration: selectedDuration,
           razorpay_order_id: orderData.id,

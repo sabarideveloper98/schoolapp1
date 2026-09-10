@@ -15,7 +15,7 @@ const TeacherClasses = () => {
     const fetchClasses = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('http://localhost:5005/api/teacher/classes', config);
+        const { data } = await axios.get('/api/teacher/classes', config);
         setClasses(data);
         setLoading(false);
       } catch (error) {

@@ -61,7 +61,7 @@ const TeacherCreate = () => {
         photo: photoBase64
       };
 
-      await axios.post('http://localhost:5005/api/schooladmin/teachers', payload, config);
+      await axios.post('/api/schooladmin/teachers', payload, config);
       toast.success('Teacher created successfully!');
       navigate('/school-admin/teachers');
     } catch (error) {

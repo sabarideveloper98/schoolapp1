@@ -21,7 +21,7 @@ const StaffManagement = () => {
   const fetchStaff = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/schooladmin/staff', config);
+      const res = await axios.get('/api/schooladmin/staff', config);
       setStaff(res.data);
       setLoading(false);
     } catch (error) {
@@ -45,10 +45,10 @@ const StaffManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`http://localhost:5005/api/schooladmin/staff/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/staff/${editingId}`, data, config);
         toast.success(`Staff updated successfully!`, { autoClose: 3000 });
       } else {
-        await axios.post('http://localhost:5005/api/schooladmin/staff', data, config);
+        await axios.post('/api/schooladmin/staff', data, config);
         toast.success(`Staff created successfully!`, { autoClose: 3000 });
       }
       closeForm();
@@ -84,7 +84,7 @@ const StaffManagement = () => {
     if (window.confirm('Delete this staff member?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/schooladmin/staff/${id}`, config);
+        await axios.delete(`/api/schooladmin/staff/${id}`, config);
         toast.success('Staff deleted');
         fetchStaff();
       } catch (error) {

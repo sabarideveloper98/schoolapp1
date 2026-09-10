@@ -16,7 +16,7 @@ const SchoolManagement = () => {
   const fetchSchools = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5005/api/superadmin/schools', config);
+      const res = await axios.get('/api/superadmin/schools', config);
       setSchools(res.data);
       setLoading(false);
     } catch (error) {
@@ -35,10 +35,10 @@ const SchoolManagement = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editingSchool) {
-        await axios.put(`http://localhost:5005/api/superadmin/schools/${editingSchool._id}`, data, config);
+        await axios.put(`/api/superadmin/schools/${editingSchool._id}`, data, config);
         toast.success('School updated successfully');
       } else {
-        const res = await axios.post('http://localhost:5005/api/superadmin/schools', data, config);
+        const res = await axios.post('/api/superadmin/schools', data, config);
         toast.success(`School created! Admin password: ${res.data.adminPassword}`, { autoClose: false });
       }
       setIsFormOpen(false);
@@ -53,7 +53,7 @@ const SchoolManagement = () => {
     if (window.confirm('Are you sure you want to delete this school?')) {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        await axios.delete(`http://localhost:5005/api/superadmin/schools/${id}`, config);
+        await axios.delete(`/api/superadmin/schools/${id}`, config);
         toast.success('School deleted');
         fetchSchools();
       } catch (error) {
