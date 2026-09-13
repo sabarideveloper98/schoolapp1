@@ -1,16 +1,25 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Users, BookOpen, MessageSquare, User, Bus } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, MessageSquare, User, Bus, CalendarRange } from 'lucide-react';
 import Layout from '../../components/Layout';
+import useAuthStore from '../../store/useAuthStore';
 
 import TeacherStudents from './TeacherStudents';
 import TeacherClasses from './TeacherClasses';
 import TeacherMessages from './TeacherMessages';
 import TeacherBusTracking from './TeacherBusTracking';
 import TeacherHomework from './TeacherHomework';
+import TeacherTimetable from '../schooladmin/timetable/TeacherTimetable';
 import AccountProfile from '../AccountProfile';
 
 const TeacherDashboard = () => {
+  const { user } = useAuthStore();
+
   const menuItems = [
+    {
+      label: 'My Timetable',
+      icon: CalendarRange,
+      path: '/teacher/timetable'
+    },
     { 
       label: 'Students Information', 
       icon: Users,
@@ -52,13 +61,14 @@ const TeacherDashboard = () => {
   return (
     <Layout menuItems={menuItems} title="Teacher Portal">
       <Routes>
+        <Route path="/timetable" element={<TeacherTimetable preselectedTeacherId={user?.teacher_id || user?._id} />} />
         <Route path="/students" element={<TeacherStudents />} />
         <Route path="/classes" element={<TeacherClasses />} />
         <Route path="/homework" element={<TeacherHomework />} />
         <Route path="/messages" element={<TeacherMessages />} />
         <Route path="/bus-tracking" element={<TeacherBusTracking />} />
         <Route path="/profile" element={<AccountProfile />} />
-        <Route path="*" element={<Navigate to="/teacher/students" replace />} />
+        <Route path="*" element={<Navigate to="/teacher/timetable" replace />} />
       </Routes>
     </Layout>
   );

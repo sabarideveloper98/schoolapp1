@@ -1,12 +1,12 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar, Coins, Wallet, TrendingUp, User, CreditCard } from 'lucide-react';
-import Layout from '../../components/Layout';
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar, Coins, Wallet, TrendingUp, User, CreditCard, Navigation, CalendarRange } from 'lucide-react';
+import Layout from '../../components/Layout';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 
-// We will import these once we create them
+// Existing module imports
 import TeacherManagement from './TeacherManagement';
 import StaffManagement from './StaffManagement';
 import SubjectManagement from './SubjectManagement';
@@ -40,7 +40,20 @@ import AccountProfile from '../AccountProfile';
 import SubscriptionManagement from './SubscriptionManagement';
 import TransportManagement from './TransportManagement';
 import HomeworkManagement from './HomeworkManagement';
-import { Navigation } from 'lucide-react';
+
+// Timetable Module Imports
+import TimetableDashboard from './timetable/TimetableDashboard';
+import CreateTimetable from './timetable/CreateTimetable';
+import ManageTimetable from './timetable/ManageTimetable';
+import ClassTimetable from './timetable/ClassTimetable';
+import TeacherTimetable from './timetable/TeacherTimetable';
+import GlobalTimetable from './timetable/GlobalTimetable';
+import PrintTimetable from './timetable/PrintTimetable';
+import TeacherAssignment from './timetable/TeacherAssignment';
+import AutoGenerator from './timetable/AutoGenerator';
+import ConflictDetection from './timetable/ConflictDetection';
+import TimetableSettingsPage from './timetable/TimetableSettings';
+import TimetableReports from './timetable/TimetableReports';
 
 const StatCard = ({ title, value, icon: Icon, color }) => {
   const textColorClass = color.replace('bg-', 'text-').replace('-500', '-600');
@@ -140,6 +153,19 @@ const SchoolAdminDashboard = () => {
       path: '/school-admin/dashboard',
     },
     {
+      label: '📅 Timetable Management',
+      icon: CalendarRange,
+      subItems: [
+        { label: 'Timetable Dashboard', path: '/school-admin/timetable/dashboard' },
+        { label: 'Create Timetable', path: '/school-admin/academics/timetable/create' },
+        { label: 'Manage Timetable', path: '/school-admin/academics/timetable/manage' },
+        { label: 'Class Timetable', path: '/school-admin/academics/timetable/class' },
+        { label: 'Teacher Timetable', path: '/school-admin/academics/timetable/teacher' },
+        { label: 'Timetable Settings', path: '/school-admin/timetable/settings' },
+        { label: 'Reports', path: '/school-admin/timetable/reports' },
+      ],
+    },
+    {
       label: 'Students Information',
       icon: GraduationCap,
       subItems: [
@@ -172,9 +198,13 @@ const SchoolAdminDashboard = () => {
       subItems: [
         { label: 'Subjects List', path: '/school-admin/subjects' },
         { label: 'Classes & Sections', path: '/school-admin/classes' },
+        { label: 'Create Timetable', path: '/school-admin/academics/timetable/create' },
+        { label: 'Manage Timetable', path: '/school-admin/academics/timetable/manage' },
+        { label: 'Class Timetable', path: '/school-admin/academics/timetable/class' },
+        { label: 'Teacher Timetable', path: '/school-admin/academics/timetable/teacher' },
+        { label: 'Print Timetable', path: '/school-admin/academics/timetable/print' },
       ],
     },
-    // Conditionally include Payroll & Salary menu ONLY if active subscription exists
     ...(hasActiveSubscription ? [{
       label: 'Payroll & Salary',
       icon: Coins,
@@ -237,6 +267,28 @@ const SchoolAdminDashboard = () => {
         <Route index element={<Navigate to="/school-admin/dashboard" replace />} />
         <Route path="/" element={<Navigate to="/school-admin/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardOverview />} />
+        
+        {/* Timetable Sub-routes */}
+        <Route path="/timetable/dashboard" element={<TimetableDashboard />} />
+        <Route path="/timetable/create" element={<CreateTimetable />} />
+        <Route path="/timetable/manage" element={<ManageTimetable />} />
+        <Route path="/timetable/class" element={<ClassTimetable />} />
+        <Route path="/timetable/teacher" element={<TeacherTimetable />} />
+        <Route path="/timetable/print" element={<PrintTimetable />} />
+        <Route path="/timetable/global" element={<GlobalTimetable />} />
+        <Route path="/timetable/assignments" element={<TeacherAssignment />} />
+        <Route path="/timetable/auto-generate" element={<AutoGenerator />} />
+        <Route path="/timetable/conflicts" element={<ConflictDetection />} />
+        <Route path="/timetable/settings" element={<TimetableSettingsPage />} />
+        <Route path="/timetable/reports" element={<TimetableReports />} />
+
+        {/* Academics Timetable Aliases */}
+        <Route path="/academics/timetable/create" element={<CreateTimetable />} />
+        <Route path="/academics/timetable/manage" element={<ManageTimetable />} />
+        <Route path="/academics/timetable/class" element={<ClassTimetable />} />
+        <Route path="/academics/timetable/teacher" element={<TeacherTimetable />} />
+        <Route path="/academics/timetable/print" element={<PrintTimetable />} />
+
         <Route path="/teachers" element={<TeacherManagement />} />
         <Route path="/teachers/create" element={<TeacherCreate />} />
         <Route path="/staff" element={<StaffManagement />} />
@@ -251,7 +303,7 @@ const SchoolAdminDashboard = () => {
         <Route path="/students" element={<StudentManagement />} />
         <Route path="/students/create" element={<StudentCreate />} />
         
-        {/* Payroll routes - protected by active subscription */}
+        {/* Payroll routes */}
         <Route path="/salary/setup" element={hasActiveSubscription ? <SalarySetup /> : <Navigate to="/school-admin/subscription" replace />} />
         <Route path="/salary/process" element={hasActiveSubscription ? <PayrollProcess /> : <Navigate to="/school-admin/subscription" replace />} />
         <Route path="/salary/slips" element={hasActiveSubscription ? <SalarySlips /> : <Navigate to="/school-admin/subscription" replace />} />

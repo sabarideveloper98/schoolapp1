@@ -3,11 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
-import { Users, Wallet, User, Bus, BookOpen } from 'lucide-react';
+import { Users, Wallet, User, Bus, BookOpen, CalendarRange } from 'lucide-react';
 import Layout from '../../components/Layout';
 import ParentFees from './ParentFees';
 import ParentBusTracking from './ParentBusTracking';
 import ParentHomework from './ParentHomework';
+import ParentTimetable from './ParentTimetable';
 import AccountProfile from '../AccountProfile';
 
 const ParentOverview = ({ childrenList }) => {
@@ -81,6 +82,7 @@ const ParentDashboard = () => {
 
   const menuItems = [
     { label: 'My Children', path: '/parent/dashboard', icon: Users },
+    { label: 'Class Timetable', path: '/parent/timetable', icon: CalendarRange },
     { label: 'Child Homework', path: '/parent/homework', icon: BookOpen },
     { label: 'Fee Details', path: '/parent/fees', icon: Wallet },
     { label: 'Bus Tracking', path: '/parent/bus-tracking', icon: Bus },
@@ -93,6 +95,7 @@ const ParentDashboard = () => {
     <Layout menuItems={menuItems} title="Parent Portal">
       <Routes>
         <Route path="/dashboard" element={<ParentOverview childrenList={dashboardData?.children} />} />
+        <Route path="/timetable" element={<ParentTimetable childrenList={dashboardData?.children} />} />
         <Route path="/homework" element={<ParentHomework />} />
         <Route path="/fees" element={<ParentFees />} />
         <Route path="/bus-tracking" element={<ParentBusTracking />} />

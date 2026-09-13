@@ -1,16 +1,16 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, Users, UserSquare2, GraduationCap, UserCheck, User, Coins, TrendingUp, Wallet } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UserSquare2, GraduationCap, UserCheck, User, Coins, TrendingUp, CalendarRange } from 'lucide-react';
 import Layout from '../../components/Layout';
 import SchoolManagement from './SchoolManagement';
 import AccountProfile from '../AccountProfile';
 import SubscriptionSettings from './SubscriptionSettings';
+import GlobalTimetable from '../schooladmin/timetable/GlobalTimetable';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 
 const StatCard = ({ title, value, icon: Icon, color, isCurrency = false, subtitle }) => {
-  // Map background utility color class to text color class
   const textColorClass = color.replace('bg-', 'text-').replace('-500', '-600');
   
   return (
@@ -109,6 +109,7 @@ const SuperAdminDashboard = () => {
   const menuItems = [
     { label: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
     { label: 'School Management', path: '/super-admin/schools', icon: Building2 },
+    { label: 'Timetable Overview', path: '/super-admin/timetable', icon: CalendarRange },
     { label: 'Subscription Rates', path: '/super-admin/subscription-settings', icon: Coins },
     { label: 'My Account', path: '/super-admin/profile', icon: User },
   ];
@@ -118,6 +119,7 @@ const SuperAdminDashboard = () => {
       <Routes>
         <Route path="/dashboard" element={<DashboardOverview />} />
         <Route path="/schools" element={<SchoolManagement />} />
+        <Route path="/timetable" element={<GlobalTimetable />} />
         <Route path="/subscription-settings" element={<SubscriptionSettings />} />
         <Route path="/profile" element={<AccountProfile />} />
         <Route path="*" element={<Navigate to="/super-admin/dashboard" replace />} />

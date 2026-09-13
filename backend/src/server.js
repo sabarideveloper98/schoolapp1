@@ -45,6 +45,7 @@ const parentRoutes = require('./routes/parentRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const transportRoutes = require('./routes/transportRoutes');
 const homeworkRoutes = require('./routes/homeworkRoutes');
+const timetableRoutes = require('./routes/timetableRoutes');
 
 // Mount routers
 app.use('/api/auth', authRoutes);
@@ -55,6 +56,7 @@ app.use('/api/parent', parentRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/homework', homeworkRoutes);
+app.use('/api/timetable', timetableRoutes);
 
 app.get('/', (req, res) => {
     res.send('School Management System API is running...');
