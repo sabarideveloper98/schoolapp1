@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import SearchableSelect from '../../components/SearchableSelect';
+import BulkStudentImportModal from '../../components/BulkStudentImportModal';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
@@ -11,6 +13,7 @@ const StudentCreate = () => {
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState('');
   const [availableSections, setAvailableSections] = useState([]);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [photoBase64, setPhotoBase64] = useState('');
   const [photoPreview, setPhotoPreview] = useState('');
 
@@ -122,12 +125,19 @@ const StudentCreate = () => {
         </div>
         <button 
           type="button"
+          onClick={() => setShowBulkModal(true)}
           className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(59,130,246,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
         >
           <FileSpreadsheet className="w-4 h-4" />
           CSV/Xlsx Upload File
         </button>
       </div>
+
+      <BulkStudentImportModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        onSuccess={() => navigate('/school-admin/students')}
+      />
 
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-12">
@@ -179,60 +189,61 @@ const StudentCreate = () => {
             {/* Class */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Class <span className="text-red-500">*</span></label>
-              <select 
-                onChange={(e) => handleClassChange(e.target.value)}
+              <SearchableSelect
+                options={uniqueClassNames.map(c => ({ value: c, label: c }))}
                 value={selectedClass}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-              >
-                <option value="">Select Class</option>
-                {uniqueClassNames.map((c, idx) => (
-                  <option key={idx} value={c}>{c}</option>
-                ))}
-              </select>
+                onChange={(val) => handleClassChange(val)}
+                placeholder="Select Class"
+                searchPlaceholder="Search class..."
+              />
               <input type="hidden" {...register('class_id', { required: 'Please select Class and Section' })} />
             </div>
 
             {/* Group */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Group <span className="text-red-500">*</span></label>
-              <select 
-                {...register('group')} 
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-              >
-                <option value="Science">Science</option>
-                <option value="Commerce">Commerce</option>
-                <option value="Arts/Humanities">Arts/Humanities</option>
-                <option value="General">General</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  { value: 'Science', label: 'Science' },
+                  { value: 'Commerce', label: 'Commerce' },
+                  { value: 'Arts/Humanities', label: 'Arts/Humanities' },
+                  { value: 'General', label: 'General' }
+                ]}
+                value={watch('group') || 'Science'}
+                onChange={(val) => setValue('group', val)}
+                placeholder="Select Group"
+              />
+              <input type="hidden" {...register('group')} />
             </div>
 
             {/* Section */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Section <span className="text-red-500">*</span></label>
-              <select 
-                onChange={(e) => handleSectionChange(e.target.value)}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
+              <SearchableSelect
+                options={availableSections.map(s => ({ value: s._id, label: s.section }))}
+                value={watch('class_id') || ''}
+                onChange={(val) => handleSectionChange(val)}
+                placeholder={selectedClass ? 'Select Section' : 'Select Class First'}
+                searchPlaceholder="Search section..."
                 disabled={!selectedClass}
-              >
-                <option value="">{selectedClass ? 'Select Section' : 'Select Class First'}</option>
-                {availableSections.map((s) => (
-                  <option key={s._id} value={s._id}>{s.section}</option>
-                ))}
-              </select>
+              />
               {errors.class_id && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.class_id.message}</p>}
             </div>
 
             {/* Gender */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Gender <span className="text-slate-400 font-normal"> (optional)</span></label>
-              <select 
-                {...register('gender')} 
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  { value: 'Male', label: 'Male' },
+                  { value: 'Female', label: 'Female' },
+                  { value: 'Other', label: 'Other' }
+                ]}
+                value={watch('gender') || 'Male'}
+                onChange={(val) => setValue('gender', val)}
+                placeholder="Select Gender"
+              />
+              <input type="hidden" {...register('gender')} />
             </div>
 
             {/* Roll No */}
@@ -259,35 +270,41 @@ const StudentCreate = () => {
             {/* Blood Group */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Blood Group <span className="text-slate-400 font-normal"> (optional)</span></label>
-              <select 
-                {...register('blood_group')} 
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-              >
-                <option value="N/A">N/A</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  { value: 'N/A', label: 'N/A' },
+                  { value: 'A+', label: 'A+' },
+                  { value: 'A-', label: 'A-' },
+                  { value: 'B+', label: 'B+' },
+                  { value: 'B-', label: 'B-' },
+                  { value: 'AB+', label: 'AB+' },
+                  { value: 'AB-', label: 'AB-' },
+                  { value: 'O+', label: 'O+' },
+                  { value: 'O-', label: 'O-' }
+                ]}
+                value={watch('blood_group') || 'N/A'}
+                onChange={(val) => setValue('blood_group', val)}
+                placeholder="Select Blood Group"
+              />
+              <input type="hidden" {...register('blood_group')} />
             </div>
 
             {/* Religion */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Religion <span className="text-slate-400 font-normal"> (optional)</span></label>
-              <select 
-                {...register('religion')} 
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-              >
-                <option value="Islam">Islam</option>
-                <option value="Hinduism">Hinduism</option>
-                <option value="Christianity">Christianity</option>
-                <option value="Buddhism">Buddhism</option>
-                <option value="Other">Other</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  { value: 'Islam', label: 'Islam' },
+                  { value: 'Hinduism', label: 'Hinduism' },
+                  { value: 'Christianity', label: 'Christianity' },
+                  { value: 'Buddhism', label: 'Buddhism' },
+                  { value: 'Other', label: 'Other' }
+                ]}
+                value={watch('religion') || 'Islam'}
+                onChange={(val) => setValue('religion', val)}
+                placeholder="Select Religion"
+              />
+              <input type="hidden" {...register('religion')} />
             </div>
 
             {/* Admission Number */}
@@ -300,57 +317,24 @@ const StudentCreate = () => {
               />
             </div>
 
-            {/* Address */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">Address <span className="text-slate-400 font-normal"> (optional)</span></label>
-              <textarea 
-                {...register('address')} 
-                rows="3"
-                className="block w-full p-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-                placeholder="Address"
-              />
+            <div className="md:col-span-2 border-b border-slate-100 pb-2 mb-2 mt-4">
+              <h3 className="font-extrabold text-slate-800 text-sm">Parent & Guardian Information</h3>
             </div>
-          </div>
-        </div>
 
-        {/* Guardian Information Card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-8">
-          <div className="flex flex-col items-center justify-center text-center max-w-lg mx-auto mb-8">
-            <div className="flex items-center gap-2.5 text-blue-600 font-bold mb-1.5">
-              <Users className="w-5 h-5" />
-              <span className="text-lg font-black text-slate-800">Guardian Information</span>
-            </div>
-            <p className="text-xs text-slate-400 font-semibold leading-relaxed">
-              Please provide the guardian's details for communication and emergency contact purposes.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Guardian Name */}
+            {/* Parent Name */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">Guardian Name <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">Parent / Guardian Name <span className="text-red-500">*</span></label>
               <input 
                 {...register('guardian_name', { required: 'Guardian Name is required' })} 
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-                placeholder="Enter Guardian Full Name"
+                placeholder="Enter Guardian Name"
               />
               {errors.guardian_name && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.guardian_name.message}</p>}
             </div>
 
-            {/* Guardian Email Address */}
+            {/* Parent Phone */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">Guardian Email Address <span className="text-slate-400 font-normal"> (Optional)</span></label>
-              <input 
-                type="email"
-                {...register('guardian_email')} 
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-                placeholder="Enter Guardian Email Address"
-              />
-            </div>
-
-            {/* Guardian Phone Number */}
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">Guardian Phone Number <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">Parent / Guardian Phone <span className="text-red-500">*</span></label>
               <input 
                 {...register('guardian_phone', { required: 'Guardian Phone Number is required' })} 
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
@@ -362,18 +346,21 @@ const StudentCreate = () => {
             {/* Relationship */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Relationship <span className="text-red-500">*</span></label>
-              <select 
-                {...register('guardian_relation', { required: 'Required' })}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-              >
-                <option value="Father">Father</option>
-                <option value="Mother">Mother</option>
-                <option value="Brother">Brother</option>
-                <option value="Sister">Sister</option>
-                <option value="Uncle">Uncle</option>
-                <option value="Aunt">Aunt</option>
-                <option value="Other">Other</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  { value: 'Father', label: 'Father' },
+                  { value: 'Mother', label: 'Mother' },
+                  { value: 'Brother', label: 'Brother' },
+                  { value: 'Sister', label: 'Sister' },
+                  { value: 'Uncle', label: 'Uncle' },
+                  { value: 'Aunt', label: 'Aunt' },
+                  { value: 'Other', label: 'Other' }
+                ]}
+                value={watch('guardian_relation') || 'Father'}
+                onChange={(val) => setValue('guardian_relation', val)}
+                placeholder="Select Relationship"
+              />
+              <input type="hidden" {...register('guardian_relation', { required: 'Required' })} />
             </div>
 
             {/* Guardian Address */}

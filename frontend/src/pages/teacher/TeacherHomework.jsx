@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SearchableSelect from '../../components/SearchableSelect';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import {
@@ -273,19 +274,16 @@ const TeacherHomework = () => {
 
               <div>
                 <label className="font-bold text-slate-600 block mb-1">Select Class *</label>
-                <select
+                <SearchableSelect
+                  options={classesList.map(c => ({
+                    value: c._id,
+                    label: `${c.class || c.class_name || 'Class'} (${c.section || 'A'})`
+                  }))}
                   value={form.assigned_classes[0] || ''}
-                  onChange={(e) => setForm({ ...form, assigned_classes: [e.target.value] })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
-                  required
-                >
-                  <option value="">-- Choose Class --</option>
-                  {classesList.map(c => (
-                    <option key={c._id} value={c._id}>
-                      {c.class || c.class_name || 'Class'} ({c.section || 'A'})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setForm({ ...form, assigned_classes: [val] })}
+                  placeholder="Choose Class..."
+                  searchPlaceholder="Search class..."
+                />
               </div>
 
               <div>

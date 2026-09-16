@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SearchableSelect from '../../components/SearchableSelect';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
@@ -180,35 +181,29 @@ const StudentAttendance = () => {
           {/* Class Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Class</label>
-            <select
+            <SearchableSelect
+              options={uniqueClassNames.map(c => ({ value: c, label: c }))}
               value={classFilter}
-              onChange={(e) => {
-                setClassFilter(e.target.value);
+              onChange={(val) => {
+                setClassFilter(val);
                 setSectionFilter('');
               }}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
-            >
-              <option value="">Select Class</option>
-              {uniqueClassNames.map((c, idx) => (
-                <option key={idx} value={c}>{c}</option>
-              ))}
-            </select>
+              placeholder="Select Class"
+              searchPlaceholder="Search class..."
+            />
           </div>
 
           {/* Section Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Section</label>
-            <select
+            <SearchableSelect
+              options={availableSections.map(s => ({ value: s._id, label: s.section }))}
               value={sectionFilter}
-              onChange={(e) => setSectionFilter(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
+              onChange={(val) => setSectionFilter(val)}
+              placeholder={classFilter ? 'Select Section' : 'Select Class First'}
+              searchPlaceholder="Search section..."
               disabled={!classFilter}
-            >
-              <option value="">{classFilter ? 'Select Section' : 'Select Class First'}</option>
-              {availableSections.map((s) => (
-                <option key={s._id} value={s._id}>{s.section}</option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Date Selector */}

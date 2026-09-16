@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import SearchableSelect from '../../components/SearchableSelect';
+import BulkStudentImportModal from '../../components/BulkStudentImportModal';
 import axios from 'axios';
-import { Plus, Edit, Trash2, X, Search, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, Image as ImageIcon, ChevronDown, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
@@ -17,6 +19,7 @@ const StudentManagement = () => {
 
   // Modal Editing forms
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -213,14 +216,29 @@ const StudentManagement = () => {
             <span className="text-blue-600">Students</span>
           </div>
         </div>
-        <button 
-          onClick={() => navigate('/school-admin/students/create')}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(59,130,246,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Student
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowBulkModal(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(79,70,229,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Bulk CSV/Excel Import
+          </button>
+          <button 
+            onClick={() => navigate('/school-admin/students/create')}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(59,130,246,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+          >
+            <Plus className="w-4 h-4" />
+            Add New Student
+          </button>
+        </div>
       </div>
+
+      <BulkStudentImportModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        onSuccess={() => fetchData()}
+      />
 
       {/* Filter Section Card */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-6">
@@ -228,35 +246,29 @@ const StudentManagement = () => {
           {/* Class select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Class</label>
-            <select
+            <SearchableSelect
+              options={uniqueClassNames.map(c => ({ value: c, label: c }))}
               value={classFilter}
-              onChange={(e) => {
-                setClassFilter(e.target.value);
+              onChange={(val) => {
+                setClassFilter(val);
                 setSectionFilter('');
               }}
-              className="block w-full h-12 px-4 text-slate-850 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
-            >
-              <option value="">Select Class</option>
-              {uniqueClassNames.map((c, idx) => (
-                <option key={idx} value={c}>{c}</option>
-              ))}
-            </select>
+              placeholder="Select Class"
+              searchPlaceholder="Search class..."
+            />
           </div>
 
           {/* Section select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Section</label>
-            <select
+            <SearchableSelect
+              options={availableSections.map(s => ({ value: s._id, label: s.section }))}
               value={sectionFilter}
-              onChange={(e) => setSectionFilter(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-855 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
+              onChange={(val) => setSectionFilter(val)}
+              placeholder={classFilter ? 'Select Section' : 'Select Class First'}
+              searchPlaceholder="Search section..."
               disabled={!classFilter}
-            >
-              <option value="">{classFilter ? 'Select Section' : 'Select Class First'}</option>
-              {availableSections.map((s) => (
-                <option key={s._id} value={s._id}>{s.section}</option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Search trigger button */}

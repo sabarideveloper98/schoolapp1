@@ -7,7 +7,7 @@ const {
     getSubjects, createSubject, deleteSubject, updateSubject,
     getClasses, createClass, deleteClass, updateClass,
     getClassSubjects, assignSubjectTeacher, removeSubjectTeacher, updateSubjectTeacher,
-    getStudents, createStudent, updateStudent, deleteStudent
+    getStudents, createStudent, updateStudent, deleteStudent, bulkImportStudents
 } = require('../controllers/schoolAdminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { 
@@ -60,6 +60,7 @@ router.route('/assignments').get(getClassSubjects).post(assignSubjectTeacher);
 router.route('/assignments/:id').put(updateSubjectTeacher).delete(removeSubjectTeacher);
 
 router.route('/students').get(getStudents).post(createStudent);
+router.post('/students/bulk-import', bulkImportStudents);
 router.route('/students/:id').put(updateStudent).delete(deleteStudent);
 
 router.route('/attendance').get(getStaffAttendance).post(saveStaffAttendance);

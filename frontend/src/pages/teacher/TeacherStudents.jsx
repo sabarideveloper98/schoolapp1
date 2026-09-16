@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SearchableSelect from '../../components/SearchableSelect';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
@@ -15,7 +16,7 @@ const TeacherStudents = () => {
   const location = useLocation();
   const [selectedClassFilter, setSelectedClassFilter] = useState(location.state?.classId || '');
   const { user } = useAuthStore();
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
 
   const fetchStudents = async () => {
     try {
@@ -107,19 +108,24 @@ const TeacherStudents = () => {
           <p className="text-slate-400 text-xs font-bold mt-1">Manage and view students under your assigned classes.</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select 
-            value={selectedClassFilter} 
-            onChange={(e) => setSelectedClassFilter(e.target.value)}
-            className="rounded-xl border border-slate-205 bg-white text-slate-700 focus:border-blue-500 sm:text-sm p-2.5 outline-none cursor-pointer"
-          >
-            <option value="">All Classes</option>
-            {allClasses.map(c => (
-              <option key={c._id} value={c._id}>{c.class} - {c.section}</option>
-            ))}
-          </select>
+          <div className="min-w-[200px]">
+            <SearchableSelect
+              options={[
+                { value: '', label: 'All Classes' },
+                ...allClasses.map(c => ({
+                  value: c._id,
+                  label: `Class ${c.class} - ${c.section}`
+                }))
+              ]}
+              value={selectedClassFilter}
+              onChange={(val) => setSelectedClassFilter(val)}
+              placeholder="Filter class..."
+              searchPlaceholder="Search class..."
+            />
+          </div>
           <button 
             onClick={() => { reset(); setIsFormOpen(true); }}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_4px_12px_rgba(37,99,235,0.1)] cursor-pointer animate-fade-in"
+            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_4px_12px_rgba(37,99,235,0.1)] cursor-pointer animate-fade-in shrink-0"
           >
             <Plus className="w-4 h-4 mr-2" /> Add Student
           </button>
@@ -142,16 +148,18 @@ const TeacherStudents = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Class & Section</label>
-              <select 
-                {...register('class_id', { required: 'Required' })} 
-                className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
+              <SearchableSelect
+                options={inchargeClasses.map(c => ({
+                  value: c._id,
+                  label: `Class ${c.class} - ${c.section}`
+                }))}
+                value={watch('class_id') || ''}
+                onChange={(val) => setValue('class_id', val, { shouldValidate: true })}
+                placeholder="Select a class..."
+                searchPlaceholder="Search class..."
                 disabled={inchargeClasses.length === 0}
-              >
-                <option value="">Select a class</option>
-                {inchargeClasses.map(c => (
-                  <option key={c._id} value={c._id}>{c.class} - {c.section}</option>
-                ))}
-              </select>
+              />
+              <input type="hidden" {...register('class_id', { required: 'Required' })} />
               {errors.class_id && <p className="text-red-500 text-xs mt-1">{errors.class_id.message}</p>}
             </div>
 

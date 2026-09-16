@@ -633,6 +633,100 @@ const deleteStudent = async (req, res) => {
     }
 };
 
+const bulkImportStudents = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { students } = req.body;
+
+        if (!Array.isArray(students) || students.length === 0) {
+            return res.status(400).json({ message: 'No student data provided for import' });
+        }
+
+        const createdStudents = [];
+        const errors = [];
+
+        for (let i = 0; i < students.length; i++) {
+            const item = students[i];
+            try {
+                const final_student_name = item.student_name || item.name || (item.last_name ? `${item.first_name} ${item.last_name}` : item.first_name);
+                if (!final_student_name) {
+                    errors.push({ row: i + 1, message: 'Student name is required' });
+                    continue;
+                }
+
+                const className = item.class || item.className || 'Default';
+                const sectionName = item.section || 'A';
+
+                // Find or create class
+                let cls = await Class.findOne({ school_id, class: className, section: sectionName });
+                if (!cls) {
+                    cls = await Class.create({ school_id, class: className, section: sectionName });
+                }
+
+                const parent_name = item.guardian_name || item.parent_name || `Parent of ${final_student_name}`;
+                const parent_phone = item.guardian_phone || item.parent_phone || item.phone || `9876${Math.floor(100000 + Math.random() * 900000)}`;
+                const parent_email = item.guardian_email || item.parent_email || '';
+
+                let parentUser = await User.findOne({ phone: parent_phone });
+                let parentPassword = null;
+
+                if (!parentUser) {
+                    parentPassword = item.password || '123456';
+                    parentUser = await User.create({
+                        phone: parent_phone,
+                        email: parent_email,
+                        password: parentPassword,
+                        role: 'Parent'
+                    });
+                }
+
+                const student = await Student.create({
+                    student_name: final_student_name,
+                    first_name: item.first_name || final_student_name,
+                    last_name: item.last_name || '',
+                    father_name: item.father_name || '',
+                    mother_name: item.mother_name || '',
+                    group: item.group || 'Science',
+                    section: sectionName,
+                    gender: item.gender || 'Male',
+                    roll_no: item.roll_no || `${i + 1}`,
+                    registration_no: item.registration_no || '',
+                    religion: item.religion || 'General',
+                    admission_number: item.admission_number || item.admission_no || '',
+                    address: item.address || '',
+                    guardian_relation: item.guardian_relation || 'Father',
+                    blood_group: item.blood_group || 'N/A',
+                    age: item.age || 0,
+                    dob: item.dob ? new Date(item.dob) : new Date(),
+                    parent_name,
+                    parent_phone,
+                    parent_email,
+                    class_id: cls._id,
+                    school_id,
+                    parent_user_id: parentUser._id
+                });
+
+                createdStudents.push({
+                    student,
+                    parentPassword: parentPassword || 'Existing Account'
+                });
+            } catch (rowErr) {
+                errors.push({ row: i + 1, message: rowErr.message });
+            }
+        }
+
+        res.status(201).json({
+            success: true,
+            count: createdStudents.length,
+            createdStudents,
+            errors,
+            message: `Successfully imported ${createdStudents.length} students`
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getTeachers, createTeacher, deleteTeacher, updateTeacher,
@@ -640,5 +734,6 @@ module.exports = {
     getSubjects, createSubject, deleteSubject, updateSubject,
     getClasses, createClass, deleteClass, updateClass,
     getClassSubjects, assignSubjectTeacher, removeSubjectTeacher, updateSubjectTeacher,
-    getStudents, createStudent, updateStudent, deleteStudent
+    getStudents, createStudent, updateStudent, deleteStudent,
+    bulkImportStudents
 };

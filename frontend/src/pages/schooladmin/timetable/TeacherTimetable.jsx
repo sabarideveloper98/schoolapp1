@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SearchableSelect from '../../../components/SearchableSelect';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { UserCheck, CheckCircle, AlertTriangle, Search } from 'lucide-react';
@@ -98,17 +99,16 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
 
                     <div className="w-full sm:w-72">
                         <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Select Teacher</label>
-                        <select
+                        <SearchableSelect
+                            options={teachers.map(t => ({
+                                value: t._id,
+                                label: `${t.name} (${t.domains?.join(', ') || 'Teacher'})`
+                            }))}
                             value={selectedTeacherId}
-                            onChange={(e) => setSelectedTeacherId(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {teachers.map(t => (
-                                <option key={t._id} value={t._id}>
-                                    {t.name} ({t.domains?.join(', ') || 'Teacher'})
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(val) => setSelectedTeacherId(val)}
+                            placeholder="Select Teacher"
+                            searchPlaceholder="Search teacher name..."
+                        />
                     </div>
                 </div>
             )}
