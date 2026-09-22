@@ -62,8 +62,11 @@ router.get('/classes', getClasses);
 router.post('/attendance', markAttendance);
 router.get('/attendance/report', getAttendanceReport);
 
+const { bulkImportExamMarks } = require('../controllers/examController');
+
 router.get('/exams', getExams);
 router.post('/marks', saveExamMarks);
+router.post('/marks/bulk-import', bulkImportExamMarks);
 router.get('/marks/report', getMarksReport);
 
 router.route('/materials')

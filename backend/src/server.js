@@ -36,6 +36,9 @@ app.use(express.json());
 // Enable CORS
 app.use(cors());
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swaggerSpec');
+
 // Route files
 const authRoutes = require('./routes/authRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
@@ -46,6 +49,10 @@ const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const transportRoutes = require('./routes/transportRoutes');
 const homeworkRoutes = require('./routes/homeworkRoutes');
 const timetableRoutes = require('./routes/timetableRoutes');
+const driverStaffRoutes = require('./routes/driverStaffRoutes');
+
+// Swagger API Documentation UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Mount routers
 app.use('/api/auth', authRoutes);
@@ -53,13 +60,14 @@ app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/schooladmin', schoolAdminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/parent', parentRoutes);
+app.use('/api/driver', driverStaffRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/homework', homeworkRoutes);
 app.use('/api/timetable', timetableRoutes);
 
 app.get('/', (req, res) => {
-    res.send('School Management System API is running...');
+    res.send('School Management System API is running... Swagger docs available at /api-docs');
 });
 
 const PORT = 5005;

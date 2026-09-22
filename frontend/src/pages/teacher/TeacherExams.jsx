@@ -147,6 +147,14 @@ const TeacherExams = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      <BulkExamMarksImportModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={() => { if (selectedClass && selectedExam) fetchExamMarks(selectedClass, selectedExam); }}
+        exams={exams}
+        classes={classes}
+      />
+
       {/* Top Header Card */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div>
@@ -156,19 +164,28 @@ const TeacherExams = () => {
           <p className="text-xs font-semibold text-slate-400 mt-1">Enter marks, generate rank lists, and track academic performance.</p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveTab('entry')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${activeTab === 'entry' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
+            onClick={() => setIsBulkModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02]"
           >
-            Mark Entry
+            <FileSpreadsheet className="w-4 h-4" /> Bulk Import Marks
           </button>
-          <button
-            onClick={() => setActiveTab('report')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${activeTab === 'report' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
-          >
-            Marks Report
-          </button>
+
+          <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+            <button
+              onClick={() => setActiveTab('entry')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${activeTab === 'entry' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
+            >
+              Mark Entry
+            </button>
+            <button
+              onClick={() => setActiveTab('report')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${activeTab === 'report' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
+            >
+              Marks Report
+            </button>
+          </div>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     getDashboardStats,
-    getTeachers, createTeacher, deleteTeacher, updateTeacher,
+    getTeachers, createTeacher, deleteTeacher, updateTeacher, bulkImportTeachers,
     getStaff, createStaff, deleteStaff, updateStaff,
     getSubjects, createSubject, deleteSubject, updateSubject,
     getClasses, createClass, deleteClass, updateClass,
@@ -15,7 +15,7 @@ const {
     getStudentAttendance, saveStudentAttendance, getStudentAttendanceReport
 } = require('../controllers/attendanceController');
 const {
-    getExams, createExam, getExamStudentsMarks, saveExamMarks, getExamReport
+    getExams, createExam, getExamStudentsMarks, saveExamMarks, bulkImportExamMarks, getExamReport
 } = require('../controllers/examController');
 const {
     getSalarySetupList, saveSalarySetup, getSalarySetupHistory,
@@ -45,6 +45,7 @@ router.use(authorize('SchoolAdmin'));
 router.get('/dashboard', getDashboardStats);
 
 router.route('/teachers').get(getTeachers).post(createTeacher);
+router.post('/teachers/bulk-import', bulkImportTeachers);
 router.route('/teachers/:id').put(updateTeacher).delete(deleteTeacher);
 
 router.route('/staff').get(getStaff).post(createStaff);
@@ -70,6 +71,7 @@ router.route('/student-attendance/report').get(getStudentAttendanceReport);
 
 router.route('/exams').get(getExams).post(createExam);
 router.route('/exam-marks').get(getExamStudentsMarks).post(saveExamMarks);
+router.post('/exam-marks/bulk-import', bulkImportExamMarks);
 router.route('/exam-report').get(getExamReport);
 
 // Payroll & Salary Management

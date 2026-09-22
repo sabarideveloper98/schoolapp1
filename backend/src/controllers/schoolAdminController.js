@@ -727,9 +727,82 @@ const bulkImportStudents = async (req, res) => {
     }
 };
 
+const bulkImportTeachers = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { teachers } = req.body;
+
+        if (!Array.isArray(teachers) || teachers.length === 0) {
+            return res.status(400).json({ message: 'No teacher data provided for import' });
+        }
+
+        const createdTeachers = [];
+        const errors = [];
+
+        for (let i = 0; i < teachers.length; i++) {
+            const item = teachers[i];
+            try {
+                const teacher_name = item.teacher_name || item.name || (item.last_name ? `${item.first_name} ${item.last_name}` : item.first_name);
+                if (!teacher_name) {
+                    errors.push({ row: i + 1, message: 'Teacher name is required' });
+                    continue;
+                }
+
+                const email = item.email ? item.email.trim().toLowerCase() : `teacher${Date.now()}_${i}@school.com`;
+                const phone = item.mobile || item.mobile_number || item.phone || `9876${Math.floor(100000 + Math.random() * 900000)}`;
+
+                let user = await User.findOne({ $or: [{ email }, { phone }] });
+                let initialPassword = null;
+                if (!user) {
+                    initialPassword = item.password || '123456';
+                    user = await User.create({
+                        name: teacher_name,
+                        email,
+                        phone,
+                        password: initialPassword,
+                        role: 'Teacher'
+                    });
+                }
+
+                let teacher = await Teacher.findOne({ school_id, email });
+                if (!teacher) {
+                    teacher = await Teacher.create({
+                        school_id,
+                        user_id: user._id,
+                        name: teacher_name,
+                        email,
+                        phone,
+                        address: item.address || 'N/A',
+                        qualification: item.qualification || 'B.Ed / Degree',
+                        experience: item.experience ? Number(item.experience) : 1,
+                        domains: item.subjects ? (Array.isArray(item.subjects) ? item.subjects : item.subjects.split(',')) : ['General']
+                    });
+                }
+
+                createdTeachers.push({
+                    teacher,
+                    initialPassword: initialPassword || 'Existing Account'
+                });
+            } catch (rowErr) {
+                errors.push({ row: i + 1, message: rowErr.message });
+            }
+        }
+
+        res.status(201).json({
+            success: true,
+            count: createdTeachers.length,
+            createdTeachers,
+            errors,
+            message: `Successfully imported ${createdTeachers.length} teachers`
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     getDashboardStats,
-    getTeachers, createTeacher, deleteTeacher, updateTeacher,
+    getTeachers, createTeacher, deleteTeacher, updateTeacher, bulkImportTeachers,
     getStaff, createStaff, deleteStaff, updateStaff,
     getSubjects, createSubject, deleteSubject, updateSubject,
     getClasses, createClass, deleteClass, updateClass,

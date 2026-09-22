@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar, Coins, Wallet, TrendingUp, User, CreditCard, Navigation, CalendarRange } from 'lucide-react';
 import Layout from '../../components/Layout';
+import DashboardAnalyticsBar from '../../components/DashboardAnalyticsBar';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
@@ -113,6 +114,9 @@ const DashboardOverview = () => {
         <StatCard title="Total Staff" value={stats?.totalStaff || 0} icon={Users2} color="bg-emerald-500" />
         <StatCard title="Total Classes" value={stats?.totalClasses || 0} icon={BookOpen} color="bg-amber-500" />
       </div>
+
+      {/* Visual Analytics Bar & Quick Controls Bar */}
+      <DashboardAnalyticsBar role="SchoolAdmin" />
     </div>
   );
 };

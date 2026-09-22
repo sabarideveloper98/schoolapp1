@@ -52,24 +52,34 @@ const driverSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: false
     },
     assigned_bus_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Bus',
         default: null
-    }
+    },
+    // OTP Authentication Fields
+    otp_code: { type: String, default: null },
+    otp_expiry: { type: Date, default: null },
+    otp_attempts: { type: Number, default: 0 },
+    otp_verified: { type: Boolean, default: false },
+    last_otp_sent_at: { type: Date, default: null },
+    otp_request_count: { type: Number, default: 0 },
+    otp_window_start: { type: Date, default: null },
+    lock_until: { type: Date, default: null }
 }, { timestamps: true });
 
-// Hash driver password before saving
+// Hash driver password before saving if provided
 driverSchema.pre('save', async function () {
-    if (!this.isModified('password')) return;
+    if (!this.isModified('password') || !this.password) return;
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Method to match password
 driverSchema.methods.matchPassword = async function (enteredPassword) {
+    if (!this.password) return false;
     return await bcrypt.compare(enteredPassword, this.password);
 };
 

@@ -208,8 +208,17 @@ const AddMarks = () => {
 
   return (
     <div className="space-y-6">
+      <BulkExamMarksImportModal
+        isOpen={showBulkMarksModal}
+        onClose={() => setShowBulkMarksModal(false)}
+        onSuccess={handleSearch}
+        exams={exams}
+        classes={classes}
+        subjects={allSubjects}
+      />
+
       {/* Header */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)]">
         <div>
           <h2 className="text-2xl font-black text-slate-800">Add Marks</h2>
           <div className="text-xs font-bold text-slate-400 mt-1 flex items-center gap-1.5">
@@ -220,13 +229,22 @@ const AddMarks = () => {
             <span className="text-blue-600">Add Marks</span>
           </div>
         </div>
-        <button
-          onClick={() => setShowExamModal(true)}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
-        >
-          <Plus className="w-4 h-4" />
-          Create Exam
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowBulkMarksModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Bulk Import Marks
+          </button>
+          <button
+            onClick={() => setShowExamModal(true)}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+          >
+            <Plus className="w-4 h-4" />
+            Create Exam
+          </button>
+        </div>
       </div>
 
       {/* Selectors Card */}

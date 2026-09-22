@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
+import DashboardAnalyticsBar from '../../components/DashboardAnalyticsBar';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -271,6 +272,9 @@ const TeacherOverview = () => {
           )}
         </div>
       </div>
+
+      {/* Visual Analytics Bar & Quick Action Controls */}
+      <DashboardAnalyticsBar role="Teacher" />
     </div>
   );
 };

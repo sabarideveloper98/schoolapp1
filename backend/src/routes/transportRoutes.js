@@ -12,6 +12,8 @@ const {
     updateDriver,
     deleteDriver,
     driverLogin,
+    sendDriverOtp,
+    verifyDriverOtp,
     getDriverPortalData,
     getRoutes,
     createRoute,
@@ -38,8 +40,10 @@ const {
     getNotifications
 } = require('../controllers/transportController');
 
-// Driver Public Login
+// Driver Public Login & OTP Routes
 router.post('/driver/login', driverLogin);
+router.post('/driver/send-otp', sendDriverOtp);
+router.post('/driver/verify-otp', verifyDriverOtp);
 
 // Protected Driver Portal APIs
 router.get('/driver/portal-data', protect, getDriverPortalData);

@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: false,
+        trim: true,
+        default: '',
+    },
     email: {
         type: String,
         required: false, // Not all users have email (e.g. Parents might only have phone)
@@ -22,14 +28,34 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['SuperAdmin', 'SchoolAdmin', 'Teacher', 'Staff', 'Parent'],
+        enum: ['SuperAdmin', 'SchoolAdmin', 'Teacher', 'Staff', 'Parent', 'Driver'],
         required: true,
     },
     reference_id: {
         type: mongoose.Schema.Types.ObjectId,
-        required: false, // SuperAdmin doesn't have a profile reference
-        refPath: 'roleModel' // Dynamically reference based on role (Teacher, Staff, Parent) - Optional, we can just store the ID
+        required: false,
+        refPath: 'roleModel'
     },
+    status: {
+        type: String,
+        enum: ['Active', 'Inactive', 'Blocked'],
+        default: 'Active',
+    },
+    last_login_at: {
+        type: Date,
+        default: null,
+    },
+    refresh_tokens: [{
+        type: String,
+    }],
+    reset_password_token: {
+        type: String,
+        default: null,
+    },
+    reset_password_expire: {
+        type: Date,
+        default: null,
+    }
 }, { timestamps: true });
 
 // Hash password before saving

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Menu, Sun, ChevronDown, ExternalLink, User, KeyRound, LogOut, ShieldCheck } from 'lucide-react';
 import Sidebar from './Sidebar';
+import DashboardChatWidget from './DashboardChatWidget';
 import { toast } from 'react-toastify';
 import useAuthStore from '../store/useAuthStore';
 
@@ -173,6 +174,9 @@ const Layout = ({ children, menuItems, title }) => {
           </div>
         </main>
       </div>
+
+      {/* Floating Dashboard Chat & Assistant Widget */}
+      <DashboardChatWidget />
     </div>
   );
 };
