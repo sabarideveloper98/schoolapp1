@@ -295,19 +295,46 @@ const deleteDriver = async (req, res) => {
     }
 };
 
-const { sendDriverOtp, verifyDriverOtp } = require('./driverStaffController');
-
 const driverLogin = async (req, res) => {
-    if (req.body.otp) {
-        return verifyDriverOtp(req, res);
+    try {
+        const { mobile_number, password } = req.body;
+        if (!mobile_number || !password) {
+            return res.status(400).json({ message: 'Mobile number and password are required' });
+        }
+
+        const driver = await Driver.findOne({ mobile_number }).populate('assigned_bus_id');
+        if (!driver) {
+            return res.status(401).json({ message: 'Invalid mobile number or password' });
+        }
+
+        const isMatch = await driver.matchPassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid mobile number or password' });
+        }
+
+        if (driver.status !== 'Active') {
+            return res.status(403).json({ message: 'Driver account is inactive. Please contact School Admin.' });
+        }
+
+        const token = jwt.sign(
+            { id: driver._id, role: 'Driver', school_id: driver.school_id },
+            process.env.JWT_SECRET || 'supersecretjwtkey12345',
+            { expiresIn: '30d' }
+        );
+
+        res.json({
+            _id: driver._id,
+            driver_id: driver.driver_id,
+            name: driver.name,
+            mobile_number: driver.mobile_number,
+            school_id: driver.school_id,
+            assigned_bus: driver.assigned_bus_id,
+            token
+        });
+    } catch (error) {
+        console.error('Error in driver login:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
-    if (req.body.mobile || req.body.mobile_number) {
-        return sendDriverOtp(req, res);
-    }
-    return res.status(400).json({
-        success: false,
-        message: 'Driver login requires OTP authentication. Use POST /api/driver/send-otp and POST /api/driver/verify-otp.'
-    });
 };
 
 const getDriverPortalData = async (req, res) => {
@@ -1000,8 +1027,6 @@ module.exports = {
     updateDriver,
     deleteDriver,
     driverLogin,
-    sendDriverOtp,
-    verifyDriverOtp,
     getDriverPortalData,
     getRoutes,
     createRoute,

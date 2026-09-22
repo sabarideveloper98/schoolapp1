@@ -24,231 +24,53 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
     return parseFloat((R * c).toFixed(2));
 };
 
-// @desc    Send OTP for Driver Login
-// @route   POST /api/driver/send-otp
+// @desc    Driver Staff Login
+// @route   POST /api/driver/auth/login
 // @access  Public
-const sendDriverOtp = async (req, res) => {
+const driverLogin = async (req, res) => {
     try {
-        const mobile = req.body.mobile || req.body.mobile_number;
-        if (!mobile) {
-            return res.status(400).json({ success: false, message: 'Mobile number is required' });
+        const { mobile_number, password } = req.body;
+        if (!mobile_number || !password) {
+            return res.status(400).json({ message: 'Mobile number and password are required' });
         }
 
-        const cleanMobile = mobile.toString().trim();
-
-        // 1. Check whether driver exists
-        const driver = await Driver.findOne({ mobile_number: cleanMobile });
+        const driver = await Driver.findOne({ mobile_number: mobile_number.trim() }).populate('assigned_bus_id');
         if (!driver) {
-            return res.status(404).json({ success: false, message: 'Driver not found with this mobile number' });
+            return res.status(401).json({ message: 'Invalid mobile number or password' });
         }
 
-        // 2. Check driver status is Active
-        if (driver.status !== 'Active') {
-            return res.status(403).json({ success: false, message: 'Driver account is inactive. Please contact School Administration.' });
-        }
-
-        // 3. Check driver is assigned to a school
-        if (!driver.school_id) {
-            return res.status(400).json({ success: false, message: 'Driver is not assigned to a school.' });
-        }
-
-        // 4. Check driver is assigned to a bus
-        if (!driver.assigned_bus_id) {
-            return res.status(400).json({ success: false, message: 'Driver is not assigned to a bus.' });
-        }
-
-        // Account Lockout Check (15 minutes after 5 failed attempts)
-        if (driver.lock_until && driver.lock_until > Date.now()) {
-            const remainingMins = Math.ceil((driver.lock_until - Date.now()) / (60 * 1000));
-            return res.status(429).json({
-                success: false,
-                message: `Account is locked due to multiple failed OTP attempts. Please try again after ${remainingMins} minute(s).`
-            });
-        }
-
-        // Resend OTP rule: 30 seconds interval limit
-        if (driver.last_otp_sent_at) {
-            const timeSinceLast = Date.now() - new Date(driver.last_otp_sent_at).getTime();
-            if (timeSinceLast < 30 * 1000) {
-                const waitSeconds = Math.ceil((30 * 1000 - timeSinceLast) / 1000);
-                return res.status(429).json({
-                    success: false,
-                    message: `Please wait ${waitSeconds} second(s) before requesting another OTP.`
-                });
-            }
-        }
-
-        // Max OTP Requests rule: 5 per hour
-        const oneHourAgo = Date.now() - 60 * 60 * 1000;
-        if (!driver.otp_window_start || new Date(driver.otp_window_start).getTime() < oneHourAgo) {
-            driver.otp_window_start = new Date();
-            driver.otp_request_count = 1;
-        } else {
-            if (driver.otp_request_count >= 5) {
-                return res.status(429).json({
-                    success: false,
-                    message: 'Maximum OTP requests reached (5 per hour). Please try again later.'
-                });
-            }
-            driver.otp_request_count = (driver.otp_request_count || 0) + 1;
-        }
-
-        // 5. Generate Random 6-Digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // Hash OTP for security
-        const salt = await bcrypt.genSalt(10);
-        const hashedOtp = await bcrypt.hash(otp, salt);
-
-        driver.otp_code = hashedOtp;
-        driver.otp_expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes
-        driver.otp_attempts = 0;
-        driver.otp_verified = false;
-        driver.last_otp_sent_at = new Date();
-
-        await driver.save();
-
-        const responseData = {
-            success: true,
-            message: 'OTP sent successfully'
-        };
-
-        // For development/testing environments, return generated OTP in response
-        if (process.env.NODE_ENV !== 'production') {
-            responseData.otp = otp;
-        }
-
-        res.status(200).json(responseData);
-    } catch (error) {
-        console.error('Error sending Driver OTP:', error);
-        res.status(500).json({ success: false, message: 'Server error', error: error.message });
-    }
-};
-
-// @desc    Verify OTP for Driver Login
-// @route   POST /api/driver/verify-otp
-// @access  Public
-const verifyDriverOtp = async (req, res) => {
-    try {
-        const mobile = req.body.mobile || req.body.mobile_number;
-        const { otp } = req.body;
-
-        if (!mobile || !otp) {
-            return res.status(400).json({ success: false, message: 'Mobile number and OTP are required' });
-        }
-
-        const cleanMobile = mobile.toString().trim();
-        const cleanOtp = otp.toString().trim();
-
-        // 1. Check driver exists
-        const driver = await Driver.findOne({ mobile_number: cleanMobile }).populate('assigned_bus_id');
-        if (!driver) {
-            return res.status(404).json({ success: false, message: 'Driver not found' });
-        }
-
-        // Lockout check
-        if (driver.lock_until && driver.lock_until > Date.now()) {
-            const remainingMins = Math.ceil((driver.lock_until - Date.now()) / (60 * 1000));
-            return res.status(429).json({
-                success: false,
-                message: `Account is locked due to 5 failed attempts. Please try again after ${remainingMins} minute(s).`
-            });
-        }
-
-        // 2. OTP exists check
-        if (!driver.otp_code || !driver.otp_expiry) {
-            return res.status(400).json({ success: false, message: 'No OTP request found. Please request a new OTP.' });
-        }
-
-        // 3. OTP expiry check (5 minutes)
-        if (new Date(driver.otp_expiry).getTime() < Date.now()) {
-            driver.otp_code = null;
-            driver.otp_expiry = null;
-            await driver.save();
-            return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new OTP.' });
-        }
-
-        // 4. Match OTP
-        const isMatch = await bcrypt.compare(cleanOtp, driver.otp_code);
-
+        const isMatch = await driver.matchPassword(password);
         if (!isMatch) {
-            driver.otp_attempts = (driver.otp_attempts || 0) + 1;
-
-            if (driver.otp_attempts >= 5) {
-                // Lock account for 15 minutes
-                driver.lock_until = new Date(Date.now() + 15 * 60 * 1000);
-                driver.otp_attempts = 0;
-                driver.otp_code = null;
-                driver.otp_expiry = null;
-                await driver.save();
-                return res.status(429).json({
-                    success: false,
-                    message: 'Too many failed verification attempts. Account locked for 15 minutes.'
-                });
-            }
-
-            await driver.save();
-            const attemptsLeft = 5 - driver.otp_attempts;
-            return res.status(400).json({
-                success: false,
-                message: `Invalid OTP. ${attemptsLeft} attempt(s) remaining.`
-            });
+            return res.status(401).json({ message: 'Invalid mobile number or password' });
         }
 
-        // Clear OTP & Lockout state
-        driver.otp_code = null;
-        driver.otp_expiry = null;
-        driver.otp_attempts = 0;
-        driver.lock_until = null;
-        driver.otp_verified = true;
-        await driver.save();
+        if (driver.status !== 'Active') {
+            return res.status(403).json({ message: 'Driver account is inactive. Please contact School Administration.' });
+        }
 
-        const schoolId = driver.school_id ? driver.school_id.toString() : null;
-        const busId = driver.assigned_bus_id ? (driver.assigned_bus_id._id || driver.assigned_bus_id).toString() : null;
-
-        // Generate JWT Token
         const token = jwt.sign(
-            {
-                id: driver._id,
-                driverId: driver._id,
-                role: 'Driver',
-                schoolId: schoolId,
-                school_id: schoolId
-            },
+            { id: driver._id, role: 'Driver', school_id: driver.school_id },
             process.env.JWT_SECRET || 'supersecretjwtkey12345',
             { expiresIn: '30d' }
         );
 
-        res.status(200).json({
+        res.json({
             success: true,
-            message: 'Login successful',
             token,
             driver: {
-                id: driver._id.toString(),
+                _id: driver._id,
+                driver_id: driver.driver_id,
                 name: driver.name,
-                mobile: driver.mobile_number,
-                busId: busId,
-                schoolId: schoolId
+                mobile_number: driver.mobile_number,
+                email: driver.email || '',
+                license_number: driver.license_number,
+                school_id: driver.school_id,
+                assigned_bus: driver.assigned_bus_id
             }
         });
     } catch (error) {
-        console.error('Error verifying Driver OTP:', error);
-        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+        res.status(500).json({ message: 'Driver login failed', error: error.message });
     }
-};
-
-// Driver Legacy Login router adapter
-const driverLogin = async (req, res) => {
-    if (req.body.otp) {
-        return verifyDriverOtp(req, res);
-    }
-    if (req.body.mobile || req.body.mobile_number) {
-        return sendDriverOtp(req, res);
-    }
-    return res.status(400).json({
-        success: false,
-        message: 'Driver login requires OTP authentication. Use /api/driver/send-otp and /api/driver/verify-otp.'
-    });
 };
 
 // @desc    Get Authenticated Driver Profile
@@ -810,8 +632,6 @@ const getDriverTripHistory = async (req, res) => {
 
 module.exports = {
     driverLogin,
-    sendDriverOtp,
-    verifyDriverOtp,
     getDriverProfile,
     updateDriverProfile,
     changeDriverPassword,

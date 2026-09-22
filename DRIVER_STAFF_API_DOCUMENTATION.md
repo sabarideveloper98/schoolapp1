@@ -43,72 +43,49 @@ Content-Type: application/json
 
 ---
 
-## 1. Driver Authentication APIs (OTP Based)
+## 1. Driver Authentication APIs
 
-### 1.1 Send Driver OTP
-Generates a random 6-digit OTP for active drivers assigned to a school and bus.
+### 1.1 Driver Login
+Authenticates a bus driver using registered mobile number and password. Returns a 30-day JWT bearer token.
 
 - **Method**: `POST`
-- **URL**: `/api/driver/send-otp`
+- **URL**: `/api/driver/auth/login`
 - **Access**: Public
 - **Request Payload**:
 ```json
 {
-  "mobile": "9876543210"
-}
-```
-
-- **Success Response (200 OK - Development Mode)**:
-```json
-{
-  "success": true,
-  "message": "OTP sent successfully",
-  "otp": "483921"
-}
-```
-
-- **Success Response (200 OK - Production Mode)**:
-```json
-{
-  "success": true,
-  "message": "OTP sent successfully"
-}
-```
-
-### 1.2 Verify Driver OTP
-Verifies the 6-digit OTP and generates a JWT Bearer token upon successful validation.
-
-- **Method**: `POST`
-- **URL**: `/api/driver/verify-otp`
-- **Access**: Public
-- **Request Payload**:
-```json
-{
-  "mobile": "9876543210",
-  "otp": "483921"
+  "mobile_number": "9876543210",
+  "password": "Driver@123"
 }
 ```
 
 - **Success Response (200 OK)**:
 ```json
 {
-  "success": true,
-  "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "driver": {
     "id": "650000000000000000000101",
+    "driver_id": "DRV001",
     "name": "Rajesh Kumar",
-    "mobile": "9876543210",
-    "busId": "650000000000000000000201",
-    "schoolId": "650000000000000000000001"
+    "mobile_number": "9876543210",
+    "email": "rajesh.driver@school.com",
+    "license_number": "DL-998877665544",
+    "status": "Active",
+    "assigned_bus": {
+      "_id": "650000000000000000000201",
+      "bus_number": "BUS-101",
+      "bus_name": "Yellow Express 101",
+      "registration_number": "KA-01-EQ-9999",
+      "capacity": 40
+    }
   }
 }
 ```
+
 - **Error Responses**:
-  - `400 Bad Request`: `{"success": false, "message": "Mobile number and OTP are required"}`
-  - `404 Not Found`: `{"success": false, "message": "Driver not found"}`
-  - `403 Forbidden`: `{"success": false, "message": "Driver account is inactive. Please contact School Administration."}`
-  - `429 Too Many Requests`: `{"success": false, "message": "Account is locked due to 5 failed attempts. Please try again after 15 minutes."}`
+  - `400 Bad Request`: `{"message": "Mobile number and password are required"}`
+  - `401 Unauthorized`: `{"message": "Invalid mobile number or password"}`
+  - `403 Forbidden`: `{"message": "Driver account is inactive. Please contact School Administration."}`
 
 ---
 

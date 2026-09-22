@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const {
     driverLogin,
-    sendDriverOtp,
-    verifyDriverOtp,
     getDriverProfile,
     updateDriverProfile,
     changePasswordParent,
@@ -23,11 +21,7 @@ const {
 } = require('../controllers/driverStaffController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
-// Public OTP Auth Routes
-router.post('/send-otp', sendDriverOtp);
-router.post('/verify-otp', verifyDriverOtp);
-router.post('/auth/send-otp', sendDriverOtp);
-router.post('/auth/verify-otp', verifyDriverOtp);
+// Public Auth Route
 router.post('/auth/login', driverLogin);
 
 // All operational routes require JWT Authentication with 'Driver' role
