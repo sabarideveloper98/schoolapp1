@@ -41,12 +41,14 @@ const Login = () => {
     try {
       const user = await login(payload);
       toast.success('Login successful!');
-      if (user.role === 'SuperAdmin') navigate('/super-admin');
-      else if (user.role === 'SchoolAdmin') navigate('/school-admin');
-      else if (user.role === 'Teacher') navigate('/teacher');
-      else if (user.role === 'Student') navigate('/student/homework');
-      else if (user.role === 'Parent') navigate('/parent');
-      else if (user.role === 'Staff') navigate('/staff');
+      const userRole = user?.role || user?.user?.role;
+      if (userRole === 'SuperAdmin') navigate('/super-admin');
+      else if (userRole === 'SchoolAdmin') navigate('/school-admin');
+      else if (userRole === 'Teacher') navigate('/teacher');
+      else if (userRole === 'Student') navigate('/student/homework');
+      else if (userRole === 'Parent') navigate('/parent');
+      else if (userRole === 'Staff') navigate('/staff');
+      else navigate('/school-admin');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed');
     }
@@ -264,7 +266,7 @@ const Login = () => {
 
                   <button 
                     type="button" 
-                    onClick={() => handleDemoLogin('schooladmin@system.com', 'Admin@123')}
+                    onClick={() => handleDemoLogin('jonson@gmail.com', 'jonson@123')}
                     className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-green-500/20 cursor-pointer"
                   >
                     <ShieldAlert className="w-5 h-5 mr-3 text-green-400" />
