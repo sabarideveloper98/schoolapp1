@@ -167,14 +167,14 @@ const AddMarks = () => {
     try {
       setLoadingSearch(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      
+
       const payload = {
         exam_id: selectedExamId,
         class_id: sectionFilter,
         student_marks: studentsMarks.map(s => {
           // Send marks only for subjects that are currently checked
           const filteredMarks = s.marks.filter(m => selectedSubjectIds.includes(m.subject_id));
-          
+
           // Ensure every checked subject has an entry
           selectedSubjectIds.forEach(subId => {
             const hasMark = filteredMarks.some(m => m.subject_id === subId);
@@ -316,11 +316,10 @@ const AddMarks = () => {
                   <button
                     key={sub._id}
                     onClick={() => handleToggleSubject(sub._id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-xs transition duration-200 cursor-pointer ${
-                      isSelected
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-xs transition duration-200 cursor-pointer ${isSelected
                         ? 'bg-blue-50 text-blue-600 border-blue-200'
                         : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-400" />}
                     {sub.name} <span className="text-[10px] opacity-75">({sub.code})</span>

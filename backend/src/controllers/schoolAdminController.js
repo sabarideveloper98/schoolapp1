@@ -73,24 +73,35 @@ const createTeacher = async (req, res) => {
         }
 
         // Check if user email exists
-        const userExists = await User.findOne({ email });
-        if (userExists) {
-            return res.status(400).json({ message: 'User with this email already exists' });
+        if (email) {
+            const userExists = await User.findOne({ email: email.trim().toLowerCase() });
+            if (userExists) {
+                return res.status(400).json({ message: 'User with this email already exists' });
+            }
         }
 
         // Use custom password or fallback
-        const rawPassword = password || `${name.replace(/\s+/g, '')}@123`;
+        const rawPassword = password || `${name ? name.replace(/\s+/g, '') : 'Teacher'}@123`;
 
         // Create User account
         const user = await User.create({
-            email,
+            email: email ? email.trim().toLowerCase() : undefined,
+            phone: phone ? phone.trim() : undefined,
             password: rawPassword,
             role: 'Teacher'
         });
 
+        const parsedExperience = parseInt(experience, 10) || 0;
+
         // Create Teacher profile
         const teacher = await Teacher.create({
-            name, email, phone, address, qualification, experience, photo,
+            name: name || 'Unnamed Teacher',
+            email: email ? email.trim().toLowerCase() : '',
+            phone: phone || '',
+            address: address || 'N/A',
+            qualification: qualification || 'N/A',
+            experience: parsedExperience,
+            photo: photo || '',
             school_id,
             user_id: user._id,
             domains: parsedDomains
@@ -138,30 +149,30 @@ const updateTeacher = async (req, res) => {
         const teacher = await Teacher.findOne({ _id: req.params.id, school_id });
         if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
 
-        if (email && email !== teacher.email) {
-            const userExists = await User.findOne({ email });
+        if (email && email.trim().toLowerCase() !== teacher.email) {
+            const userExists = await User.findOne({ email: email.trim().toLowerCase() });
             if (userExists) return res.status(400).json({ message: 'Email already in use' });
         }
 
         const user = await User.findById(teacher.user_id);
         
-        if (password) {
-            user.password = password;
-        }
-        if (email) {
-            user.email = email;
-            teacher.email = email;
+        if (user) {
+            if (password) user.password = password;
+            if (email) user.email = email.trim().toLowerCase();
+            if (phone) user.phone = phone.trim();
+            await user.save();
         }
 
-        await user.save();
-
-        teacher.name = name || teacher.name;
-        teacher.phone = phone || teacher.phone;
-        teacher.address = address || teacher.address;
-        teacher.qualification = qualification || teacher.qualification;
-        teacher.experience = experience || teacher.experience;
+        if (name) teacher.name = name;
+        if (email) teacher.email = email.trim().toLowerCase();
+        if (phone) teacher.phone = phone;
+        if (address) teacher.address = address;
+        if (qualification) teacher.qualification = qualification;
+        if (experience !== undefined && experience !== null) {
+            teacher.experience = parseInt(experience, 10) || 0;
+        }
         if (photo) teacher.photo = photo;
-        if (domains) {
+        if (domains !== undefined) {
             teacher.domains = Array.isArray(domains) ? domains : domains.split(',').map(d => d.trim()).filter(d => d);
         }
 
@@ -188,37 +199,54 @@ const getStaff = async (req, res) => {
 const createStaff = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const { name, email, phone, role, address, qualification, experience, photo, password } = req.body; // role like Driver, Peon
+        const { name, email, phone, role, role_title, address, qualification, experience, photo, password } = req.body;
 
         if (email) {
-            const userExists = await User.findOne({ email });
+            const userExists = await User.findOne({ email: email.trim().toLowerCase() });
             if (userExists) return res.status(400).json({ message: 'User already exists' });
         }
 
-        const rawPassword = password || `${name.replace(/\s+/g, '')}@123`;
-        // Staff user needs email to login. If no email is provided, we can't create a User account properly, 
-        // but let's assume if password is provided they must have an email, or handle phone-based login later.
+        const rawPassword = password || `${name ? name.replace(/\s+/g, '') : 'Staff'}@123`;
         if (!email) {
              return res.status(400).json({ message: 'Email is required to create a login account' });
         }
 
-        const user = await User.create({ email, phone, password: rawPassword, role: 'Staff' });
-        const staff = await Staff.create({ name, email, phone, role, address, qualification, experience, photo, school_id, user_id: user._id });
+        const user = await User.create({ 
+            email: email.trim().toLowerCase(), 
+            phone: phone ? phone.trim() : undefined, 
+            password: rawPassword, 
+            role: 'Staff' 
+        });
+
+        const staffRole = role || role_title || 'Office Staff';
+        const parsedExperience = parseInt(experience, 10) || 0;
+
+        const staff = await Staff.create({ 
+            name: name || 'Unnamed Staff', 
+            email: email.trim().toLowerCase(), 
+            phone: phone || '', 
+            role: staffRole, 
+            address: address || 'N/A', 
+            qualification: qualification || 'N/A', 
+            experience: parsedExperience, 
+            photo: photo || '', 
+            school_id, 
+            user_id: user._id 
+        });
         user.reference_id = staff._id;
         await user.save();
 
-        // If role is Driver, sync with Transport Management Driver collection
-        if (role && role.trim().toLowerCase() === 'driver') {
+        if (staffRole.trim().toLowerCase() === 'driver') {
             const driverExists = await Driver.findOne({ mobile_number: phone, school_id });
             if (!driverExists) {
                 await Driver.create({
                     school_id,
                     driver_id: `DRV-${Date.now()}`,
-                    name,
-                    mobile_number: phone,
+                    name: name || 'Driver',
+                    mobile_number: phone || '',
                     email: email || '',
                     address: address || '',
-                    license_number: `DL-${phone}`,
+                    license_number: `DL-${phone || Date.now()}`,
                     password: rawPassword,
                     status: 'Active'
                 });

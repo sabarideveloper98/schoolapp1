@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import BulkTeacherImportModal from '../../components/BulkTeacherImportModal';
 
 const TeacherManagement = () => {
   const navigate = useNavigate();
@@ -14,16 +15,17 @@ const TeacherManagement = () => {
 
   // Modal Editing forms
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
   // Table search & limit
   const [pageSize, setPageSize] = useState(50);
   const [globalSearch, setGlobalSearch] = useState('');
-  
+
   // Dropdown states
   const [activeDropdownId, setActiveDropdownId] = useState(null);
-  
+
   // Mock status
   const [disabledTeacherIds, setDisabledTeacherIds] = useState(new Set());
 
@@ -132,10 +134,10 @@ const TeacherManagement = () => {
 
   return (
     <div className="space-y-6">
-      <BulkTeacherImportModal 
-        isOpen={isBulkModalOpen} 
-        onClose={() => setIsBulkModalOpen(false)} 
-        onSuccess={fetchTeachers} 
+      <BulkTeacherImportModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={fetchTeachers}
       />
 
       {/* Header and Breadcrumb */}
@@ -149,14 +151,14 @@ const TeacherManagement = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setIsBulkModalOpen(true)}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
           >
             <FileSpreadsheet className="w-4 h-4" />
             Bulk Import Teachers
           </button>
-          <button 
+          <button
             onClick={() => navigate('/school-admin/teachers/create')}
             className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(59,130,246,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
           >
@@ -168,7 +170,7 @@ const TeacherManagement = () => {
 
       {/* Main Teacher List Table Card */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-6 overflow-hidden">
-        
+
         {/* Entries page size and Search input */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
@@ -219,7 +221,7 @@ const TeacherManagement = () => {
             <tbody className="divide-y divide-slate-100 bg-white">
               {filteredTeachers.slice(0, pageSize).map((teacher) => {
                 const isEnabled = !disabledTeacherIds.has(teacher._id);
-                
+
                 return (
                   <tr key={teacher._id} className="hover:bg-slate-50/50 transition-colors duration-150">
                     {/* Checkbox */}
@@ -268,11 +270,10 @@ const TeacherManagement = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => toggleStatus(teacher._id)}
-                        className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-                          isEnabled
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer ${isEnabled
                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                             : 'bg-rose-500 text-white hover:bg-rose-600'
-                        }`}
+                          }`}
                       >
                         {isEnabled ? 'Enable' : 'Disable'}
                       </button>
@@ -337,7 +338,7 @@ const TeacherManagement = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Teacher Name</label>
@@ -400,6 +401,16 @@ const TeacherManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Bulk Teacher Import Modal */}
+      <BulkTeacherImportModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={() => {
+          fetchTeachers();
+          setIsBulkModalOpen(false);
+        }}
+      />
     </div>
   );
 };
