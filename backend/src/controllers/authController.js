@@ -238,7 +238,7 @@ const getUserProfile = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
         let user = await User.findById(userId).select('-password');
-        
+
         if (!user) {
             user = req.user;
         }

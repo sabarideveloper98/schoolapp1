@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useAuthStore from '../store/useAuthStore';
-import { 
-  GraduationCap, 
-  Lock, 
-  User, 
-  ShieldAlert, 
-  ShieldCheck, 
-  Users, 
-  Info, 
-  LogIn, 
+import {
+  GraduationCap,
+  Lock,
+  User,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+  Info,
+  LogIn,
   UserCheck,
   Eye,
   EyeOff
@@ -84,26 +84,26 @@ const Login = () => {
       {/* Main Section */}
       <section className="relative z-10 px-4 py-10 flex-grow flex items-center">
         <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-2 overflow-hidden rounded-[40px] border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
-          
+
           {/* Left Column - Branding/Illustration */}
           <div className="relative flex flex-col justify-center p-8 border-b lg:p-14 lg:border-b-0 lg:border-r border-white/10">
             <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
-            
+
             <div className="relative z-10 text-center">
               {/* Pulsing Lock Circle */}
               <div className="inline-flex items-center justify-center mb-8 rounded-full shadow-2xl w-28 h-28 bg-gradient-to-r from-blue-500 to-indigo-600 animate-pulse">
-                <img 
-                  src="https://institute.bdboibazer.com/images/login-lock.png" 
-                  className="object-contain w-16 h-16" 
-                  alt="Lock Icon" 
+                <img
+                  src="https://institute.bdboibazer.com/images/login-lock.png"
+                  className="object-contain w-16 h-16"
+                  alt="Lock Icon"
                 />
               </div>
 
               {/* Center Background Illustration */}
-              <img 
-                src="https://institute.bdboibazer.com/images/login-bg.png" 
-                className="w-full max-w-md mx-auto mb-8 drop-shadow-2xl" 
-                alt="Login Illustration" 
+              <img
+                src="https://institute.bdboibazer.com/images/login-bg.png"
+                className="w-full max-w-md mx-auto mb-8 drop-shadow-2xl"
+                alt="Login Illustration"
               />
 
               <h2 className="mb-6 text-3xl font-black leading-tight text-white lg:text-4xl">
@@ -147,14 +147,14 @@ const Login = () => {
           {/* Right Column - Login Form */}
           <div className="flex items-center p-6 lg:p-14">
             <div className="w-full max-w-lg mx-auto">
-              
+
               {/* Header Icon & Title */}
               <div className="mb-10 text-center">
                 <div className="inline-flex items-center justify-center w-24 h-24 mb-6 border rounded-full shadow-2xl bg-white/10 border-white/20">
-                  <img 
-                    src="https://institute.bdboibazer.com/images/password-key.png" 
-                    className="w-12 h-12" 
-                    alt="Key Icon" 
+                  <img
+                    src="https://institute.bdboibazer.com/images/password-key.png"
+                    className="w-12 h-12"
+                    alt="Key Icon"
                   />
                 </div>
 
@@ -178,12 +178,12 @@ const Login = () => {
                     <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400">
                       <User className="w-5 h-5 text-lg" />
                     </span>
-                    <input 
-                      type="text" 
-                      name="emailOrPhone" 
+                    <input
+                      type="text"
+                      name="emailOrPhone"
                       value={emailOrPhone}
                       onChange={(e) => setEmailOrPhone(e.target.value)}
-                      required 
+                      required
                       autoFocus
                       placeholder="Enter Email or Phone"
                       className="w-full h-16 pr-5 text-white transition duration-300 border outline-none rounded-2xl border-white/10 bg-white/10 pl-14 placeholder-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20"
@@ -205,9 +205,9 @@ const Login = () => {
                     <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400">
                       <Lock className="w-5 h-5 text-lg" />
                     </span>
-                    <input 
-                      type={showPassword ? 'text' : 'password'} 
-                      name="password" 
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -232,8 +232,8 @@ const Login = () => {
                 {/* Remember Me */}
                 <div className="flex items-center">
                   <label className="flex items-center gap-3 cursor-pointer select-none">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       name="remember"
                       className="w-5 h-5 text-blue-500 rounded border-white/20 bg-white/10 focus:ring-blue-500 cursor-pointer"
                     />
@@ -244,8 +244,8 @@ const Login = () => {
                 </div>
 
                 {/* Submit Button */}
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isLoading}
                   className="w-full h-16 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-lg font-bold shadow-2xl transition duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                 >
@@ -255,8 +255,8 @@ const Login = () => {
 
                 {/* Demo Logins */}
                 <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => handleDemoLogin('admin@system.com', 'Admin@123')}
                     className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-indigo-500/20 cursor-pointer"
                   >
@@ -264,8 +264,8 @@ const Login = () => {
                     Admin
                   </button>
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => handleDemoLogin('jonson@gmail.com', 'jonson@123')}
                     className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-green-500/20 cursor-pointer"
                   >
@@ -273,8 +273,8 @@ const Login = () => {
                     School Admin
                   </button>
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => handleDemoLogin('teacher@system.com', 'Admin@123')}
                     className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-purple-500/20 cursor-pointer"
                   >
@@ -282,8 +282,8 @@ const Login = () => {
                     Teacher
                   </button>
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => handleDemoLogin('staff@system.com', 'Admin@123')}
                     className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-yellow-500/20 cursor-pointer"
                   >
@@ -291,8 +291,8 @@ const Login = () => {
                     Staff
                   </button>
 
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => handleDemoLogin('1234567890', 'Admin@123')}
                     className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-orange-500/20 md:col-span-2 md:justify-center cursor-pointer"
                   >

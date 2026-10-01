@@ -30,11 +30,17 @@ io.on('connection', (socket) => {
     });
 });
 
+const path = require('path');
+
 // Body parser
 app.use(express.json());
 
 // Enable CORS
 app.use(cors());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swaggerSpec');

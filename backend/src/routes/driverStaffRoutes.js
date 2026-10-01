@@ -10,6 +10,8 @@ const {
     getDriverRouteDetails,
     getDriverAssignedStudents,
     startTrip,
+    pauseTrip,
+    resumeTrip,
     updateGpsLocation,
     markStudentBoarding,
     getStudentBoardingLogs,
@@ -40,6 +42,10 @@ router.get('/students', getDriverAssignedStudents);
 
 // Trip Operations & Live Location Streaming
 router.post('/trip/start', startTrip);
+router.post('/trip/pause', pauseTrip);
+router.post('/pause-trip', pauseTrip);
+router.post('/trip/resume', resumeTrip);
+router.post('/resume-trip', resumeTrip);
 router.post('/gps/update', updateGpsLocation);
 router.post('/student/boarding', markStudentBoarding);
 router.get('/student/boarding-logs', getStudentBoardingLogs);

@@ -276,6 +276,26 @@ const swaggerDefinition = {
         responses: { 200: { description: 'Trip started' } }
       }
     },
+    '/api/driver/trip/pause': {
+      post: {
+        summary: 'Pause Active Bus Trip',
+        tags: ['Driver Module'],
+        requestBody: {
+          content: { 'application/json': { example: { trip_id: '650000000000000000000099', pause_reason: 'Traffic Delay', latitude: 12.9716, longitude: 77.5946 } } }
+        },
+        responses: { 200: { description: 'Trip paused successfully' } }
+      }
+    },
+    '/api/driver/trip/resume': {
+      post: {
+        summary: 'Resume Paused Bus Trip',
+        tags: ['Driver Module'],
+        requestBody: {
+          content: { 'application/json': { example: { trip_id: '650000000000000000000099', resume_reason: 'Traffic cleared', latitude: 12.9716, longitude: 77.5946 } } }
+        },
+        responses: { 200: { description: 'Trip resumed successfully' } }
+      }
+    },
     '/api/driver/gps/update': {
       post: {
         summary: 'Stream Live GPS Location',

@@ -660,6 +660,153 @@ const getDriverTripHistory = async (req, res) => {
     }
 };
 
+// @desc    Pause Active Bus Trip
+// @route   POST /api/driver/trip/pause (and /api/driver/pause-trip)
+// @access  Private (Driver)
+// ADDED FEATURE: Driver pause active trip endpoint
+// ADDED PARAMETER: bus_id, trip_id, reason, latitude, longitude, notes
+// ADDED RESPONSE FIELD: success, message, trip, notification, timestamp, requestId
+// ADDED VALIDATION: Active trip verification & reason validation
+const pauseTrip = async (req, res) => {
+    try {
+        const driver_id = req.user.id || req.user._id;
+        const { bus_id, trip_id, reason, latitude, longitude, notes } = req.body;
+
+        const activeTrip = await TripHistory.findOne({
+            driver_id,
+            status: { $in: ['In Progress', 'Emergency', 'Paused'] }
+        }).populate('bus_id');
+
+        if (!activeTrip) {
+            return res.status(404).json({
+                success: false,
+                message: 'No active trip found to pause'
+            });
+        }
+
+        const pauseReason = reason || notes || 'Rest / Refueling Break';
+        activeTrip.status = 'Paused';
+        activeTrip.pause_reason = pauseReason;
+        activeTrip.paused_at = new Date();
+        if (latitude !== undefined && longitude !== undefined) {
+            activeTrip.current_latitude = parseFloat(latitude);
+            activeTrip.current_longitude = parseFloat(longitude);
+        }
+
+        await activeTrip.save();
+
+        const busNumber = activeTrip.bus_id?.bus_number || 'assigned bus';
+        const busId = activeTrip.bus_id?._id || activeTrip.bus_id;
+
+        const notification = await TransportNotification.create({
+            school_id: activeTrip.school_id,
+            bus_id: busId,
+            trip_id: activeTrip.trip_id,
+            title: 'Bus Trip Paused',
+            message: `Bus ${busNumber} trip has been temporarily paused. Reason: ${pauseReason}.`,
+            type: 'TripPaused',
+            recipient_role: 'All'
+        });
+
+        if (req.app.get('io')) {
+            req.app.get('io').emit('trip_paused', {
+                trip_id: activeTrip.trip_id,
+                bus_id: busId,
+                bus_number: busNumber,
+                reason: pauseReason,
+                latitude: activeTrip.current_latitude,
+                longitude: activeTrip.current_longitude,
+                timestamp: activeTrip.paused_at
+            });
+        }
+
+        if (res.success) {
+            return res.success({ trip: activeTrip, notification }, 'Trip paused successfully');
+        }
+
+        return res.json({
+            success: true,
+            message: 'Trip paused successfully',
+            trip: activeTrip,
+            notification
+        });
+    } catch (error) {
+        console.error('pauseTrip error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to pause trip',
+            error: error.message
+        });
+    }
+};
+
+// @desc    Resume Paused Bus Trip
+// @route   POST /api/driver/trip/resume (and /api/driver/resume-trip)
+// @access  Private (Driver)
+// ADDED FEATURE: Driver resume paused trip endpoint
+// ADDED PARAMETER: bus_id, trip_id, notes
+// ADDED RESPONSE FIELD: success, message, trip, notification, timestamp, requestId
+const resumeTrip = async (req, res) => {
+    try {
+        const driver_id = req.user.id || req.user._id;
+        const activeTrip = await TripHistory.findOne({
+            driver_id,
+            status: 'Paused'
+        }).populate('bus_id');
+
+        if (!activeTrip) {
+            return res.status(404).json({
+                success: false,
+                message: 'No paused trip found to resume'
+            });
+        }
+
+        activeTrip.status = 'In Progress';
+        activeTrip.resumed_at = new Date();
+        await activeTrip.save();
+
+        const busNumber = activeTrip.bus_id?.bus_number || 'assigned bus';
+        const busId = activeTrip.bus_id?._id || activeTrip.bus_id;
+
+        const notification = await TransportNotification.create({
+            school_id: activeTrip.school_id,
+            bus_id: busId,
+            trip_id: activeTrip.trip_id,
+            title: 'Bus Trip Resumed',
+            message: `Bus ${busNumber} trip has resumed its route.`,
+            type: 'TripResumed',
+            recipient_role: 'All'
+        });
+
+        if (req.app.get('io')) {
+            req.app.get('io').emit('trip_resumed', {
+                trip_id: activeTrip.trip_id,
+                bus_id: busId,
+                bus_number: busNumber,
+                timestamp: activeTrip.resumed_at
+            });
+        }
+
+        if (res.success) {
+            return res.success({ trip: activeTrip, notification }, 'Trip resumed successfully');
+        }
+
+        return res.json({
+            success: true,
+            message: 'Trip resumed successfully',
+            trip: activeTrip,
+            notification
+        });
+    } catch (error) {
+        console.error('resumeTrip error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to resume trip',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     driverLogin,
     getDriverProfile,
@@ -669,6 +816,8 @@ module.exports = {
     getDriverRouteDetails,
     getDriverAssignedStudents,
     startTrip,
+    pauseTrip,
+    resumeTrip,
     updateGpsLocation,
     markStudentBoarding,
     getStudentBoardingLogs,

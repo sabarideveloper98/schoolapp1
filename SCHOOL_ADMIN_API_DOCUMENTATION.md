@@ -41,12 +41,13 @@ Content-Type: application/json
 - **Response (200 OK)**:
 ```json
 {
-  "totalTeachers": 18,
-  "totalStaff": 10,
-  "totalStudents": 350,
-  "totalClasses": 12,
-  "totalSubjects": 14,
-  "todayAttendancePercent": 94.5
+  "totalTeachers": 13,
+  "totalStaff": 3,
+  "totalClasses": 8,
+  "totalSubjects": 10,
+  "totalStudents": 38,
+  "totalDrivers": 4,
+  "totalBuses": 3
 }
 ```
 

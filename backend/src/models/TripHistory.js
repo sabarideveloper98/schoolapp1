@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const tripHistorySchema = new mongoose.Schema({
     school_id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -35,7 +34,7 @@ const tripHistorySchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['In Progress', 'Completed', 'Force Stopped', 'Emergency'],
+        enum: ['In Progress', 'Completed', 'Force Stopped', 'Emergency', 'Paused'],
         default: 'In Progress'
     },
     distance_travelled_km: {
@@ -80,5 +79,4 @@ const tripHistorySchema = new mongoose.Schema({
         timestamp: { type: Date, default: Date.now }
     }]
 }, { timestamps: true });
-
 module.exports = mongoose.model('TripHistory', tripHistorySchema);
