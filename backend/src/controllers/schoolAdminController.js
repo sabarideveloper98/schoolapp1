@@ -3,6 +3,7 @@ const User = require('../models/User');
 const School = require('../models/School');
 const Staff = require('../models/Staff');
 const Driver = require('../models/Driver');
+const Bus = require('../models/Bus');
 const Subject = require('../models/Subject');
 const Class = require('../models/Class');
 const Student = require('../models/Student');
@@ -33,17 +34,37 @@ const getDashboardStats = async (req, res) => {
         const totalClasses = await Class.countDocuments({ school_id });
         const totalSubjects = await Subject.countDocuments({ school_id });
         const totalStudents = await Student.countDocuments({ school_id });
+        const totalDrivers = await Driver.countDocuments({ school_id });
+        const totalBuses = await Bus.countDocuments({ school_id });
 
         res.json({
             totalTeachers,
             totalStaff,
             totalClasses,
             totalSubjects,
-            totalStudents
+            totalStudents,
+            totalDrivers,
+            totalBuses
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
+};
+
+// Helper to format photo/image field into full accessible URL or null
+const formatPhotoUrl = (photoVal, req) => {
+    if (!photoVal || typeof photoVal !== 'string' || !photoVal.trim()) {
+        return null;
+    }
+    const trimmed = photoVal.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        return trimmed;
+    }
+    const host = req.get ? req.get('host') : (req.headers && req.headers.host) || 'localhost:5005';
+    const protocol = req.protocol || 'http';
+    const baseUrl = `${protocol}://${host}`;
+    const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    return `${baseUrl}${cleanPath}`;
 };
 
 // @desc    Get all teachers for the school
@@ -52,8 +73,16 @@ const getDashboardStats = async (req, res) => {
 const getTeachers = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const teachers = await Teacher.find({ school_id });
-        res.json(teachers);
+        const teachers = await Teacher.find({ school_id }).lean();
+        const formattedTeachers = teachers.map(teacher => {
+            const rawPhoto = teacher.photo || teacher.profileImage || teacher.profile_image || teacher.image || teacher.avatar || null;
+            return {
+                ...teacher,
+                id: teacher._id,
+                photo: formatPhotoUrl(rawPhoto, req)
+            };
+        });
+        res.json(formattedTeachers);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -145,7 +174,7 @@ const updateTeacher = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
         const { name, email, phone, address, qualification, experience, photo, password, domains } = req.body;
-        
+
         const teacher = await Teacher.findOne({ _id: req.params.id, school_id });
         if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
 
@@ -155,7 +184,7 @@ const updateTeacher = async (req, res) => {
         }
 
         const user = await User.findById(teacher.user_id);
-        
+
         if (user) {
             if (password) user.password = password;
             if (email) user.email = email.trim().toLowerCase();
@@ -189,8 +218,16 @@ const updateTeacher = async (req, res) => {
 const getStaff = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const staff = await Staff.find({ school_id });
-        res.json(staff);
+        const staff = await Staff.find({ school_id }).lean();
+        const formattedStaff = staff.map(member => {
+            const rawPhoto = member.photo || member.profileImage || member.profile_image || member.image || member.avatar || null;
+            return {
+                ...member,
+                id: member._id,
+                photo: formatPhotoUrl(rawPhoto, req)
+            };
+        });
+        res.json(formattedStaff);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -208,30 +245,30 @@ const createStaff = async (req, res) => {
 
         const rawPassword = password || `${name ? name.replace(/\s+/g, '') : 'Staff'}@123`;
         if (!email) {
-             return res.status(400).json({ message: 'Email is required to create a login account' });
+            return res.status(400).json({ message: 'Email is required to create a login account' });
         }
 
-        const user = await User.create({ 
-            email: email.trim().toLowerCase(), 
-            phone: phone ? phone.trim() : undefined, 
-            password: rawPassword, 
-            role: 'Staff' 
+        const user = await User.create({
+            email: email.trim().toLowerCase(),
+            phone: phone ? phone.trim() : undefined,
+            password: rawPassword,
+            role: 'Staff'
         });
 
         const staffRole = role || role_title || 'Office Staff';
         const parsedExperience = parseInt(experience, 10) || 0;
 
-        const staff = await Staff.create({ 
-            name: name || 'Unnamed Staff', 
-            email: email.trim().toLowerCase(), 
-            phone: phone || '', 
-            role: staffRole, 
-            address: address || 'N/A', 
-            qualification: qualification || 'N/A', 
-            experience: parsedExperience, 
-            photo: photo || '', 
-            school_id, 
-            user_id: user._id 
+        const staff = await Staff.create({
+            name: name || 'Unnamed Staff',
+            email: email.trim().toLowerCase(),
+            phone: phone || '',
+            role: staffRole,
+            address: address || 'N/A',
+            qualification: qualification || 'N/A',
+            experience: parsedExperience,
+            photo: photo || '',
+            school_id,
+            user_id: user._id
         });
         user.reference_id = staff._id;
         await user.save();
@@ -282,7 +319,7 @@ const updateStaff = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
         const { name, email, phone, role, address, qualification, experience, photo, password } = req.body;
-        
+
         const staff = await Staff.findOne({ _id: req.params.id, school_id });
         if (!staff) return res.status(404).json({ message: 'Staff not found' });
 
@@ -292,7 +329,7 @@ const updateStaff = async (req, res) => {
         }
 
         const user = await User.findById(staff.user_id);
-        
+
         if (password) {
             user.password = password;
         }
@@ -437,7 +474,7 @@ const assignSubjectTeacher = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
         const { class_id, subject_id, teacher_id } = req.body;
-        
+
         // Prevent duplicate assignments
         const exists = await ClassSubject.findOne({ class_id, subject_id, school_id });
         if (exists) {
@@ -466,11 +503,11 @@ const updateSubjectTeacher = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
         const { class_id, subject_id, teacher_id } = req.body;
-        
+
         // Prevent duplicate assignments if changing class/subject
-        const exists = await ClassSubject.findOne({ 
-            class_id, subject_id, school_id, 
-            _id: { $ne: req.params.id } 
+        const exists = await ClassSubject.findOne({
+            class_id, subject_id, school_id,
+            _id: { $ne: req.params.id }
         });
         if (exists) {
             return res.status(400).json({ message: 'Subject already assigned to this class' });
@@ -503,7 +540,7 @@ const getStudents = async (req, res) => {
 const createStudent = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const { 
+        const {
             first_name, last_name, father_name, mother_name, class_id, group, section, gender,
             roll_no, registration_no, blood_group, religion, admission_number, address,
             guardian_name, guardian_email, guardian_phone, guardian_relation, guardian_address,
@@ -516,7 +553,7 @@ const createStudent = async (req, res) => {
         const final_parent_name = guardian_name || parent_name;
         const final_parent_phone = guardian_phone || parent_phone;
         const final_parent_email = guardian_email || parent_email;
-        
+
         const final_login_email = login_email || final_parent_email;
         const final_login_phone = login_phone || final_parent_phone;
         const final_password = login_password || (final_parent_name ? `${final_parent_name.replace(/\s+/g, '')}@123` : '123456');
@@ -582,7 +619,7 @@ const createStudent = async (req, res) => {
 const updateStudent = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const { 
+        const {
             first_name, last_name, father_name, mother_name, class_id, group, section, gender,
             roll_no, registration_no, blood_group, religion, admission_number, address,
             guardian_name, guardian_email, guardian_phone, guardian_relation, guardian_address,
@@ -607,7 +644,7 @@ const updateStudent = async (req, res) => {
 
         const updatedStudent = await Student.findOneAndUpdate(
             { _id: req.params.id, school_id },
-            { 
+            {
                 student_name: final_student_name,
                 first_name,
                 last_name,
@@ -630,7 +667,7 @@ const updateStudent = async (req, res) => {
                 parent_name: final_parent_name,
                 parent_phone: final_parent_phone,
                 parent_email: final_parent_email,
-                class_id 
+                class_id
             },
             { new: true }
         ).populate('class_id', 'class section').populate('parent_user_id', 'email phone');
@@ -646,9 +683,9 @@ const deleteStudent = async (req, res) => {
         const school_id = await getSchoolId(req.user._id);
         const student = await Student.findOne({ _id: req.params.id, school_id });
         if (!student) return res.status(404).json({ message: 'Student not found' });
-        
+
         await Student.findByIdAndDelete(student._id);
-        
+
         // Check if parent has other students
         const otherStudents = await Student.find({ parent_user_id: student.parent_user_id });
         if (otherStudents.length === 0) {
@@ -828,7 +865,144 @@ const bulkImportTeachers = async (req, res) => {
     }
 };
 
+// @desc    School Admin Dedicated Login (Email/Phone + Password)
+// @route   POST /api/schooladmin/auth/login
+// @access  Public
+const loginSchoolAdmin = async (req, res) => {
+    try {
+        const { email, phone, mobile, mobile_number, phone_number, email_or_phone, username, identifier, password } = req.body;
+        const contactInput = (email || phone || mobile || mobile_number || phone_number || email_or_phone || username || identifier || '').toString().trim();
+
+        if (!contactInput || !password) {
+            return res.status(400).json({ message: 'Please provide email or phone and password' });
+        }
+
+        const user = await User.findOne({
+            $or: [
+                { email: contactInput.toLowerCase() },
+                { phone: contactInput }
+            ],
+            role: 'SchoolAdmin'
+        });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials or non-admin account' });
+        }
+
+        if (user.status && user.status !== 'Active') {
+            return res.status(403).json({ message: 'School Admin account is inactive. Please contact system administrator.' });
+        }
+
+        const isMatch = await user.matchPassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign(
+            { id: user._id, role: 'SchoolAdmin' },
+            process.env.JWT_SECRET || 'secret123',
+            { expiresIn: '30d' }
+        );
+
+        const refreshToken = jwt.sign(
+            { id: user._id, role: 'SchoolAdmin', type: 'refresh' },
+            process.env.JWT_SECRET || 'secret123',
+            { expiresIn: '90d' }
+        );
+
+        user.last_login_at = new Date();
+        user.refresh_tokens = user.refresh_tokens || [];
+        user.refresh_tokens.push(refreshToken);
+        if (user.refresh_tokens.length > 5) user.refresh_tokens.shift();
+        await user.save();
+
+        let schoolId = null;
+        try {
+            schoolId = await getSchoolId(user._id);
+        } catch (e) {
+            schoolId = null;
+        }
+
+        res.json({
+            success: true,
+            message: 'School Admin login successful',
+            token,
+            accessToken: token,
+            refreshToken,
+            user: {
+                _id: user._id,
+                name: user.name || 'School Admin',
+                email: user.email,
+                phone: user.phone,
+                role: 'SchoolAdmin',
+                status: user.status,
+                school_id: schoolId,
+                reference_id: user.reference_id,
+                last_login_at: user.last_login_at
+            }
+        });
+    } catch (error) {
+        console.error('loginSchoolAdmin error:', error);
+        res.status(500).json({ message: 'School Admin login failed', error: error.message });
+    }
+};
+// @desc    Get Authenticated School Admin Profile
+// @route   GET /api/schooladmin/profile
+// @access  Private (SchoolAdmin)
+// ADDED FEATURE: School Admin get profile endpoint
+// ADDED RESPONSE FIELD: user, profile, school, timestamp, requestId
+// ADDED AUTHORIZATION: SchoolAdmin role authorization
+const getSchoolAdminProfile = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        const user = await User.findById(userId).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'School Admin user not found' });
+        }
+
+        let school = null;
+        let schoolId = null;
+        try {
+            schoolId = await getSchoolId(user._id);
+            if (schoolId) {
+                school = await School.findById(schoolId).select('name code location email phone address logo status');
+            }
+        } catch (e) {
+            school = null;
+        }
+        const profileData = {
+            _id: user._id,
+            name: user.name || 'School Admin',
+            email: user.email,
+            phone: user.phone,
+            role: 'SchoolAdmin',
+            status: user.status,
+            school_id: schoolId,
+            school: school,
+            last_login_at: user.last_login_at,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
+        };
+        if (res.success) {
+            return res.success({ profile: profileData, user: profileData, school }, 'School Admin profile retrieved successfully');
+        }
+        return res.json({
+            success: true,
+            message: 'School Admin profile retrieved successfully',
+            user: profileData,
+            profile: profileData,
+            school
+        });
+    } catch (error) {
+        console.error('getSchoolAdminProfile error:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch School Admin profile', error: error.message });
+    }
+};
 module.exports = {
+    loginSchoolAdmin,
+    getSchoolAdminProfile,
     getDashboardStats,
     getTeachers, createTeacher, deleteTeacher, updateTeacher, bulkImportTeachers,
     getStaff, createStaff, deleteStaff, updateStaff,

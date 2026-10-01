@@ -297,23 +297,32 @@ const deleteDriver = async (req, res) => {
 
 const driverLogin = async (req, res) => {
     try {
-        const { mobile_number, password } = req.body;
-        if (!mobile_number || !password) {
-            return res.status(400).json({ message: 'Mobile number and password are required' });
+        const { mobile_number, phone, mobile, phone_number, email, username, identifier, driver_id, password } = req.body;
+        const contactInput = (mobile_number || phone || mobile || phone_number || email || username || identifier || driver_id || '').toString().trim();
+
+        if (!contactInput || !password) {
+            return res.status(400).json({ message: 'Mobile number/email and password are required' });
         }
 
-        const driver = await Driver.findOne({ mobile_number }).populate('assigned_bus_id');
+        const driver = await Driver.findOne({
+            $or: [
+                { mobile_number: contactInput },
+                { email: contactInput.toLowerCase() },
+                { driver_id: contactInput }
+            ]
+        }).populate('assigned_bus_id');
+
         if (!driver) {
-            return res.status(401).json({ message: 'Invalid mobile number or password' });
+            return res.status(401).json({ message: 'Invalid mobile number/email or password' });
         }
 
         const isMatch = await driver.matchPassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid mobile number or password' });
+            return res.status(401).json({ message: 'Invalid mobile number/email or password' });
         }
 
         if (driver.status !== 'Active') {
-            return res.status(403).json({ message: 'Driver account is inactive. Please contact School Admin.' });
+            return res.status(403).json({ message: 'Driver account is inactive. Please contact School Administration.' });
         }
 
         const token = jwt.sign(
@@ -322,14 +331,40 @@ const driverLogin = async (req, res) => {
             { expiresIn: '30d' }
         );
 
-        res.json({
+        const refreshToken = jwt.sign(
+            { id: driver._id, role: 'Driver', type: 'refresh' },
+            process.env.JWT_SECRET || 'supersecretjwtkey12345',
+            { expiresIn: '90d' }
+        );
+
+        const driverResponse = {
             _id: driver._id,
             driver_id: driver.driver_id,
             name: driver.name,
             mobile_number: driver.mobile_number,
+            phone: driver.mobile_number,
+            email: driver.email || '',
+            license_number: driver.license_number,
             school_id: driver.school_id,
-            assigned_bus: driver.assigned_bus_id,
-            token
+            assigned_bus: driver.assigned_bus_id
+        };
+
+        res.json({
+            success: true,
+            message: 'Driver login successful',
+            token,
+            accessToken: token,
+            refreshToken,
+            driver: driverResponse,
+            user: {
+                _id: driver._id,
+                name: driver.name,
+                email: driver.email || '',
+                phone: driver.mobile_number,
+                role: 'Driver',
+                status: driver.status,
+                school_id: driver.school_id
+            }
         });
     } catch (error) {
         console.error('Error in driver login:', error);

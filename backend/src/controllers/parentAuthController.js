@@ -9,18 +9,18 @@ const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = requir
 // @access  Public
 const loginParent = async (req, res) => {
     try {
-        const { email, phone, email_or_phone, password } = req.body;
+        const { email, phone, mobile, mobile_number, phone_number, email_or_phone, username, identifier, password } = req.body;
 
-        const identifier = email || phone || email_or_phone;
-        if (!identifier || !password) {
+        const contactInput = (email || phone || mobile || mobile_number || phone_number || email_or_phone || username || identifier || '').toString().trim();
+        if (!contactInput || !password) {
             return res.status(400).json({ message: 'Please provide mobile number/email and password' });
         }
 
         // Find parent user by phone or email
         const user = await User.findOne({
             $or: [
-                { email: identifier.toLowerCase().trim() },
-                { phone: identifier.trim() }
+                { email: contactInput.toLowerCase() },
+                { phone: contactInput }
             ],
             role: 'Parent'
         });
@@ -79,16 +79,20 @@ const loginParent = async (req, res) => {
 
         res.json({
             success: true,
+            message: 'Parent login successful',
+            token: accessToken,
             accessToken,
             refreshToken,
             user: {
                 _id: user._id,
+                name: user.name || (parentProfile ? parentProfile.name : 'Parent'),
                 email: user.email,
                 phone: user.phone,
                 role: user.role,
                 status: user.status,
                 last_login_at: user.last_login_at
             },
+            parent: parentProfile,
             profile: parentProfile,
             linkedStudents
         });

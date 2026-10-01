@@ -1,0 +1,685 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "School Management System API Specification",
+    "version": "1.0.0",
+    "description": "Comprehensive, Production-Ready REST API & Real-Time Telemetry Specification for the Multi-Tenant School Management Platform. Covers Authentication, SuperAdmin, SchoolAdmin, Teacher Portal, Parent Module, Driver Staff, Transport, Attendance, Homework, Timetable, Exams, Fees, Finance, Payroll, and Subscriptions.",
+    "contact": {
+      "name": "System Engineering Team",
+      "email": "support@schoolapp.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5005",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Provide JWT bearer token formatted as: Bearer <token>"
+      }
+    },
+    "schemas": {
+      "StandardSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Operation completed successfully"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-09-28T21:00:00.000Z"
+          }
+        }
+      },
+      "StandardPaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Records retrieved successfully"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "example": 1
+              },
+              "limit": {
+                "type": "integer",
+                "example": 10
+              },
+              "totalRecords": {
+                "type": "integer",
+                "example": 100
+              },
+              "totalPages": {
+                "type": "integer",
+                "example": 10
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-09-28T21:00:00.000Z"
+          }
+        }
+      },
+      "StandardErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "Validation failed"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "example": "email"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Email is required"
+                }
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-09-28T21:00:00.000Z"
+          }
+        }
+      },
+      "SignupPayload": {
+        "type": "object",
+        "required": [
+          "name",
+          "password",
+          "role"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "School Administrator"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@school.com"
+          },
+          "mobile": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "Password@123"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SuperAdmin",
+              "SchoolAdmin",
+              "Teacher",
+              "Staff",
+              "Parent",
+              "Driver"
+            ],
+            "example": "SchoolAdmin"
+          }
+        }
+      },
+      "LoginPayload": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@school.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "mobile": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "password": {
+            "type": "string",
+            "example": "Password@123"
+          }
+        }
+      },
+      "ChangePasswordPayload": {
+        "type": "object",
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "example": "OldPassword123"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 6,
+            "example": "NewPassword123"
+          }
+        }
+      },
+      "ForgotPasswordPayload": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@school.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "9876543210"
+          }
+        }
+      },
+      "ResetPasswordPayload": {
+        "type": "object",
+        "required": [
+          "newPassword"
+        ],
+        "properties": {
+          "resetToken": {
+            "type": "string",
+            "example": "9a8b7c6d5e4f3a2b1c"
+          },
+          "email": {
+            "type": "string",
+            "example": "user@school.com"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 6,
+            "example": "NewPassword123"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "summary": "User Registration",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Universal Login (All Roles)",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid Credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Logout User",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh-token": {
+      "post": {
+        "summary": "Refresh Access Token",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refreshToken"
+                ],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/schooladmin/dashboard": {
+      "get": {
+        "summary": "School Admin Dashboard Statistics",
+        "tags": [
+          "School Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard metrics retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/schooladmin/teachers": {
+      "get": {
+        "summary": "List Teachers (Paginated)",
+        "tags": [
+          "School Admin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "createdAt"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teachers retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardPaginatedResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Teacher Profile",
+        "tags": [
+          "School Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email",
+                  "phone",
+                  "address",
+                  "qualification",
+                  "experience"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Ramesh Sundaram"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "ramesh@school.com"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "9876543210"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "123 Main Street"
+                  },
+                  "qualification": {
+                    "type": "string",
+                    "example": "M.Sc, B.Ed"
+                  },
+                  "experience": {
+                    "type": "number",
+                    "example": 5
+                  },
+                  "domains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "Mathematics",
+                      "Physics"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Teacher profile created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/attendance": {
+      "post": {
+        "summary": "Mark Student Attendance",
+        "tags": [
+          "Teacher"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "class_id",
+                  "date",
+                  "attendanceData"
+                ],
+                "properties": {
+                  "class_id": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c22a88f01b1a"
+                  },
+                  "section": {
+                    "type": "string",
+                    "example": "A"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-09-28"
+                  },
+                  "attendanceData": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "student_id",
+                        "status"
+                      ],
+                      "properties": {
+                        "student_id": {
+                          "type": "string",
+                          "example": "60d5ecb8b5c9c22a88f01b1b"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "Present",
+                            "Absent",
+                            "Late",
+                            "Half-Day"
+                          ],
+                          "example": "Present"
+                        },
+                        "remarks": {
+                          "type": "string",
+                          "example": "On time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Attendance saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/driver/location/update": {
+      "post": {
+        "summary": "Update Driver Live Location (GPS Telemetry)",
+        "tags": [
+          "Driver & Transport"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bus_id",
+                  "latitude",
+                  "longitude"
+                ],
+                "properties": {
+                  "bus_id": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c22a88f01b1c"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 13.0827
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": 80.2707
+                  },
+                  "speed_kmh": {
+                    "type": "number",
+                    "example": 42.5
+                  },
+                  "heading_deg": {
+                    "type": "number",
+                    "example": 180
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Location updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardSuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

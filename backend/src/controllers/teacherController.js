@@ -69,7 +69,7 @@ const getDashboardStats = async (req, res) => {
         const todayDay = days[new Date().getDay()];
 
         const todayEntries = await TimetableEntry.find({ teacher_id: teacherId, day: todayDay });
-        
+
         // Pending attendance check for today
         const todayDate = new Date();
         todayDate.setHours(0, 0, 0, 0);
@@ -285,9 +285,9 @@ const getStudentDetails = async (req, res) => {
 const createStudent = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
-        const { 
+        const {
             student_name, age, address, dob, blood_group, photo,
-            parent_name, parent_phone, parent_email, class_id 
+            parent_name, parent_phone, parent_email, class_id
         } = req.body;
 
         const targetClass = await Class.findOne({ _id: class_id, class_incharge_id: teacher._id });
@@ -949,7 +949,92 @@ const getSentMessages = async (req, res) => {
     }
 };
 
+// @desc    Teacher Dedicated Login (Email/Phone + Password)
+// @route   POST /api/teacher/auth/login
+// @access  Public
+const loginTeacher = async (req, res) => {
+    try {
+        const { email, phone, mobile, mobile_number, phone_number, email_or_phone, username, identifier, password } = req.body;
+        const contactInput = (email || phone || mobile || mobile_number || phone_number || email_or_phone || username || identifier || '').toString().trim();
+
+        if (!contactInput || !password) {
+            return res.status(400).json({ message: 'Please provide email or phone and password' });
+        }
+
+        const user = await User.findOne({
+            $or: [
+                { email: contactInput.toLowerCase() },
+                { phone: contactInput }
+            ],
+            role: 'Teacher'
+        });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials or non-teacher account' });
+        }
+
+        if (user.status && user.status !== 'Active') {
+            return res.status(403).json({ message: 'Teacher account is inactive. Please contact School Administration.' });
+        }
+
+        const isMatch = await user.matchPassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign(
+            { id: user._id, role: 'Teacher' },
+            process.env.JWT_SECRET || 'secret123',
+            { expiresIn: '30d' }
+        );
+
+        const refreshToken = jwt.sign(
+            { id: user._id, role: 'Teacher', type: 'refresh' },
+            process.env.JWT_SECRET || 'secret123',
+            { expiresIn: '90d' }
+        );
+
+        user.last_login_at = new Date();
+        user.refresh_tokens = user.refresh_tokens || [];
+        user.refresh_tokens.push(refreshToken);
+        if (user.refresh_tokens.length > 5) user.refresh_tokens.shift();
+        await user.save();
+
+        let teacherProfile = null;
+        try {
+            teacherProfile = await getTeacherProfileHelper(user._id);
+        } catch (e) {
+            teacherProfile = null;
+        }
+
+        res.json({
+            success: true,
+            message: 'Teacher login successful',
+            token,
+            accessToken: token,
+            refreshToken,
+            user: {
+                _id: user._id,
+                name: user.name || (teacherProfile ? teacherProfile.name : 'Teacher'),
+                email: user.email,
+                phone: user.phone,
+                role: 'Teacher',
+                status: user.status,
+                reference_id: user.reference_id,
+                last_login_at: user.last_login_at
+            },
+            teacher: teacherProfile,
+            profile: teacherProfile
+        });
+    } catch (error) {
+        console.error('loginTeacher error:', error);
+        res.status(500).json({ message: 'Teacher login failed', error: error.message });
+    }
+};
+
 module.exports = {
+    loginTeacher,
     getDashboardStats,
     getProfile,
     updateProfile,

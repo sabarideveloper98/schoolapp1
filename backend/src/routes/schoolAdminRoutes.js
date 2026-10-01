@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const {
+    loginSchoolAdmin,
+    getSchoolAdminProfile,
     getDashboardStats,
     getTeachers, createTeacher, deleteTeacher, updateTeacher, bulkImportTeachers,
     getStaff, createStaff, deleteStaff, updateStaff,
@@ -10,7 +12,7 @@ const {
     getStudents, createStudent, updateStudent, deleteStudent, bulkImportStudents
 } = require('../controllers/schoolAdminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
-const { 
+const {
     getStaffAttendance, saveStaffAttendance, getStaffAttendanceReport,
     getStudentAttendance, saveStudentAttendance, getStudentAttendanceReport
 } = require('../controllers/attendanceController');
@@ -38,9 +40,16 @@ const {
     getFinanceDashboardStats, getFinancialReports
 } = require('../controllers/financeController');
 
-// All routes require SchoolAdmin role
+// Public auth route
+router.post('/auth/login', loginSchoolAdmin);
+
+// All other routes require SchoolAdmin role
 router.use(protect);
 router.use(authorize('SchoolAdmin'));
+
+router.get('/profile', getSchoolAdminProfile);
+router.get('/me', getSchoolAdminProfile);
+router.get('/auth/profile', getSchoolAdminProfile);
 
 router.get('/dashboard', getDashboardStats);
 

@@ -112,8 +112,8 @@ const signupUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
     try {
-        const { email, mobile, phone, password } = req.body;
-        const userPhone = mobile || phone;
+        const { email, mobile, phone, mobile_number, phone_number, email_or_phone, username, identifier, password } = req.body;
+        const contactInput = (email || mobile || phone || mobile_number || phone_number || email_or_phone || username || identifier || '').toString().trim();
 
         if (!password) {
             return res.status(400).json({
@@ -123,16 +123,23 @@ const loginUser = async (req, res) => {
             });
         }
 
-        let user;
-        if (email) {
-            user = await User.findOne({ email: email.trim().toLowerCase() });
-        } else if (userPhone) {
-            user = await User.findOne({ phone: userPhone.trim() });
-        } else {
+        if (!contactInput) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide email or mobile number',
-                errors: ['Missing email or mobile']
+                message: 'Please provide email, mobile number, or username',
+                errors: ['Missing contact credential']
+            });
+        }
+
+        let user;
+        if (contactInput.includes('@')) {
+            user = await User.findOne({ email: contactInput.toLowerCase() });
+        } else {
+            user = await User.findOne({
+                $or: [
+                    { phone: contactInput },
+                    { email: contactInput.toLowerCase() }
+                ]
             });
         }
 
@@ -167,6 +174,7 @@ const loginUser = async (req, res) => {
 
         if (!user.refresh_tokens) user.refresh_tokens = [];
         user.refresh_tokens.push(refreshToken);
+        if (user.refresh_tokens.length > 5) user.refresh_tokens.shift();
         await user.save();
 
         const userResponse = {
@@ -184,6 +192,7 @@ const loginUser = async (req, res) => {
             success: true,
             message: 'Login successful',
             token,
+            accessToken: token,
             refreshToken,
             user: userResponse
         });

@@ -52,6 +52,36 @@ Content-Type: application/json
 
 ---
 
+### 1.2 Get School Admin Profile
+- **Method**: `GET`
+- **URL**: `/api/schooladmin/profile` (or `/api/schooladmin/me`)
+- **Access**: Private (SchoolAdmin)
+- **Headers**: `Authorization: Bearer <your_jwt_token>`
+- **Success Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "School Admin profile retrieved successfully",
+  "user": {
+    "_id": "6a82b7bc84adbdc3f3c19d1f",
+    "name": "Jonson",
+    "email": "jonson@gmail.com",
+    "phone": "9876543210",
+    "role": "SchoolAdmin",
+    "status": "Active",
+    "school_id": "650000000000000000000001",
+    "last_login_at": "2026-09-28T20:30:00.000Z"
+  },
+  "school": {
+    "_id": "650000000000000000000001",
+    "name": "Green Valley High School",
+    "code": "GVHS01"
+  }
+}
+```
+
+---
+
 ## 2. Teacher Management
 
 ### 2.1 Get All Teachers

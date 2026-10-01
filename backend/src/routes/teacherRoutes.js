@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+    loginTeacher,
     getDashboardStats,
     getProfile,
     updateProfile,
@@ -37,7 +38,10 @@ const {
 } = require('../controllers/teacherController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
-// All routes require Teacher role
+// Public auth route
+router.post('/auth/login', loginTeacher);
+
+// All other routes require Teacher role
 router.use(protect);
 router.use(authorize('Teacher'));
 
