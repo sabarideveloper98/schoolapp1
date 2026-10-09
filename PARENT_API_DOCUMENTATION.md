@@ -227,24 +227,75 @@ Content-Type: application/json
 - **Success Response (200 OK)**:
 ```json
 {
-  "parentId": "6aa9f948c53afc6b23e52421",
-  "userId": "6a84052b93171b71e3158e7f",
-  "parentName": "Siva",
-  "fatherName": "Siva Kumar",
-  "motherName": "Lakshmi",
-  "mobileNumber": "67890765444",
-  "alternateMobileNumber": "9876543210",
-  "email": "siva@gmail.com",
-  "address": "123 Main Street, Chennai",
-  "occupation": "Software Engineer",
-  "linkedStudents": [
-    {
-      "_id": "6a84052b93171b71e3158e80",
-      "student_name": "arvind",
-      "roll_no": "1",
-      "admission_number": "STDCLASS1SECB158E80"
-    }
-  ]
+    "user": {
+        "reset_password_token": null,
+        "reset_password_expire": null,
+        "_id": "6a84052b93171b71e3158e7f",
+        "email": "siva@gmail.com",
+        "phone": "67890765444",
+        "role": "Parent",
+        "createdAt": "2026-08-18T07:09:31.288Z",
+        "updatedAt": "2026-10-01T15:50:50.780Z",
+        "__v": 38,
+        "refresh_tokens": [
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhODQwNTJiOTMxNzFiNzFlMzE1OGU3ZiIsInJvbGUiOiJQYXJlbnQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc5MDYxMTY1NywiZXhwIjoxNzkzMjAzNjU3fQ.dQyNi2wGyEaxx4MQlfALUZXKPkYeFko7eL6inId5D8o",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhODQwNTJiOTMxNzFiNzFlMzE1OGU3ZiIsInJvbGUiOiJQYXJlbnQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc5MDY1NzEzMywiZXhwIjoxNzkzMjQ5MTMzfQ.RWZE6uX_yHkNXTD1hJ2a7RAmJzIbO7uB1p-BGrSkVn8",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhODQwNTJiOTMxNzFiNzFlMzE1OGU3ZiIsInJvbGUiOiJQYXJlbnQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc5MDcwODc0MCwiZXhwIjoxNzkzMzAwNzQwfQ.bjVdZuX8MbV8-6r8eNe7mLv3MXwfEg5kn8P8HMWq_1c",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhODQwNTJiOTMxNzFiNzFlMzE1OGU3ZiIsInJvbGUiOiJQYXJlbnQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc5MDg2OTgwNywiZXhwIjoxNzkzNDYxODA3fQ.c_8kpkSqyU3svZJDQ1UmOMKKZES9FA1A96IuOlxL8kQ",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhODQwNTJiOTMxNzFiNzFlMzE1OGU3ZiIsInJvbGUiOiJQYXJlbnQiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc5MDg2OTg1MCwiZXhwIjoxNzkzNDYxODUwfQ.UtvMRF79JmsEqY7MtN6porTcrc85B9ksZdhr9B-XDOg"
+        ],
+        "status": "Active",
+        "last_login_at": "2026-10-01T15:50:50.780Z",
+        "name": ""
+    },
+    "profile": {
+        "_id": "6aa9f948c53afc6b23e52421",
+        "user_id": "6a84052b93171b71e3158e7f",
+        "school_id": "6a82b7bc84adbdc3f3c19d20",
+        "name": "siva",
+        "father_name": "",
+        "mother_name": "",
+        "phone": "67890765444",
+        "alternate_phone": "",
+        "email": "siva@gmail.com",
+        "address": "chennai",
+        "occupation": "",
+        "status": "Active",
+        "last_login_at": "2026-10-01T15:50:50.873Z",
+        "createdAt": "2026-09-16T02:04:56.341Z",
+        "updatedAt": "2026-10-01T15:50:50.874Z",
+        "__v": 0
+    },
+    "linkedStudents": [
+        {
+            "_id": "6a84052b93171b71e3158e80",
+            "student_name": "arvind kumar",
+            "age": 6,
+            "address": "790 Pine Ave, Boston",
+            "dob": "2020-07-18T00:00:00.000Z",
+            "blood_group": "o+",
+            "parent_name": "siva",
+            "parent_phone": "67890765444",
+            "parent_email": "siva@gmail.com",
+            "class_id": {
+                "_id": "6a840119ef78578a90316739",
+                "class": "class 1",
+                "section": "B"
+            },
+            "school_id": {
+                "_id": "6a82b7bc84adbdc3f3c19d20",
+                "name": "jonson"
+            },
+            "parent_user_id": "6a84052b93171b71e3158e7f",
+            "createdAt": "2026-08-18T07:09:31.508Z",
+            "updatedAt": "2026-09-30T18:46:01.051Z",
+            "__v": 0,
+            "admission_number": "STDCLASS1SECB158E80",
+            "roll_no": "101",
+            "first_name": "arvind",
+            "last_name": "kumar"
+        }
+    ]
 }
 ```
 
@@ -257,33 +308,64 @@ Content-Type: application/json
 - **URL**: `/api/parent/dashboard`
 - **Access**: Private (Parent)
 - **Success Response (200 OK)**:
-```json
-{
-  "totalChildrenCount": 1,
-  "todayAttendanceSummary": [
-    {
-      "studentId": "6a84052b93171b71e3158e80",
-      "studentName": "arvind",
-      "status": "Present"
-    }
-  ],
-  "pendingHomeworkCount": 2,
-  "upcomingExamsCount": 1,
-  "unreadMessagesCount": 1,
-  "latestAnnouncements": [
-    {
-      "_id": "6aa9f948c53afc6b23e52410",
-      "title": "School Sports Day Schedule",
-      "content": "Sports Day starts next Monday."
-    }
-  ],
-  "children": [
-    {
-      "_id": "6a84052b93171b71e3158e80",
-      "student_name": "arvind",
-      "class_id": { "_id": "6a840119ef78578a90316739", "class": "class 1", "section": "B" }
-    }
-  ]
+```json{
+    "totalChildrenCount": 1,
+    "todayAttendanceSummary": [
+        {
+            "studentId": "6a84052b93171b71e3158e80",
+            "studentName": "arvind kumar",
+            "status": "Not Marked Yet"
+        }
+    ],
+    "pendingHomeworkCount": 0,
+    "upcomingExamsCount": 0,
+    "unreadMessagesCount": 0,
+    "latestAnnouncements": [
+        {
+            "_id": "6abd598ba3dfbfc4d5449c20",
+            "title": "Assignment Extension",
+            "message": "Deadline extended",
+            "type": "General Notice",
+            "class_id": "6a840119ef78578a90316739",
+            "teacher_id": "6a83fed2ef78578a9031672f",
+            "school_id": "6a82b7bc84adbdc3f3c19d20",
+            "target_type": "Entire Class",
+            "student_ids": [],
+            "createdAt": "2026-09-30T18:48:43.706Z",
+            "updatedAt": "2026-09-30T18:48:43.706Z",
+            "__v": 0
+        }
+    ],
+    "children": [
+        {
+            "_id": "6a84052b93171b71e3158e80",
+            "student_name": "arvind kumar",
+            "age": 6,
+            "address": "790 Pine Ave, Boston",
+            "dob": "2020-07-18T00:00:00.000Z",
+            "blood_group": "o+",
+            "parent_name": "siva",
+            "parent_phone": "67890765444",
+            "parent_email": "siva@gmail.com",
+            "class_id": {
+                "_id": "6a840119ef78578a90316739",
+                "class": "class 1",
+                "section": "B"
+            },
+            "school_id": {
+                "_id": "6a82b7bc84adbdc3f3c19d20",
+                "name": "jonson"
+            },
+            "parent_user_id": "6a84052b93171b71e3158e7f",
+            "createdAt": "2026-08-18T07:09:31.508Z",
+            "updatedAt": "2026-09-30T18:46:01.051Z",
+            "__v": 0,
+            "admission_number": "STDCLASS1SECB158E80",
+            "roll_no": "101",
+            "first_name": "arvind",
+            "last_name": "kumar"
+        }
+    ]
 }
 ```
 
@@ -299,21 +381,33 @@ Content-Type: application/json
 ```json
 [
   {
-    "_id": "6a84052b93171b71e3158e80",
-    "student_name": "arvind",
-    "admission_number": "STDCLASS1SECB158E80",
-    "roll_no": "1",
-    "class_id": {
-      "_id": "6a840119ef78578a90316739",
-      "class": "class 1",
-      "section": "B"
-    },
-    "school_id": {
-      "_id": "6a82b7bc84adbdc3f3c19d20",
-      "name": "Global Academy",
-      "code": "GA01"
+        "_id": "6a84052b93171b71e3158e80",
+        "student_name": "arvind kumar",
+        "age": 6,
+        "address": "790 Pine Ave, Boston",
+        "dob": "2020-07-18T00:00:00.000Z",
+        "blood_group": "o+",
+        "parent_name": "siva",
+        "parent_phone": "67890765444",
+        "parent_email": "siva@gmail.com",
+        "class_id": {
+            "_id": "6a840119ef78578a90316739",
+            "class": "class 1",
+            "section": "B"
+        },
+        "school_id": {
+            "_id": "6a82b7bc84adbdc3f3c19d20",
+            "name": "jonson"
+        },
+        "parent_user_id": "6a84052b93171b71e3158e7f",
+        "createdAt": "2026-08-18T07:09:31.508Z",
+        "updatedAt": "2026-09-30T18:46:01.051Z",
+        "__v": 0,
+        "admission_number": "STDCLASS1SECB158E80",
+        "roll_no": "101",
+        "first_name": "arvind",
+        "last_name": "kumar"
     }
-  }
 ]
 ```
 
@@ -387,6 +481,7 @@ Content-Type: application/json
     }
   ]
 }
+
 ```
 
 ---
