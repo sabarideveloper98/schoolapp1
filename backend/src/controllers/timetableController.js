@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Timetable = require('../models/Timetable');
 const TimetableMaster = require('../models/TimetableMaster');
 const TimetableEntry = require('../models/TimetableEntry');
@@ -25,6 +26,12 @@ const getSchoolId = async (user) => {
         if (schoolById) return schoolById._id;
         return user.school_id;
     }
+    if (user.reference_id) {
+        const teacher = await Teacher.findById(user.reference_id);
+        if (teacher && teacher.school_id) return teacher.school_id;
+    }
+    const teacherByUser = await Teacher.findOne({ user_id: user._id });
+    if (teacherByUser && teacherByUser.school_id) return teacherByUser.school_id;
     return user._id;
 };
 
@@ -105,22 +112,43 @@ const getClassTimetableBySection = async (req, res) => {
     }
 };
 
-// GET /api/timetable/teacher/:teacherId
+// GET /api/timetable/teacher/:teacherId or /api/timetable/teacher
 const getTeacherTimetableByTeacherId = async (req, res) => {
     try {
-        const school_id = await getSchoolId(req.user);
         const { teacherId } = req.params;
 
-        const teacher = await Teacher.findById(teacherId);
+        let teacher = null;
+        if (!teacherId || teacherId === 'me' || teacherId === 'my') {
+            if (req.user) {
+                teacher = await Teacher.findById(req.user._id)
+                    || await Teacher.findOne({ user_id: req.user._id })
+                    || (req.user.reference_id ? await Teacher.findById(req.user.reference_id) : null);
+            }
+        } else if (mongoose.Types.ObjectId.isValid(teacherId)) {
+            teacher = await Teacher.findById(teacherId);
+            if (!teacher) {
+                teacher = await Teacher.findOne({ user_id: teacherId });
+            }
+        }
+
+        if (!teacher && req.user) {
+            teacher = await Teacher.findById(req.user._id)
+                || await Teacher.findOne({ user_id: req.user._id })
+                || (req.user.reference_id ? await Teacher.findById(req.user.reference_id) : null);
+        }
+
         if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
 
+        const school_id = teacher.school_id || (await getSchoolId(req.user));
         const settings = await TimetableSettings.findOne({ school_id }) || {};
         const periods = await PeriodConfig.find({ school_id }).sort({ order: 1 });
 
         const scheduleMap = new Map();
+        const teacherIds = [teacher._id];
+        if (teacher.user_id) teacherIds.push(teacher.user_id);
 
         // 1. Fetch from TimetableEntry collection
-        const entries = await TimetableEntry.find({ teacher_id: teacherId })
+        const entries = await TimetableEntry.find({ teacher_id: { $in: teacherIds } })
             .populate({
                 path: 'timetable_id',
                 populate: { path: 'class_id' }
@@ -129,14 +157,15 @@ const getTeacherTimetableByTeacherId = async (req, res) => {
 
         entries.forEach(e => {
             if (!e.day || !e.period_name) return;
-            const clsName = e.timetable_id?.class_id ? `${e.timetable_id.class_id.class}-${e.timetable_id.class_id.section}` : 'Class';
+            const cls = e.timetable_id?.class_id;
+            const clsName = cls ? (cls.section ? `${cls.class}-${cls.section}` : cls.class) : 'Class';
             const key = `${e.day}-${e.period_name.toUpperCase()}`;
             scheduleMap.set(key, {
                 _id: e._id,
                 day: e.day,
                 period_name: e.period_name,
-                subject_name: e.subject_id?.name || 'Subject',
-                subjectName: e.subject_id?.name || 'Subject',
+                subject_name: e.subject_id?.name || 'General',
+                subjectName: e.subject_id?.name || 'General',
                 className: clsName,
                 class_name: clsName,
                 room_no: e.room_no || ''
@@ -146,17 +175,19 @@ const getTeacherTimetableByTeacherId = async (req, res) => {
         // 2. Fetch from Timetable collection
         const timetables = await Timetable.find({ school_id }).populate('class_id schedule.subject_id');
         timetables.forEach(tt => {
-            const clsName = tt.class_id ? `${tt.class_id.class}-${tt.class_id.section}` : 'Class';
+            const cls = tt.class_id;
+            const clsName = cls ? (cls.section ? `${cls.class}-${cls.section}` : cls.class) : 'Class';
             (tt.schedule || []).forEach(slot => {
-                if (slot.teacher_id && slot.teacher_id.toString() === teacherId.toString() && slot.day && slot.period_name) {
+                const sTid = slot.teacher_id?.toString();
+                if (sTid && teacherIds.some(id => id.toString() === sTid) && slot.day && slot.period_name) {
                     const key = `${slot.day}-${slot.period_name.toUpperCase()}`;
                     if (!scheduleMap.has(key)) {
                         scheduleMap.set(key, {
                             _id: slot._id,
                             day: slot.day,
                             period_name: slot.period_name,
-                            subject_name: slot.subject_id?.name || 'Subject',
-                            subjectName: slot.subject_id?.name || 'Subject',
+                            subject_name: slot.subject_id?.name || (slot.is_lab ? 'Lab' : 'General'),
+                            subjectName: slot.subject_id?.name || (slot.is_lab ? 'Lab' : 'General'),
                             className: clsName,
                             class_name: clsName,
                             room_no: slot.room || ''

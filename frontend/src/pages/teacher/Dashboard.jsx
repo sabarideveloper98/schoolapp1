@@ -99,7 +99,7 @@ const TeacherDashboard = () => {
     <Layout menuItems={menuItems} title="Teacher Portal">
       <Routes>
         <Route path="/overview" element={<TeacherOverview />} />
-        <Route path="/timetable" element={<TeacherTimetable preselectedTeacherId={user?.teacher_id || user?._id} />} />
+        <Route path="/timetable" element={<TeacherTimetable preselectedTeacherId={user?.reference_id || user?.teacher_id || user?._id} />} />
         <Route path="/students" element={<TeacherStudents />} />
         <Route path="/classes" element={<TeacherClasses />} />
         <Route path="/attendance" element={<TeacherAttendance />} />

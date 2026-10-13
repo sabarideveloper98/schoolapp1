@@ -79,6 +79,7 @@ const getTeachers = async (req, res) => {
             return {
                 ...teacher,
                 id: teacher._id,
+                password: teacher.password || '123456',
                 photo: formatPhotoUrl(rawPhoto, req)
             };
         });
@@ -133,7 +134,8 @@ const createTeacher = async (req, res) => {
             photo: photo || '',
             school_id,
             user_id: user._id,
-            domains: parsedDomains
+            domains: parsedDomains,
+            password: rawPassword
         });
 
         // Link reference in user
@@ -201,6 +203,7 @@ const updateTeacher = async (req, res) => {
             teacher.experience = parseInt(experience, 10) || 0;
         }
         if (photo) teacher.photo = photo;
+        if (password) teacher.password = password;
         if (domains !== undefined) {
             teacher.domains = Array.isArray(domains) ? domains : domains.split(',').map(d => d.trim()).filter(d => d);
         }
@@ -840,7 +843,8 @@ const bulkImportTeachers = async (req, res) => {
                         address: item.address || 'N/A',
                         qualification: item.qualification || 'B.Ed / Degree',
                         experience: item.experience ? Number(item.experience) : 1,
-                        domains: item.subjects ? (Array.isArray(item.subjects) ? item.subjects : item.subjects.split(',')) : ['General']
+                        domains: item.subjects ? (Array.isArray(item.subjects) ? item.subjects : item.subjects.split(',')) : ['General'],
+                        password: initialPassword || '123456'
                     });
                 }
 

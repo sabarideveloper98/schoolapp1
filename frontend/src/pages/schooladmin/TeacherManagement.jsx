@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff, FileSpreadsheet, Copy, Key } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
@@ -22,6 +22,21 @@ const TeacherManagement = () => {
   // Table search & limit
   const [pageSize, setPageSize] = useState(50);
   const [globalSearch, setGlobalSearch] = useState('');
+
+  // Password visibility controls
+  const [showAllPasswords, setShowAllPasswords] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState({});
+
+  const togglePasswordVisibility = (teacherId) => {
+    setVisiblePasswords(prev => ({
+      ...prev,
+      [teacherId]: !prev[teacherId]
+    }));
+  };
+
+  const toggleShowAllPasswords = () => {
+    setShowAllPasswords(prev => !prev);
+  };
 
   // Dropdown states
   const [activeDropdownId, setActiveDropdownId] = useState(null);
@@ -81,6 +96,7 @@ const TeacherManagement = () => {
     setValue('qualification', teacher.qualification);
     setValue('experience', teacher.experience);
     setValue('domains', teacher.domains?.join(', ') || '');
+    setValue('password', teacher.password || '123456');
   };
 
   const handleDelete = async (id) => {
@@ -124,6 +140,7 @@ const TeacherManagement = () => {
         teacher.name?.toLowerCase().includes(searchLower) ||
         teacher.email?.toLowerCase().includes(searchLower) ||
         teacher.phone?.includes(searchLower) ||
+        teacher.password?.toLowerCase().includes(searchLower) ||
         teacher.qualification?.toLowerCase().includes(searchLower)
       );
     }
@@ -188,15 +205,26 @@ const TeacherManagement = () => {
             <span>Entries</span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-500 w-full sm:w-auto">
-            <span>Search</span>
-            <input
-              type="text"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              className="w-full sm:w-48 h-10 px-3 text-slate-800 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-xs font-semibold"
-              placeholder="Search teacher..."
-            />
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={toggleShowAllPasswords}
+              className="h-10 px-3.5 border border-slate-200 rounded-lg text-slate-700 bg-white hover:bg-slate-50 cursor-pointer text-xs font-bold flex items-center gap-2 transition-all shadow-2xs hover:border-slate-300"
+            >
+              {showAllPasswords ? <EyeOff className="w-4 h-4 text-slate-500" /> : <Eye className="w-4 h-4 text-blue-600" />}
+              <span>{showAllPasswords ? 'Mask Passwords' : 'Show Passwords'}</span>
+            </button>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 w-full sm:w-auto">
+              <span>Search</span>
+              <input
+                type="text"
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                className="w-full sm:w-48 h-10 px-3 text-slate-800 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-xs font-semibold"
+                placeholder="Search teacher..."
+              />
+            </div>
           </div>
         </div>
 
@@ -212,6 +240,7 @@ const TeacherManagement = () => {
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">NAME</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">PHONE NO</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">EMAIL</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">PASSWORD</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">QUALIFICATION</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">EXPERIENCE</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">STATUS</th>
@@ -254,6 +283,46 @@ const TeacherManagement = () => {
                     {/* Email */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-700">
                       {teacher.email}
+                    </td>
+
+                    {/* Password */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {(() => {
+                        const isVisible = showAllPasswords || !!visiblePasswords[teacher._id];
+                        const pwd = teacher.password || '123456';
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border transition-all ${
+                                isVisible
+                                  ? 'bg-blue-50/80 border-blue-200 text-blue-700 select-all'
+                                  : 'bg-slate-50 border-slate-200/80 text-slate-400 tracking-widest'
+                              }`}
+                            >
+                              {isVisible ? pwd : '••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility(teacher._id)}
+                              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md transition-colors cursor-pointer hover:bg-slate-100"
+                              title={isVisible ? "Hide Password" : "Show Password"}
+                            >
+                              {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(pwd);
+                                toast.success(`Copied password for ${teacher.name}`);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 rounded-md transition-colors cursor-pointer hover:bg-slate-100"
+                              title="Copy Password"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Qualification */}
@@ -380,6 +449,19 @@ const TeacherManagement = () => {
                   rows="3"
                   className="block w-full p-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Login Password</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    {...register('password')}
+                    placeholder="Enter login password"
+                    className="block w-full h-12 pl-4 pr-10 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-mono"
+                  />
+                  <Key className="w-4 h-4 text-slate-400 absolute right-3.5 top-4 pointer-events-none" />
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">

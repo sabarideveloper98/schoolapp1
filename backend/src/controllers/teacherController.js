@@ -27,10 +27,10 @@ const bcrypt = require('bcryptjs');
 
 // Helper to get teacher profile
 const getTeacherProfileHelper = async (userId) => {
-    let teacher = await Teacher.findOne({ user_id: userId });
+    if (!userId) throw new Error('User ID is required');
+    let teacher = await Teacher.findById(userId);
     if (!teacher) {
-        // Fallback: search by _id if user is directly a teacher document
-        teacher = await Teacher.findById(userId);
+        teacher = await Teacher.findOne({ user_id: userId });
     }
     if (!teacher) throw new Error('Teacher profile not found');
     return teacher;
@@ -39,13 +39,13 @@ const getTeacherProfileHelper = async (userId) => {
 // Helper to get all class IDs assigned to teacher (either incharge or subject teacher)
 const getTeacherClassIdsHelper = async (teacherId, schoolId) => {
     const inchargeClasses = await Class.find({ school_id: schoolId, class_incharge_id: teacherId });
-    const inchargeIds = inchargeClasses.map(c => c._id.toString());
+    const inchargeIds = inchargeClasses.map(c => c._id ? c._id.toString() : null).filter(Boolean);
 
     const assignments = await TeacherAssignment.find({ school_id: schoolId, teacher_id: teacherId });
-    const assignmentIds = assignments.map(a => a.class_id.toString());
+    const assignmentIds = assignments.map(a => a.class_id ? a.class_id.toString() : null).filter(Boolean);
 
     const classSubjects = await ClassSubject.find({ teacher_id: teacherId });
-    const csIds = classSubjects.map(cs => cs.class_id.toString());
+    const csIds = classSubjects.map(cs => cs.class_id ? cs.class_id.toString() : null).filter(Boolean);
 
     return [...new Set([...inchargeIds, ...assignmentIds, ...csIds])];
 };
@@ -219,8 +219,9 @@ const getStudents = async (req, res) => {
         const classIds = await getTeacherClassIdsHelper(teacher._id, teacher.school_id);
 
         let filter = { class_id: { $in: classIds } };
-        if (req.query.class_id) {
-            filter.class_id = req.query.class_id;
+        const requestedClassId = req.query.class_id || req.query.classId;
+        if (requestedClassId) {
+            filter.class_id = requestedClassId;
         }
 
         const students = await Student.find(filter)
@@ -405,6 +406,7 @@ const getClasses = async (req, res) => {
         for (const cid in classMap) {
             const count = await Student.countDocuments({ class_id: cid });
             classMap[cid].studentCount = count;
+            classMap[cid].no_student = count;
         }
 
         res.json(Object.values(classMap));
@@ -671,19 +673,39 @@ const getLeaves = async (req, res) => {
 const applyLeave = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
-        const { leave_type, start_date, end_date, reason } = req.body;
+        const { leave_type, start_date, end_date, from_date, to_date, reason } = req.body;
+
+        const resolvedStartDate = start_date || from_date;
+        const resolvedEndDate = end_date || to_date;
+
+        if (!leave_type) {
+            return res.status(400).json({ message: 'Leave type is required' });
+        }
+
+        if (!resolvedStartDate || !resolvedEndDate) {
+            return res.status(400).json({ message: 'Start date and end date are required' });
+        }
+
+        if (new Date(resolvedStartDate) > new Date(resolvedEndDate)) {
+            return res.status(400).json({ message: 'From date cannot be after To date' });
+        }
+
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({ message: 'Reason for leave is required' });
+        }
 
         const leave = await TeacherLeave.create({
             teacher_id: teacher._id,
             school_id: teacher.school_id,
             leave_type,
-            start_date,
-            end_date,
-            reason
+            start_date: resolvedStartDate,
+            end_date: resolvedEndDate,
+            reason: reason.trim()
         });
 
         res.status(201).json({ message: 'Leave application submitted successfully', leave });
     } catch (error) {
+        console.error('applyLeave error:', error);
         res.status(500).json({ message: 'Failed to apply leave', error: error.message });
     }
 };
@@ -697,8 +719,9 @@ const cancelLeave = async (req, res) => {
             return res.status(404).json({ message: 'Pending leave request not found or already processed' });
         }
 
-        await TeacherLeave.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Leave application cancelled successfully' });
+        leave.status = 'Cancelled';
+        await leave.save();
+        res.json({ message: 'Leave application cancelled successfully', leave });
     } catch (error) {
         res.status(500).json({ message: 'Failed to cancel leave', error: error.message });
     }
@@ -711,7 +734,7 @@ const getRemarks = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
         const remarks = await StudentRemark.find({ teacher_id: teacher._id })
-            .populate('student_id', 'student_name roll_no')
+            .populate('student_id', 'student_name roll_no admission_number name')
             .populate('class_id', 'class section')
             .sort({ createdAt: -1 });
 
@@ -724,20 +747,58 @@ const getRemarks = async (req, res) => {
 const addRemark = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
-        const { student_id, class_id, type, title, description } = req.body;
+        const { student_id, class_id, type, category, title, description, remark } = req.body;
 
-        const remark = await StudentRemark.create({
+        if (!student_id) {
+            return res.status(400).json({ message: 'Student is required' });
+        }
+
+        const student = await Student.findById(student_id);
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        // Auto-resolve class_id if not explicitly provided
+        const resolvedClassId = class_id || student.class_id;
+        if (!resolvedClassId) {
+            return res.status(400).json({ message: 'Class is required for remark' });
+        }
+
+        // Map category/type: 'Appreciation' | 'Behaviour' | 'Performance' | 'Discipline'
+        let resolvedType = type || category || 'Behaviour';
+        if (resolvedType === 'Academic') resolvedType = 'Performance';
+        const allowedTypes = ['Behaviour', 'Performance', 'Discipline', 'Appreciation'];
+        if (!allowedTypes.includes(resolvedType)) {
+            resolvedType = 'Behaviour';
+        }
+
+        const resolvedDescription = description || remark || '';
+        if (!resolvedDescription) {
+            return res.status(400).json({ message: 'Remark description is required' });
+        }
+
+        const resolvedTitle = title || `${resolvedType} Note`;
+
+        const newRemark = await StudentRemark.create({
             student_id,
-            class_id,
+            class_id: resolvedClassId,
             teacher_id: teacher._id,
             school_id: teacher.school_id,
-            type,
-            title,
-            description
+            type: resolvedType,
+            title: resolvedTitle,
+            description: resolvedDescription
         });
 
-        res.status(201).json({ message: 'Remark added successfully', remark });
+        const populatedRemark = await StudentRemark.findById(newRemark._id)
+            .populate('student_id', 'student_name roll_no admission_number name')
+            .populate('class_id', 'class section');
+
+        res.status(201).json({
+            message: 'Remark added successfully',
+            remark: populatedRemark
+        });
     } catch (error) {
+        console.error('addRemark error:', error);
         res.status(500).json({ message: 'Failed to add remark', error: error.message });
     }
 };

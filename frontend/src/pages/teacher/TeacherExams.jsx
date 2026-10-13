@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
+import BulkExamMarksImportModal from '../../components/BulkExamMarksImportModal';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { 
@@ -27,6 +28,9 @@ const TeacherExams = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [maxMarks, setMaxMarks] = useState(100);
+
+  // Bulk Import Modal
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
   // Active Tab: 'entry' | 'report'
   const [activeTab, setActiveTab] = useState('entry');

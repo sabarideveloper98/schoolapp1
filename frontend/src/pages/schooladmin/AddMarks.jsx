@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
+import BulkExamMarksImportModal from '../../components/BulkExamMarksImportModal';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Save, Image as ImageIcon, CheckSquare, Square } from 'lucide-react';
+import { Search, Plus, Save, Image as ImageIcon, CheckSquare, Square, FileSpreadsheet } from 'lucide-react';
 
 const AddMarks = () => {
   const navigate = useNavigate();
@@ -24,6 +25,9 @@ const AddMarks = () => {
   const [newExamName, setNewExamName] = useState('');
   const [newExamTerm, setNewExamTerm] = useState('First Term');
   const [creatingExam, setCreatingExam] = useState(false);
+
+  // Bulk Import Modal
+  const [showBulkMarksModal, setShowBulkMarksModal] = useState(false);
 
   // Subject checklist states
   const [allSubjects, setAllSubjects] = useState([]); // All subjects returned for the class

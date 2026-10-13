@@ -13,7 +13,15 @@ const teacherLeaveSchema = new mongoose.Schema({
     },
     leave_type: {
         type: String,
-        enum: ['Casual Leave', 'Sick Leave', 'Emergency Leave'],
+        enum: [
+            'Casual Leave',
+            'Sick Leave',
+            'Emergency Leave',
+            'Maternity / Paternity Leave',
+            'Medical Leave',
+            'Earned Leave',
+            'Other'
+        ],
         required: true
     },
     start_date: {
@@ -30,7 +38,7 @@ const teacherLeaveSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Approved', 'Rejected'],
+        enum: ['Pending', 'Approved', 'Rejected', 'Cancelled'],
         default: 'Pending'
     },
     admin_remarks: {

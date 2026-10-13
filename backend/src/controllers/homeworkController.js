@@ -7,14 +7,21 @@ const School = require('../models/School');
 const Student = require('../models/Student');
 const Class = require('../models/Class');
 const User = require('../models/User');
+const Teacher = require('../models/Teacher');
 
 // Helper to resolve School ID
 const getSchoolId = async (user) => {
+    if (!user) return null;
     if (user.school_id) return user.school_id;
     let school = await School.findOne({ admin_id: user._id });
-    if (!school) {
-        school = await School.findOne({});
+    if (school) return school._id;
+    if (user.reference_id) {
+        const teacher = await Teacher.findById(user.reference_id);
+        if (teacher && teacher.school_id) return teacher.school_id;
     }
+    const teacherByUser = await Teacher.findOne({ user_id: user._id });
+    if (teacherByUser && teacherByUser.school_id) return teacherByUser.school_id;
+    school = await School.findOne({});
     return school ? school._id : user._id;
 };
 

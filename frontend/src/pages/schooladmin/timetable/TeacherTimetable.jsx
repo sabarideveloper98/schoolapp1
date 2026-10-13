@@ -2,19 +2,36 @@ import { useState, useEffect } from 'react';
 import SearchableSelect from '../../../components/SearchableSelect';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { UserCheck, CheckCircle, AlertTriangle, Search } from 'lucide-react';
+import { UserCheck, CheckCircle, AlertTriangle, Calendar, Clock, MapPin, Printer, RefreshCw } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
 import { getSubjectColor } from '../../../utils/timetableColors';
 
 const TeacherTimetable = ({ preselectedTeacherId = null }) => {
     const { user } = useAuthStore();
+    const isTeacher = user?.role === 'Teacher';
+    const effectiveTeacherId = preselectedTeacherId || (isTeacher ? (user?.reference_id || user?._id) : null);
+
     const [teachers, setTeachers] = useState([]);
-    const [selectedTeacherId, setSelectedTeacherId] = useState('');
+    const [selectedTeacherId, setSelectedTeacherId] = useState(effectiveTeacherId || '');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Fetch teachers
+    // Fetch teachers list only for Admin roles
     useEffect(() => {
+        if (effectiveTeacherId) {
+            setSelectedTeacherId(effectiveTeacherId);
+            if (isTeacher) {
+                setLoading(false);
+                return;
+            }
+        }
+
+        if (isTeacher) {
+            setSelectedTeacherId('me');
+            setLoading(false);
+            return;
+        }
+
         const fetchTeachers = async () => {
             try {
                 const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -23,48 +40,64 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
                 setTeachers(list);
                 if (preselectedTeacherId) {
                     setSelectedTeacherId(preselectedTeacherId);
-                } else if (list.length > 0) {
+                } else if (list.length > 0 && !selectedTeacherId) {
                     setSelectedTeacherId(list[0]._id);
                 }
             } catch (err) {
+                console.error('Fetch teachers error:', err);
                 toast.error('Failed to fetch teachers');
             } finally {
                 setLoading(false);
             }
         };
 
-        if (user?.token) fetchTeachers();
-    }, [user, preselectedTeacherId]);
+        if (user?.token && !isTeacher) {
+            fetchTeachers();
+        }
+    }, [user, preselectedTeacherId, effectiveTeacherId, isTeacher]);
 
     // Fetch teacher timetable data
+    const fetchTeacherSchedule = async () => {
+        const idToFetch = selectedTeacherId || (isTeacher ? (user?.reference_id || user?._id || 'me') : '');
+        if (!idToFetch) return;
+
+        try {
+            setLoading(true);
+            const config = { headers: { Authorization: `Bearer ${user?.token}` } };
+            const res = await axios.get(`/api/timetable/teacher/${idToFetch}`, config);
+            setData(res.data);
+        } catch (err) {
+            console.error('Fetch teacher schedule error:', err);
+            toast.error(err.response?.data?.message || 'Failed to fetch teacher schedule');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        if (!selectedTeacherId) return;
+        if (user?.token && (selectedTeacherId || isTeacher)) {
+            fetchTeacherSchedule();
+        }
+    }, [selectedTeacherId, user, isTeacher]);
 
-        const fetchTeacherSchedule = async () => {
-            try {
-                setLoading(true);
-                const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                const res = await axios.get(`/api/timetable/teacher/${selectedTeacherId}`, config);
-                setData(res.data);
-            } catch (err) {
-                toast.error('Failed to fetch teacher schedule');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTeacherSchedule();
-    }, [selectedTeacherId, user]);
-
-    if (loading && teachers.length === 0) {
-        return <div className="flex items-center justify-center min-h-[400px] text-slate-400 font-bold">Loading Teacher Timetable...</div>;
+    if (loading && !data) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[380px] bg-white rounded-2xl border border-slate-100 p-8 shadow-xs">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <div className="text-base font-bold text-slate-700">Loading Timetable Details...</div>
+                <div className="text-xs text-slate-400 mt-1">Fetching weekly schedule and periods</div>
+            </div>
+        );
     }
 
-    const workingDays = data?.settings?.working_days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const periodsList = (data?.settings?.generated_periods && data.settings.generated_periods.length > 0)
-        ? data.settings.generated_periods
-        : (data?.periods && data.periods.length > 0)
+    const workingDays = data?.settings?.working_days && data.settings.working_days.length > 0
+        ? data.settings.working_days
+        : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+    const periodsList = (data?.periods && data.periods.length > 0)
         ? data.periods
+        : (data?.settings?.generated_periods && data.settings.generated_periods.length > 0)
+        ? data.settings.generated_periods
         : [
             { period_name: 'P1', start_time: '08:45 AM', end_time: '09:25 AM' },
             { period_name: 'P2', start_time: '09:25 AM', end_time: '10:05 AM' },
@@ -77,7 +110,7 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
             { period_name: 'P8', start_time: '01:45 PM', end_time: '02:25 PM' }
         ];
 
-    // Build lookup grid for teacher schedule slots (supports entries or schedule with case-insensitivity)
+    // Build lookup grid for teacher schedule slots (case-insensitive period matching)
     const scheduleMap = {};
     const items = data?.schedule || data?.entries || [];
     items.forEach(item => {
@@ -87,10 +120,57 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
         scheduleMap[`${item.day}-${item.period_name.toLowerCase()}`] = item;
     });
 
+    const formatClassName = (name) => {
+        if (!name) return 'Class';
+        return name.startsWith('Class') ? name : `Class ${name}`;
+    };
+
+    // Calculate daily period load
+    const dailyCounts = {};
+    workingDays.forEach(day => {
+        dailyCounts[day] = items.filter(s => s.day === day).length;
+    });
+
     return (
         <div className="space-y-6">
-            {/* Header & Teacher Dropdown */}
-            {!preselectedTeacherId && (
+            {/* Header: Personalized for Teacher or Dropdown for Admin */}
+            {isTeacher || preselectedTeacherId ? (
+                <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-700 p-6 rounded-2xl shadow-md text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-xs text-white text-xs font-bold mb-2">
+                            <Calendar className="w-3.5 h-3.5" /> Weekly Timetable
+                        </div>
+                        <h2 className="text-2xl font-black tracking-tight">
+                            {data?.teacher?.name ? `${data.teacher.name}'s Schedule` : 'My Weekly Timetable'}
+                        </h2>
+                        <p className="text-xs text-blue-100 mt-1 flex flex-wrap items-center gap-2">
+                            <span>{data?.teacher?.email || user?.email}</span>
+                            {data?.teacher?.domains && data.teacher.domains.length > 0 && (
+                                <>
+                                    <span>•</span>
+                                    <span>Domains: {data.teacher.domains.join(', ')}</span>
+                                </>
+                            )}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={fetchTeacherSchedule}
+                            title="Refresh Schedule"
+                            className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/20"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => window.print()}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-blue-700 font-bold text-xs hover:bg-blue-50 transition-colors shadow-sm"
+                        >
+                            <Printer className="w-4 h-4" /> Print Timetable
+                        </button>
+                    </div>
+                </div>
+            ) : (
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-black text-slate-800 tracking-tight">👨‍🏫 Teacher Timetable View</h2>
@@ -113,8 +193,8 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
                 </div>
             )}
 
-            {/* Stat Cards Matching Screenshot */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* 1. Periods / Week */}
                 <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center shadow-xs">
                     <div className="text-3xl font-black text-blue-600 mb-1">{data?.totalPeriods || 0}</div>
@@ -144,55 +224,106 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
                 </div>
             </div>
 
+            {/* Daily Breakdown Chips */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-bold text-slate-500">Daily Period Distribution:</span>
+                <div className="flex flex-wrap items-center gap-2">
+                    {workingDays.map(day => (
+                        <div key={day} className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold flex items-center gap-1.5 shadow-2xs">
+                            <span className="text-slate-400">{day.slice(0, 3)}:</span>
+                            <span className="font-black text-blue-600">{dailyCounts[day] || 0}</span>
+                            <span className="text-[10px] text-slate-400">periods</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* Timetable Grid View */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[800px]">
+                    <table className="w-full text-left border-collapse min-w-[850px]">
                         <thead>
                             <tr className="bg-slate-900 text-white text-xs font-bold uppercase tracking-wider">
-                                <th className="p-3.5 text-center border-r border-slate-800 w-32">Period</th>
+                                <th className="p-3.5 text-center border-r border-slate-800 w-36">Period & Time</th>
                                 {workingDays.map(day => (
                                     <th key={day} className="p-3.5 text-center border-r border-slate-800">
-                                        {day}
+                                        <div>{day}</div>
+                                        <div className="text-[10px] font-normal text-slate-400 mt-0.5">{dailyCounts[day] || 0} periods</div>
                                     </th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 text-xs">
-                            {periodsList.map((pObj) => {
-                                const isLunch = pObj.is_lunch || pObj.period_name === 'Lunch';
+                            {periodsList.map((pObj, idx) => {
+                                const pNameLower = (pObj.period_name || '').toLowerCase();
+                                const isLunch = pObj.is_lunch || pObj.type === 'Lunch' || pNameLower.includes('lunch');
+                                const isBreak = pObj.is_break || pObj.type === 'Break' || pNameLower.includes('break');
 
-                                if (isLunch) {
+                                // Check if any day actually has a scheduled period during this slot
+                                const hasAnyScheduled = workingDays.some(day => {
+                                    const key = `${day}-${pObj.period_name}`;
+                                    return !!(scheduleMap[key] || scheduleMap[`${day}-${pObj.period_name.toUpperCase()}`] || scheduleMap[`${day}-${pObj.period_name.toLowerCase()}`]);
+                                });
+
+                                // If it is Lunch and has no scheduled classes, display unified Lunch bar
+                                if (isLunch && !hasAnyScheduled) {
                                     return (
-                                        <tr key="Lunch" className="bg-amber-50/80 font-bold text-amber-800">
-                                            <td className="p-3 border-r border-slate-200 text-center text-[11px]">
-                                                🍽️ LUNCH
+                                        <tr key={`lunch-${idx}`} className="bg-amber-50/80 font-bold text-amber-800">
+                                            <td className="p-3 border-r border-slate-200 text-center text-[11px] bg-amber-100/60">
+                                                <div className="flex items-center justify-center gap-1">🍽️ LUNCH</div>
+                                                <div className="text-[10px] text-amber-700/80 font-medium mt-0.5">{pObj.start_time} - {pObj.end_time}</div>
                                             </td>
                                             <td colSpan={workingDays.length} className="p-3 text-center text-amber-700 tracking-widest font-black uppercase text-xs">
-                                                — LUNCH BREAK —
+                                                — LUNCH BREAK ({pObj.start_time} - {pObj.end_time}) —
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+
+                                // If it is Break and has no scheduled classes, display unified Break bar
+                                if (isBreak && !hasAnyScheduled) {
+                                    return (
+                                        <tr key={`break-${idx}`} className="bg-slate-100/70 font-semibold text-slate-600">
+                                            <td className="p-2.5 border-r border-slate-200 text-center text-[11px] bg-slate-200/50">
+                                                <div className="flex items-center justify-center gap-1">☕ BREAK</div>
+                                                <div className="text-[10px] text-slate-400 font-medium mt-0.5">{pObj.start_time} - {pObj.end_time}</div>
+                                            </td>
+                                            <td colSpan={workingDays.length} className="p-2.5 text-center text-slate-500 tracking-wider font-bold uppercase text-[11px]">
+                                                — SHORT BREAK ({pObj.start_time} - {pObj.end_time}) —
                                             </td>
                                         </tr>
                                     );
                                 }
 
                                 return (
-                                    <tr key={pObj.period_name} className="hover:bg-slate-50/50">
-                                        <td className="p-3 border-r border-slate-200 font-bold text-slate-600 text-center bg-slate-50/50">
-                                            <div>{pObj.period_name}</div>
-                                            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">{pObj.start_time} - {pObj.end_time}</div>
+                                    <tr key={`${pObj.period_name}-${idx}`} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="p-3 border-r border-slate-200 font-bold text-slate-700 text-center bg-slate-50/70">
+                                            <div className="text-xs uppercase">{pObj.period_name}</div>
+                                            <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                                                {pObj.start_time} - {pObj.end_time}
+                                            </div>
                                         </td>
 
                                         {workingDays.map(day => {
                                             const key = `${day}-${pObj.period_name}`;
-                                            const slot = scheduleMap[key];
+                                            const slot = scheduleMap[key] 
+                                                || scheduleMap[`${day}-${pObj.period_name.toUpperCase()}`] 
+                                                || scheduleMap[`${day}-${pObj.period_name.toLowerCase()}`];
 
                                             if (slot) {
                                                 const colorClass = getSubjectColor(slot.subject_name);
                                                 return (
                                                     <td key={day} className="p-2 border-r border-slate-200 align-middle">
-                                                        <div className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center shadow-2xs ${colorClass}`}>
+                                                        <div className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center shadow-xs transition-all hover:scale-[1.02] ${colorClass}`}>
                                                             <div className="font-black text-xs">{slot.subject_name}</div>
-                                                            <div className="text-[10px] font-bold opacity-80 mt-0.5">Class {slot.className}</div>
+                                                            <div className="text-[10px] font-bold opacity-90 mt-0.5">
+                                                                {formatClassName(slot.className)}
+                                                            </div>
+                                                            {slot.room_no && (
+                                                                <div className="text-[9px] opacity-75 mt-0.5 flex items-center gap-0.5">
+                                                                    <MapPin className="w-2.5 h-2.5 inline" /> {slot.room_no}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 );
@@ -200,8 +331,8 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
 
                                             // Free Slot
                                             return (
-                                                <td key={day} className="p-2 border-r border-slate-200 align-middle bg-slate-50/30">
-                                                    <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-100/60 text-slate-400 font-bold text-center text-[11px] uppercase tracking-wider">
+                                                <td key={day} className="p-2 border-r border-slate-200 align-middle bg-slate-50/20">
+                                                    <div className="p-2.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-slate-400 font-semibold text-center text-[11px] uppercase tracking-wider">
                                                         Free
                                                     </div>
                                                 </td>
@@ -214,6 +345,43 @@ const TeacherTimetable = ({ preselectedTeacherId = null }) => {
                     </table>
                 </div>
             </div>
+
+            {/* Timetable Details Summary Table */}
+            {items.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <h3 className="text-base font-black text-slate-800 mb-3 flex items-center gap-2">
+                        <span>📋</span> Assigned Classes & Subjects Breakdown ({items.length} periods)
+                    </h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-slate-200 text-slate-400 uppercase font-bold text-[10px]">
+                                    <th className="py-2.5 px-3">Day</th>
+                                    <th className="py-2.5 px-3">Period</th>
+                                    <th className="py-2.5 px-3">Subject</th>
+                                    <th className="py-2.5 px-3">Class</th>
+                                    <th className="py-2.5 px-3">Room</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                                {items.map((slot, i) => (
+                                    <tr key={slot._id || i} className="hover:bg-slate-50/60">
+                                        <td className="py-2.5 px-3 font-bold text-slate-800">{slot.day}</td>
+                                        <td className="py-2.5 px-3">
+                                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold text-[11px]">
+                                                {slot.period_name}
+                                            </span>
+                                        </td>
+                                        <td className="py-2.5 px-3 font-semibold">{slot.subject_name}</td>
+                                        <td className="py-2.5 px-3">{formatClassName(slot.className)}</td>
+                                        <td className="py-2.5 px-3 text-slate-500">{slot.room_no || '—'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

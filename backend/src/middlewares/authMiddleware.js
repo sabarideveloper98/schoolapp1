@@ -30,7 +30,10 @@ const protect = async (req, res, next) => {
                     req.user.role = 'Parent';
                 }
             } else if (decoded.role === 'Teacher') {
-                const teacherDoc = await Teacher.findById(decoded.id).select('-password');
+                let teacherDoc = await Teacher.findById(decoded.id).select('-password');
+                if (!teacherDoc) {
+                    teacherDoc = await Teacher.findOne({ user_id: decoded.id }).select('-password');
+                }
                 if (teacherDoc) {
                     req.user = teacherDoc.toObject();
                     req.user.role = 'Teacher';

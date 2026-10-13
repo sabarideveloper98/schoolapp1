@@ -33,6 +33,7 @@ router.use(protect);
 // Standard API endpoints requested by specification
 router.get('/', authorize('SchoolAdmin', 'SuperAdmin'), getAllTimetables);
 router.get('/class/:classId/:sectionId', getClassTimetableBySection);
+router.get('/teacher', getTeacherTimetableByTeacherId);
 router.get('/teacher/:teacherId', getTeacherTimetableByTeacherId);
 router.post('/create', authorize('SchoolAdmin', 'SuperAdmin'), createTimetable);
 router.put('/update/:id', authorize('SchoolAdmin', 'SuperAdmin'), updateTimetable);
