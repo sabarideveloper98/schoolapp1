@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
-import { 
-  CheckSquare, 
-  Calendar, 
-  Users, 
-  Save, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+import {
+  CheckSquare,
+  Calendar,
+  Users,
+  Save,
+  CheckCircle2,
+  XCircle,
+  Clock,
   AlertCircle,
   FileText,
   Search,
@@ -129,7 +129,7 @@ const TeacherAttendance = () => {
       await axios.post('/api/teacher/attendance', {
         class_id: selectedClass,
         date: attendanceDate,
-        attendanceList
+        records: attendanceList
       }, config);
 
       toast.success('Attendance saved successfully');
@@ -301,9 +301,8 @@ const TeacherAttendance = () => {
                               <button
                                 key={st.value}
                                 onClick={() => handleStatusChange(s._id, st.value)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                                  status === st.value ? `${st.color} shadow-xs` : 'text-slate-600 hover:text-slate-900'
-                                }`}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${status === st.value ? `${st.color} shadow-xs` : 'text-slate-600 hover:text-slate-900'
+                                  }`}
                               >
                                 {st.label}
                               </button>
@@ -376,12 +375,11 @@ const TeacherAttendance = () => {
                         {rec.student_id?.name || 'Student'}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                          rec.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                          rec.status === 'Absent' ? 'bg-rose-50 text-rose-700 border-rose-100' :
-                          rec.status === 'Leave' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                          'bg-purple-50 text-purple-700 border-purple-100'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${rec.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                            rec.status === 'Absent' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                              rec.status === 'Leave' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                'bg-purple-50 text-purple-700 border-purple-100'
+                          }`}>
                           {rec.status}
                         </span>
                       </td>

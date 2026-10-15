@@ -32,6 +32,13 @@ const getTeacherProfileHelper = async (userId) => {
     if (!teacher) {
         teacher = await Teacher.findOne({ user_id: userId });
     }
+    if (!teacher) {
+        // Try via User.reference_id
+        const userDoc = await User.findById(userId);
+        if (userDoc && userDoc.reference_id) {
+            teacher = await Teacher.findById(userDoc.reference_id);
+        }
+    }
     if (!teacher) throw new Error('Teacher profile not found');
     return teacher;
 };
@@ -131,12 +138,19 @@ const getDashboardStats = async (req, res) => {
 // @access  Private (Teacher only)
 const getProfile = async (req, res) => {
     try {
-        const teacher = await Teacher.findOne({ user_id: req.user._id })
+        let teacher = await Teacher.findOne({ user_id: req.user._id })
             .populate('school_id', 'name code email logo')
             .populate('user_id', 'email phone role');
 
+        // Fallback: some teachers may have the Teacher._id matching the req.user._id
         if (!teacher) {
-            return res.status(404).json({ message: 'Teacher profile not found' });
+            teacher = await Teacher.findById(req.user._id)
+                .populate('school_id', 'name code email logo')
+                .populate('user_id', 'email phone role');
+        }
+
+        if (!teacher) {
+            return res.status(404).json({ message: 'Teacher profile not found', id: req.user._id, role: req.user.role });
         }
 
         // Get incharge classes
@@ -147,11 +161,24 @@ const getProfile = async (req, res) => {
             .populate('class_id', 'class section')
             .populate('subject_id', 'name code');
 
+        // Build flat response matching frontend expectations
+        const classIncharge = inchargeClasses.length > 0
+            ? { class: inchargeClasses[0].class, section: inchargeClasses[0].section, _id: inchargeClasses[0]._id }
+            : null;
+
+        const assignedSubjects = assignments.map(a => ({
+            name: a.subject_id?.name || '',
+            code: a.subject_id?.code || '',
+            class: a.class_id?.class || '',
+            section: a.class_id?.section || '',
+        }));
+
+        // Return flat object — frontend does setTeacher(data) and accesses teacher.name, teacher.phone etc.
         res.json({
-            teacher,
-            inchargeClasses,
-            assignments,
-            isClassIncharge: inchargeClasses.length > 0
+            ...teacher.toObject(),
+            assignedSubjects,
+            classIncharge,
+            isClassIncharge: inchargeClasses.length > 0,
         });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch profile', error: error.message });
@@ -189,7 +216,9 @@ const updateProfile = async (req, res) => {
 // @access  Private (Teacher only)
 const changePassword = async (req, res) => {
     try {
-        const { old_password, new_password } = req.body;
+        // Accept both naming conventions from frontend (old_password/new_password OR currentPassword/newPassword)
+        const old_password = req.body.old_password || req.body.currentPassword;
+        const new_password = req.body.new_password || req.body.newPassword;
         if (!old_password || !new_password) {
             return res.status(400).json({ message: 'Old and new passwords are required' });
         }
@@ -626,7 +655,13 @@ const getStudyMaterials = async (req, res) => {
 const uploadStudyMaterial = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
-        const { title, description, file_url, file_type, class_id, subject_id, target_type, student_ids } = req.body;
+        const { title, description, file_url, class_id, subject_id, target_type, student_ids } = req.body;
+        // Accept both `file_type` (correct) and `type` (legacy alias) from frontend
+        const file_type = req.body.file_type || req.body.type;
+
+        if (!title) return res.status(400).json({ message: 'Title is required' });
+        if (!class_id) return res.status(400).json({ message: 'Class is required' });
+        if (!file_url) return res.status(400).json({ message: 'File URL is required' });
 
         const material = await StudyMaterial.create({
             title,
@@ -641,11 +676,18 @@ const uploadStudyMaterial = async (req, res) => {
             student_ids
         });
 
-        res.status(201).json({ message: 'Study material uploaded successfully', material });
+        // Populate so the frontend card renders class/subject info immediately
+        const populated = await StudyMaterial.findById(material._id)
+            .populate('class_id', 'class section')
+            .populate('subject_id', 'name code');
+
+        res.status(201).json({ message: 'Study material uploaded successfully', material: populated });
     } catch (error) {
+        console.error('uploadStudyMaterial error:', error);
         res.status(500).json({ message: 'Failed to upload study material', error: error.message });
     }
 };
+
 
 const deleteStudyMaterial = async (req, res) => {
     try {

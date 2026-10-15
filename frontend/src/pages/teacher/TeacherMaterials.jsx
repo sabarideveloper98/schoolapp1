@@ -28,7 +28,7 @@ const TeacherMaterials = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
-  const [materialType, setMaterialType] = useState('Document'); // Document | Video | Link | Image
+  const [materialType, setMaterialType] = useState('Document'); // Document | PDF | Video | Image | Link
   const [fileUrl, setFileUrl] = useState('');
 
   useEffect(() => {
@@ -55,6 +55,7 @@ const TeacherMaterials = () => {
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!title || !selectedClass) return toast.error('Please fill required fields');
+    if (!fileUrl) return toast.error('Please provide a file URL or link');
     setUploading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -62,11 +63,12 @@ const TeacherMaterials = () => {
         title,
         description,
         class_id: selectedClass,
-        type: materialType,
+        file_type: materialType,
         file_url: fileUrl
       }, config);
 
-      setMaterials([data, ...materials]);
+      // data = { message, material } — add the populated material to the list
+      setMaterials([data.material, ...materials]);
       toast.success('Study material uploaded successfully');
       setShowUploadModal(false);
       setTitle('');
@@ -94,7 +96,7 @@ const TeacherMaterials = () => {
   const getIconForType = (type) => {
     switch (type) {
       case 'Video': return <Video className="w-5 h-5 text-rose-500" />;
-      case 'Link': return <LinkIcon className="w-5 h-5 text-blue-500" />;
+      case 'PDF': return <LinkIcon className="w-5 h-5 text-blue-500" />;
       case 'Image': return <ImageIcon className="w-5 h-5 text-emerald-500" />;
       default: return <FileText className="w-5 h-5 text-indigo-500" />;
     }
@@ -114,7 +116,7 @@ const TeacherMaterials = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div>
           <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-indigo-600" /> Study Materials & Notes
+            <BookOpen className="w-6 h-6 text-indigo-600" /> Study Materials &amp; Notes
           </h1>
           <p className="text-xs font-semibold text-slate-400 mt-1">Upload and manage PDFs, slides, assignments, and video resources.</p>
         </div>
@@ -134,7 +136,7 @@ const TeacherMaterials = () => {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
-                  {getIconForType(item.type)}
+                  {getIconForType(item.file_type || item.type)}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-100">
                   Class {item.class_id?.class || 'Assigned'} - {item.class_id?.section || ''}
@@ -191,7 +193,7 @@ const TeacherMaterials = () => {
 
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Title</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Title *</label>
                 <input
                   type="text"
                   required
@@ -204,7 +206,7 @@ const TeacherMaterials = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Target Class</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Target Class *</label>
                   <SearchableSelect
                     options={classes.map(c => ({
                       value: c._id,
@@ -221,10 +223,11 @@ const TeacherMaterials = () => {
                   <label className="block text-xs font-bold text-slate-600 mb-1">Resource Type</label>
                   <SearchableSelect
                     options={[
-                      { value: 'Document', label: 'Document (PDF/Doc)' },
+                      { value: 'Document', label: 'Document (Word/PPT)' },
+                      { value: 'PDF', label: 'PDF File' },
                       { value: 'Video', label: 'Video Tutorial' },
-                      { value: 'Link', label: 'External Link' },
-                      { value: 'Image', label: 'Diagram / Image' }
+                      { value: 'Image', label: 'Diagram / Image' },
+                      { value: 'Link', label: 'External Link' }
                     ]}
                     value={materialType}
                     onChange={(val) => setMaterialType(val)}
@@ -234,9 +237,10 @@ const TeacherMaterials = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Resource File URL / Link</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Resource File URL / Link *</label>
                 <input
                   type="text"
+                  required
                   value={fileUrl}
                   onChange={(e) => setFileUrl(e.target.value)}
                   placeholder="https://drive.google.com/... or https://youtube.com/..."

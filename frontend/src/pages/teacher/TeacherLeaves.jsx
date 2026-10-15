@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
-import { 
-  Calendar, 
-  Clock, 
-  Plus, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Calendar,
+  Clock,
+  Plus,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   FileText,
   Ban,
@@ -194,11 +194,10 @@ const TeacherLeaves = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div
           onClick={() => setStatusFilter('All')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'All'
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'All'
               ? 'bg-slate-900 text-white border-slate-900 shadow-md'
               : 'bg-white border-slate-100 hover:border-slate-200'
-          }`}
+            }`}
         >
           <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">Total Applied</div>
           <div className="text-2xl font-black mt-1">{totalCount}</div>
@@ -206,11 +205,10 @@ const TeacherLeaves = () => {
 
         <div
           onClick={() => setStatusFilter('Pending')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Pending'
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'Pending'
               ? 'bg-amber-500 text-white border-amber-500 shadow-md'
               : 'bg-amber-50/60 border-amber-100 text-amber-900 hover:border-amber-200'
-          }`}
+            }`}
         >
           <div className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 opacity-80">
             <Clock className="w-3 h-3" /> Pending
@@ -220,11 +218,10 @@ const TeacherLeaves = () => {
 
         <div
           onClick={() => setStatusFilter('Approved')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Approved'
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'Approved'
               ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
               : 'bg-emerald-50/60 border-emerald-100 text-emerald-900 hover:border-emerald-200'
-          }`}
+            }`}
         >
           <div className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 opacity-80">
             <CheckCircle2 className="w-3 h-3" /> Approved
@@ -234,11 +231,10 @@ const TeacherLeaves = () => {
 
         <div
           onClick={() => setStatusFilter('Rejected')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Rejected'
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'Rejected'
               ? 'bg-rose-600 text-white border-rose-600 shadow-md'
               : 'bg-rose-50/60 border-rose-100 text-rose-900 hover:border-rose-200'
-          }`}
+            }`}
         >
           <div className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 opacity-80">
             <XCircle className="w-3 h-3" /> Rejected
@@ -273,11 +269,10 @@ const TeacherLeaves = () => {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                statusFilter === status
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === status
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
             >
               {status}
             </button>
@@ -329,15 +324,14 @@ const TeacherLeaves = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-black border inline-flex items-center gap-1.5 ${
-                          item.status === 'Approved'
+                        className={`px-3 py-1 rounded-full text-xs font-black border inline-flex items-center gap-1.5 ${item.status === 'Approved'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : item.status === 'Rejected'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : item.status === 'Cancelled'
-                            ? 'bg-slate-100 text-slate-600 border-slate-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : item.status === 'Cancelled'
+                                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}
                       >
                         {item.status === 'Approved' && <CheckCircle2 className="w-3.5 h-3.5" />}
                         {item.status === 'Rejected' && <XCircle className="w-3.5 h-3.5" />}

@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Award, 
-  Briefcase, 
-  BookOpen, 
-  ShieldCheck, 
-  Lock, 
-  Save, 
-  CheckCircle2, 
+import {
+  User,
+  Mail,
+  Phone,
+  Award,
+  Briefcase,
+  BookOpen,
+  ShieldCheck,
+  Lock,
+  Save,
+  CheckCircle2,
   Building2,
   Calendar,
   Camera

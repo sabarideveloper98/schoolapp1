@@ -34,6 +34,13 @@ const protect = async (req, res, next) => {
                 if (!teacherDoc) {
                     teacherDoc = await Teacher.findOne({ user_id: decoded.id }).select('-password');
                 }
+                if (!teacherDoc) {
+                    // Try via User.reference_id
+                    const userDoc = await User.findById(decoded.id).select('reference_id');
+                    if (userDoc && userDoc.reference_id) {
+                        teacherDoc = await Teacher.findById(userDoc.reference_id).select('-password');
+                    }
+                }
                 if (teacherDoc) {
                     req.user = teacherDoc.toObject();
                     req.user.role = 'Teacher';

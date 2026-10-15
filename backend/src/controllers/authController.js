@@ -146,7 +146,7 @@ const loginUser = async (req, res) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid email/mobile or password',
+                message: 'Invalid email/mobile or password..',
                 errors: ['Authentication failed']
             });
         }

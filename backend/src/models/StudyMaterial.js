@@ -15,8 +15,8 @@ const studyMaterialSchema = new mongoose.Schema({
     },
     file_type: {
         type: String,
-        enum: ['PDF', 'Image', 'Video', 'Document'],
-        default: 'PDF'
+        enum: ['PDF', 'Image', 'Video', 'Document', 'Link'],
+        default: 'Document'
     },
     class_id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -25,8 +25,8 @@ const studyMaterialSchema = new mongoose.Schema({
     },
     subject_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Subject',
-        required: true
+        ref: 'Subject'
+        // Not required — teacher upload form doesn't always provide a subject
     },
     teacher_id: {
         type: mongoose.Schema.Types.ObjectId,
