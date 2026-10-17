@@ -24,9 +24,9 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
 
   // Download Sample CSV template
   const handleDownloadSample = () => {
-    const csvHeader = 'student_name,class,section,roll_no,gender,group,blood_group,religion,admission_number,registration_no,address,guardian_name,guardian_phone,guardian_email,guardian_relation\n';
-    const sampleRow1 = 'Alex Smith,10,A,101,Male,Science,O+,Islam,ADM101,REG101,123 Main St,Robert Smith,9876543210,robert@gmail.com,Father\n';
-    const sampleRow2 = 'Emma Johnson,10,B,102,Female,Commerce,A+,Christianity,ADM102,REG102,456 Park Ave,Sarah Johnson,9876543211,sarah@gmail.com,Mother\n';
+    const csvHeader = 'student_name,class,section,roll_no,gender,date_of_birth,admission_date,academic_year,admission_number,student_status,guardian_name,guardian_relation,guardian_phone,guardian_email,address_line,city,state,pincode,blood_group,religion\n';
+    const sampleRow1 = 'Alex Smith,10,A,101,Male,2010-05-15,2025-06-01,2025-2026,ADM101,Active,Robert Smith,Father,9876543210,robert@gmail.com,123 Main St,Chennai,Tamil Nadu,600001,O+,General\n';
+    const sampleRow2 = 'Emma Johnson,10,B,102,Female,2010-08-20,2025-06-01,2025-2026,ADM102,Active,Sarah Johnson,Mother,9876543211,sarah@gmail.com,456 Park Ave,Coimbatore,Tamil Nadu,641001,A+,General\n';
     
     const blob = new Blob([csvHeader + sampleRow1 + sampleRow2], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -59,17 +59,32 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
         else if (h.includes('class') || h === 'std' || h === 'standard') row['class'] = val;
         else if (h.includes('sec')) row['section'] = val;
         else if (h.includes('roll')) row['roll_no'] = val;
-        else if (h.includes('gender')) row['gender'] = val;
-        else if (h.includes('group')) row['group'] = val;
+        else if (h.includes('gender') || h === 'sex') row['gender'] = val;
+        else if (h.includes('birth') || h === 'dob') { row['date_of_birth'] = val; row['dob'] = val; }
+        else if (h.includes('adm_date') || h.includes('admission_date')) row['admission_date'] = val;
+        else if (h.includes('academic') || h.includes('year')) row['academic_year'] = val;
+        else if (h.includes('status')) row['student_status'] = val;
+        else if (h.includes('group') || h.includes('stream')) { row['group'] = val; row['stream_group'] = val; }
         else if (h.includes('blood')) row['blood_group'] = val;
         else if (h.includes('relig')) row['religion'] = val;
         else if (h.includes('adm')) row['admission_number'] = val;
         else if (h.includes('reg')) row['registration_no'] = val;
-        else if (h.includes('address')) row['address'] = val;
-        else if (h.includes('parent_name') || h.includes('guardian_name')) row['guardian_name'] = val;
-        else if (h.includes('parent_phone') || h.includes('guardian_phone') || h === 'phone' || h === 'mobile') row['guardian_phone'] = val;
-        else if (h.includes('parent_email') || h.includes('guardian_email') || h === 'email') row['guardian_email'] = val;
+        else if (h.includes('address_line') || h === 'street') row['address_line'] = val;
+        else if (h.includes('address')) { row['address'] = val; if (!row['address_line']) row['address_line'] = val; }
+        else if (h === 'city') row['city'] = val;
+        else if (h === 'state') row['state'] = val;
+        else if (h.includes('pin') || h.includes('zip')) row['pincode'] = val;
+        else if (h.includes('dist')) row['district'] = val;
+        else if (h.includes('parent_name') || h.includes('guardian_name')) { row['guardian_name'] = val; row['parent_name'] = val; }
+        else if (h.includes('parent_phone') || h.includes('guardian_phone') || h === 'phone' || h === 'mobile') { row['guardian_phone'] = val; row['parent_phone'] = val; }
+        else if (h.includes('parent_email') || h.includes('guardian_email') || h === 'email') { row['guardian_email'] = val; row['parent_email'] = val; }
         else if (h.includes('relation')) row['guardian_relation'] = val;
+        else if (h.includes('father')) row['father_name'] = val;
+        else if (h.includes('mother')) row['mother_name'] = val;
+        else if (h.includes('apaar')) row['apaar_id'] = val;
+        else if (h.includes('pen')) row['pen_number'] = val;
+        else if (h.includes('emis')) row['emis_id'] = val;
+        else if (h.includes('aadhaar')) row['aadhaar_last4'] = val;
         else row[h] = val;
       });
 

@@ -18,21 +18,32 @@ const SearchableSelect = ({
   // Normalize options to array of { value, label }
   const normalizedOptions = options.map(opt => {
     if (typeof opt === 'object' && opt !== null) {
+      const rawLabel = opt.label ?? opt.name ?? opt.title ?? (opt.class ? `Class ${opt.class}${opt.section ? ` - ${opt.section}` : ''}` : opt);
+      const rawSublabel = opt.sublabel !== undefined && opt.sublabel !== null
+        ? opt.sublabel
+        : (opt.code !== undefined && opt.code !== null
+            ? opt.code
+            : (opt.roll_no ? `Roll: ${opt.roll_no}` : undefined));
+
       return {
         value: opt.value ?? opt._id ?? opt.id ?? opt,
-        label: opt.label ?? opt.name ?? opt.title ?? `${opt.class ? `Class ${opt.class} - ${opt.section}` : opt}`,
-        sublabel: opt.sublabel ?? opt.code ?? opt.roll_no ? `Roll: ${opt.roll_no}` : undefined
+        label: typeof rawLabel === 'object' ? JSON.stringify(rawLabel) : String(rawLabel ?? ''),
+        sublabel: rawSublabel !== undefined && rawSublabel !== null ? String(rawSublabel) : undefined
       };
     }
-    return { value: opt, label: String(opt) };
+    return { value: opt, label: String(opt ?? '') };
   });
 
-  const selectedOption = normalizedOptions.find(opt => String(opt.value) === String(value));
+  const selectedOption = (value !== undefined && value !== null && value !== '')
+    ? normalizedOptions.find(opt => String(opt.value) === String(value))
+    : null;
 
-  const filteredOptions = normalizedOptions.filter(opt =>
-    opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (opt.sublabel && opt.sublabel.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredOptions = normalizedOptions.filter(opt => {
+    const labelStr = String(opt.label || '').toLowerCase();
+    const sublabelStr = opt.sublabel ? String(opt.sublabel).toLowerCase() : '';
+    const query = (searchTerm || '').toLowerCase();
+    return labelStr.includes(query) || sublabelStr.includes(query);
+  });
 
   // Close when clicking outside
   useEffect(() => {

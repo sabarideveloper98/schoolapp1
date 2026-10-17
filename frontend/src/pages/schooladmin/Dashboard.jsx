@@ -1046,6 +1046,7 @@ const SchoolAdminDashboard = () => {
         <Route path="/classes" element={<ClassManagement />} />
         <Route path="/students" element={<StudentManagement />} />
         <Route path="/students/create" element={<StudentCreate />} />
+        <Route path="/students/edit/:id" element={<StudentCreate />} />
         
         {/* Payroll routes */}
         <Route path="/salary/setup" element={hasActiveSubscription ? <SalarySetup /> : <Navigate to="/school-admin/subscription" replace />} />
