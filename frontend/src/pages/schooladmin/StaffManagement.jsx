@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, Eye, EyeOff, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, FileText, Upload, CheckCircle2, X, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
@@ -13,6 +13,10 @@ const StaffManagement = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [aadhaarBase64, setAadhaarBase64] = useState('');
+  const [aadhaarFileName, setAadhaarFileName] = useState('');
+  const [aadhaarFileType, setAadhaarFileType] = useState('');
+  const [viewingDoc, setViewingDoc] = useState(null);
   const { user } = useAuthStore();
   const { register, handleSubmit, reset, watch, formState: { errors }, setValue } = useForm();
 
@@ -34,6 +38,43 @@ const StaffManagement = () => {
     if (user?.token) fetchStaff();
   }, [user]);
 
+  const handleAadhaarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      toast.error('Unsupported file format. Please upload PDF, JPG, JPEG, or PNG.');
+      e.target.value = '';
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB limit
+    if (file.size > maxSize) {
+      toast.error('File size exceeds 5MB limit. Please select a smaller file.');
+      e.target.value = '';
+      return;
+    }
+
+    setAadhaarFileName(file.name);
+    setAadhaarFileType(file.type.toLowerCase());
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAadhaarBase64(reader.result);
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeAadhaar = () => {
+    setAadhaarBase64('');
+    setAadhaarFileName('');
+    setAadhaarFileType('');
+  };
+
   const onSubmit = async (data) => {
     if (data.password || data.confirmPassword) {
       if (data.password !== data.confirmPassword) {
@@ -42,13 +83,18 @@ const StaffManagement = () => {
       }
     }
 
+    const payload = {
+      ...data,
+      aadhaar_copy: aadhaarBase64
+    };
+
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (editMode) {
-        await axios.put(`/api/schooladmin/staff/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/staff/${editingId}`, payload, config);
         toast.success(`Staff updated successfully!`, { autoClose: 3000 });
       } else {
-        await axios.post('/api/schooladmin/staff', data, config);
+        await axios.post('/api/schooladmin/staff', payload, config);
         toast.success(`Staff created successfully!`, { autoClose: 3000 });
       }
       closeForm();
@@ -71,12 +117,25 @@ const StaffManagement = () => {
     setValue('experience', staffMember.experience);
     setValue('password', '');
     setValue('confirmPassword', '');
+
+    if (staffMember.aadhaar_copy) {
+      setAadhaarBase64(staffMember.aadhaar_copy);
+      setAadhaarFileName('Existing Aadhaar Document (KYC)');
+      setAadhaarFileType(staffMember.aadhaar_copy.startsWith('data:application/pdf') ? 'application/pdf' : 'image');
+    } else {
+      setAadhaarBase64('');
+      setAadhaarFileName('');
+      setAadhaarFileType('');
+    }
   };
 
   const closeForm = () => {
     setIsFormOpen(false);
     setEditMode(false);
     setEditingId(null);
+    setAadhaarBase64('');
+    setAadhaarFileName('');
+    setAadhaarFileType('');
     reset();
   };
 
@@ -100,7 +159,7 @@ const StaffManagement = () => {
       <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/40">
         <h2 className="text-lg font-bold text-slate-800">Staff Management</h2>
         <button
-          onClick={() => { reset(); setEditMode(false); setEditingId(null); setIsFormOpen(true); }}
+          onClick={() => { reset(); setEditMode(false); setEditingId(null); setAadhaarBase64(''); setAadhaarFileName(''); setAadhaarFileType(''); setIsFormOpen(true); }}
           className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_4px_12px_rgba(37,99,235,0.1)] cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-2" /> Add Staff
@@ -177,6 +236,51 @@ const StaffManagement = () => {
                   placeholder="e.g. 3"
                 />
               </div>
+
+              {/* Aadhaar Copy (KYC) Field */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Aadhaar Copy (KYC) <span className="text-xs text-slate-400 font-normal">(PDF, JPG, JPEG, PNG - Max 5MB)</span>
+                </label>
+                <div className="mt-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-600 transition-colors shadow-xs">
+                    <Upload className="w-4 h-4 text-blue-600" />
+                    <span>{aadhaarFileName ? 'Change Aadhaar Copy' : 'Upload Aadhaar Copy'}</span>
+                    <input 
+                      type="file" 
+                      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" 
+                      onChange={handleAadhaarChange} 
+                      className="hidden" 
+                    />
+                  </label>
+
+                  {aadhaarFileName && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-xs font-semibold text-blue-700">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span className="truncate max-w-[200px]">{aadhaarFileName}</span>
+                      {aadhaarBase64 && (
+                        <button
+                          type="button"
+                          onClick={() => setViewingDoc({ name: aadhaarFileName, url: aadhaarBase64, isPdf: aadhaarFileType === 'application/pdf' || aadhaarBase64.startsWith('data:application/pdf') })}
+                          className="text-blue-600 hover:text-blue-800 ml-1 p-0.5"
+                          title="Preview document"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button 
+                        type="button" 
+                        onClick={removeAadhaar} 
+                        className="text-slate-400 hover:text-rose-500 p-0.5 transition-colors cursor-pointer"
+                        title="Remove document"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   Password {editMode && <span className="text-xs text-slate-400 font-normal">(Leave blank to keep current)</span>}
@@ -248,6 +352,7 @@ const StaffManagement = () => {
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Aadhaar (KYC)</th>
                 <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -259,6 +364,21 @@ const StaffManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     <div className="font-semibold text-slate-700">{s.phone}</div>
                     <div className="text-xs text-slate-400 mt-0.5">{s.email || ''}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    {s.aadhaar_copy ? (
+                      <button
+                        type="button"
+                        onClick={() => setViewingDoc({ name: `${s.name} - Aadhaar Document`, url: s.aadhaar_copy, isPdf: s.aadhaar_copy.startsWith('data:application/pdf') })}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
+                        title="View Aadhaar KYC document"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Verified (KYC)</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-medium italic">Pending KYC</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
                     <button 
@@ -279,12 +399,55 @@ const StaffManagement = () => {
                 </tr>
               ))}
               {staff.length === 0 && (
-                <tr><td colSpan="4" className="px-6 py-8 text-center text-slate-400 font-semibold">No staff found.</td></tr>
+                <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-400 font-semibold">No staff found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* KYC Document Secure Viewer Modal */}
+      {viewingDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-slate-800 text-sm">{viewingDoc.name}</h3>
+              </div>
+              <button 
+                onClick={() => setViewingDoc(null)} 
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="py-4 flex-1 overflow-auto flex items-center justify-center min-h-[300px]">
+              {viewingDoc.isPdf ? (
+                <iframe 
+                  src={viewingDoc.url} 
+                  title="Aadhaar Document PDF Preview" 
+                  className="w-full h-[500px] rounded-xl border border-slate-200"
+                />
+              ) : (
+                <img 
+                  src={viewingDoc.url} 
+                  alt="Aadhaar Document Preview" 
+                  className="max-h-[500px] max-w-full rounded-xl object-contain border border-slate-100 shadow-sm"
+                />
+              )}
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setViewingDoc(null)} 
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

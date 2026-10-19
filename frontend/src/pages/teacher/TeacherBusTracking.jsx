@@ -56,7 +56,7 @@ const TeacherBusTracking = () => {
         </div>
 
         <BusTrackingMap
-          center={activeTrips[0]?.current_latitude ? { lat: activeTrips[0].current_latitude, lng: activeTrips[0].current_longitude } : { lat: 12.9716, lng: 77.5946 }}
+          center={Number.isFinite(Number(activeTrips[0]?.current_latitude)) && Number.isFinite(Number(activeTrips[0]?.current_longitude)) ? { lat: Number(activeTrips[0].current_latitude), lng: Number(activeTrips[0].current_longitude) } : { lat: 12.9716, lng: 77.5946 }}
           activeBusLocation={activeTrips[0]}
           routeStops={activeTrips[0]?.routeStops || []}
           height="450px"

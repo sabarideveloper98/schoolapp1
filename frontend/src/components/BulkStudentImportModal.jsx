@@ -39,22 +39,45 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
     toast.success('Sample CSV template downloaded');
   };
 
+  // Helper to parse individual CSV line handling quotes, commas, and escaped quotes
+  const parseCSVLine = (line) => {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
   // Helper to parse CSV text into objects
   const parseCSV = (csvText) => {
     const lines = csvText.split(/\r\n|\n/).filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[\s"']/g, '_'));
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[\s"'.]/g, '_'));
     const results = [];
 
     for (let i = 1; i < lines.length; i++) {
-      // Regex to handle comma separated values with optional quotes
-      const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-      const cleanValues = values.map(v => v.replace(/^"|"$/g, '').trim());
+      const cleanValues = parseCSVLine(lines[i]);
 
       const row = {};
       headers.forEach((h, index) => {
-        let val = cleanValues[index] || '';
+        let val = cleanValues[index] !== undefined ? cleanValues[index] : '';
         if (h.includes('name') && (h.includes('student') || h === 'name' || h === 'full_name')) row['student_name'] = val;
         else if (h.includes('class') || h === 'std' || h === 'standard') row['class'] = val;
         else if (h.includes('sec')) row['section'] = val;

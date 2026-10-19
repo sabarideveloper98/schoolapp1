@@ -227,7 +227,8 @@ const getStaff = async (req, res) => {
             return {
                 ...member,
                 id: member._id,
-                photo: formatPhotoUrl(rawPhoto, req)
+                photo: formatPhotoUrl(rawPhoto, req),
+                aadhaar_copy: member.aadhaar_copy || null
             };
         });
         res.json(formattedStaff);
@@ -239,7 +240,7 @@ const getStaff = async (req, res) => {
 const createStaff = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const { name, email, phone, role, role_title, address, qualification, experience, photo, password } = req.body;
+        const { name, email, phone, role, role_title, address, qualification, experience, photo, aadhaar_copy, password } = req.body;
 
         if (email) {
             const userExists = await User.findOne({ email: email.trim().toLowerCase() });
@@ -249,6 +250,27 @@ const createStaff = async (req, res) => {
         const rawPassword = password || `${name ? name.replace(/\s+/g, '') : 'Staff'}@123`;
         if (!email) {
             return res.status(400).json({ message: 'Email is required to create a login account' });
+        }
+
+        // Validate Aadhaar Copy document if provided (PDF, JPG, JPEG, PNG, max 5MB)
+        if (aadhaar_copy && typeof aadhaar_copy === 'string') {
+            const isDataUrl = aadhaar_copy.startsWith('data:');
+            if (isDataUrl) {
+                const mimeMatch = aadhaar_copy.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/);
+                if (mimeMatch) {
+                    const mime = mimeMatch[1].toLowerCase();
+                    const allowedMimes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                    if (!allowedMimes.includes(mime)) {
+                        return res.status(400).json({ message: 'Aadhaar document must be a PDF, JPG, JPEG, or PNG file' });
+                    }
+                    // Check size (~5MB limit)
+                    const base64Data = aadhaar_copy.replace(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/, '');
+                    const sizeInBytes = (base64Data.length * 3) / 4;
+                    if (sizeInBytes > 5 * 1024 * 1024) {
+                        return res.status(400).json({ message: 'Aadhaar document exceeds maximum allowed size of 5MB' });
+                    }
+                }
+            }
         }
 
         const user = await User.create({
@@ -270,6 +292,7 @@ const createStaff = async (req, res) => {
             qualification: qualification || 'N/A',
             experience: parsedExperience,
             photo: photo || '',
+            aadhaar_copy: aadhaar_copy || '',
             school_id,
             user_id: user._id
         });
@@ -321,7 +344,7 @@ const deleteStaff = async (req, res) => {
 const updateStaff = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const { name, email, phone, role, address, qualification, experience, photo, password } = req.body;
+        const { name, email, phone, role, address, qualification, experience, photo, aadhaar_copy, password } = req.body;
 
         const staff = await Staff.findOne({ _id: req.params.id, school_id });
         if (!staff) return res.status(404).json({ message: 'Staff not found' });
@@ -329,6 +352,23 @@ const updateStaff = async (req, res) => {
         if (email && email !== staff.email) {
             const userExists = await User.findOne({ email });
             if (userExists) return res.status(400).json({ message: 'Email already in use' });
+        }
+
+        // Validate Aadhaar Copy document if being updated
+        if (aadhaar_copy && typeof aadhaar_copy === 'string' && aadhaar_copy.startsWith('data:')) {
+            const mimeMatch = aadhaar_copy.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/);
+            if (mimeMatch) {
+                const mime = mimeMatch[1].toLowerCase();
+                const allowedMimes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedMimes.includes(mime)) {
+                    return res.status(400).json({ message: 'Aadhaar document must be a PDF, JPG, JPEG, or PNG file' });
+                }
+                const base64Data = aadhaar_copy.replace(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/, '');
+                const sizeInBytes = (base64Data.length * 3) / 4;
+                if (sizeInBytes > 5 * 1024 * 1024) {
+                    return res.status(400).json({ message: 'Aadhaar document exceeds maximum allowed size of 5MB' });
+                }
+            }
         }
 
         const user = await User.findById(staff.user_id);
@@ -350,6 +390,7 @@ const updateStaff = async (req, res) => {
         staff.qualification = qualification || staff.qualification;
         staff.experience = experience || staff.experience;
         if (photo) staff.photo = photo;
+        if (aadhaar_copy !== undefined) staff.aadhaar_copy = aadhaar_copy;
 
         await staff.save();
         res.json({ staff, message: 'Staff updated successfully' });

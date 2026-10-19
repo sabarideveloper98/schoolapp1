@@ -45,6 +45,18 @@ const BusTrackingMap = ({
     document.head.appendChild(script);
   }, []);
 
+  // Helper to safely extract valid finite coordinates
+  const getValidLatLng = (lat, lng, fallback = null) => {
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+    if (Number.isFinite(numLat) && Number.isFinite(numLng)) {
+      return { lat: numLat, lng: numLng };
+    }
+    return fallback;
+  };
+
+  const safeCenter = getValidLatLng(center?.lat, center?.lng, { lat: 12.9716, lng: 77.5946 });
+
   // Initialize Map safely
   useEffect(() => {
     if (!isLoaded || !mapRef.current || !window.google || !window.google.maps) return;
@@ -52,8 +64,8 @@ const BusTrackingMap = ({
     try {
       if (!googleMapRef.current) {
         googleMapRef.current = new window.google.maps.Map(mapRef.current, {
-          center,
-          zoom,
+          center: safeCenter,
+          zoom: Number.isFinite(Number(zoom)) ? Number(zoom) : 13,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: true,
@@ -66,11 +78,11 @@ const BusTrackingMap = ({
     } catch (e) {
       console.error('Error initializing Google Map:', e);
     }
-  }, [isLoaded, center, zoom]);
+  }, [isLoaded, safeCenter.lat, safeCenter.lng, zoom]);
 
   // Update Route Polyline & Stop Markers
   useEffect(() => {
-    if (!googleMapRef.current || !window.google) return;
+    if (!googleMapRef.current || !window.google || !window.google.maps) return;
 
     // Clear existing stop markers
     stopMarkersRef.current.forEach(m => m.setMap(null));
@@ -80,11 +92,16 @@ const BusTrackingMap = ({
       polylineRef.current.setMap(null);
     }
 
-    if (routeStops && routeStops.length > 0) {
-      const pathCoordinates = routeStops.map(s => ({
-        lat: Number(s.latitude),
-        lng: Number(s.longitude)
-      }));
+    // Filter and sanitize route stops
+    const validStops = (routeStops || [])
+      .map(s => {
+        const coords = getValidLatLng(s.latitude, s.longitude);
+        return coords ? { ...s, validCoords: coords } : null;
+      })
+      .filter(Boolean);
+
+    if (validStops.length > 0) {
+      const pathCoordinates = validStops.map(s => s.validCoords);
 
       // Draw Polyline
       polylineRef.current = new window.google.maps.Polyline({
@@ -97,15 +114,15 @@ const BusTrackingMap = ({
       });
 
       // Add Stop Markers
-      routeStops.forEach((stop, index) => {
+      validStops.forEach((stop, index) => {
         const marker = new window.google.maps.Marker({
-          position: { lat: Number(stop.latitude), lng: Number(stop.longitude) },
+          position: stop.validCoords,
           map: googleMapRef.current,
           title: `Stop ${stop.stop_order}: ${stop.stop_name}`,
           icon: {
             path: window.google.maps.SymbolPath.CIRCLE,
             scale: 7,
-            fillColor: index === 0 ? '#10b981' : index === routeStops.length - 1 ? '#ef4444' : '#3b82f6',
+            fillColor: index === 0 ? '#10b981' : index === validStops.length - 1 ? '#ef4444' : '#3b82f6',
             fillOpacity: 1,
             strokeWeight: 2,
             strokeColor: '#ffffff'
@@ -129,21 +146,29 @@ const BusTrackingMap = ({
       // Fit bounds to show route
       const bounds = new window.google.maps.LatLngBounds();
       pathCoordinates.forEach(coord => bounds.extend(coord));
-      if (activeBusLocation?.latitude && activeBusLocation?.longitude) {
-        bounds.extend({ lat: Number(activeBusLocation.latitude), lng: Number(activeBusLocation.longitude) });
+
+      const busCoord = getValidLatLng(
+        activeBusLocation?.latitude || activeBusLocation?.current_latitude,
+        activeBusLocation?.longitude || activeBusLocation?.current_longitude
+      );
+      if (busCoord) {
+        bounds.extend(busCoord);
       }
+
       googleMapRef.current.fitBounds(bounds);
     }
   }, [isLoaded, routeStops, activeBusLocation]);
 
   // Update Live Bus Location Marker
   useEffect(() => {
-    if (!googleMapRef.current || !window.google || !activeBusLocation) return;
+    if (!googleMapRef.current || !window.google || !window.google.maps || !activeBusLocation) return;
 
-    const busPos = {
-      lat: Number(activeBusLocation.latitude),
-      lng: Number(activeBusLocation.longitude)
-    };
+    const busPos = getValidLatLng(
+      activeBusLocation.latitude || activeBusLocation.current_latitude,
+      activeBusLocation.longitude || activeBusLocation.current_longitude
+    );
+
+    if (!busPos) return;
 
     if (!busMarkerRef.current) {
       busMarkerRef.current = new window.google.maps.Marker({
@@ -157,7 +182,7 @@ const BusTrackingMap = ({
           fillOpacity: 1,
           strokeWeight: 2,
           strokeColor: '#ffffff',
-          rotation: activeBusLocation.heading || 0
+          rotation: Number(activeBusLocation.heading) || 0
         }
       });
     } else {

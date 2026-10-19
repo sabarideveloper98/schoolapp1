@@ -457,34 +457,67 @@ const markAttendance = async (req, res) => {
             return res.status(400).json({ message: 'class_id and records array are required' });
         }
 
+        // Verify class belongs to teacher's authorized classes or teacher's school
+        const assignedClassIds = await getTeacherClassIdsHelper(teacher._id, teacher.school_id);
+        const targetClass = await Class.findOne({ _id: class_id, school_id: teacher.school_id });
+        if (!targetClass) {
+            return res.status(403).json({ message: 'Unauthorized class or class not found in your school' });
+        }
+        if (assignedClassIds.length > 0 && !assignedClassIds.includes(class_id.toString())) {
+            return res.status(403).json({ message: 'You are not authorized to mark attendance for this class' });
+        }
+
         const attDate = date ? new Date(date) : new Date();
         attDate.setHours(0, 0, 0, 0);
 
-        const savedDocs = [];
-        for (const rec of records) {
-            const doc = await StudentAttendance.findOneAndUpdate(
-                {
-                    school_id: teacher.school_id,
-                    student_id: rec.student_id,
-                    class_id,
-                    date: attDate,
-                    ...(subject_id ? { subject_id } : {})
-                },
-                {
-                    school_id: teacher.school_id,
-                    student_id: rec.student_id,
-                    class_id,
-                    subject_id: subject_id || null,
-                    date: attDate,
-                    status: rec.status || 'Present', // Present, Absent, Leave, Half Day
-                    remarks: rec.remarks || ''
-                },
-                { upsert: true, new: true }
-            );
-            savedDocs.push(doc);
-        }
+        // Fetch students of this class to populate details (name, roll_no, admission_number)
+        const studentDocs = await Student.find({
+            _id: { $in: records.map(r => r.student_id).filter(Boolean) },
+            school_id: teacher.school_id,
+            class_id: class_id
+        });
+        const studentMap = {};
+        studentDocs.forEach(s => {
+            studentMap[s._id.toString()] = s;
+        });
 
-        res.json({ message: 'Attendance recorded successfully', count: savedDocs.length });
+        const formattedRecords = records.map(rec => {
+            const studentInfo = studentMap[rec.student_id?.toString()] || {};
+            return {
+                student_id: rec.student_id,
+                name: studentInfo.student_name || rec.name || 'Student',
+                admission_number: studentInfo.admission_number || rec.admission_number || '',
+                roll_no: studentInfo.roll_no || rec.roll_no || '',
+                status: rec.status || 'Present',
+                remarks: rec.remarks || ''
+            };
+        });
+
+        // Upsert one document per school_id, class_id, date
+        const doc = await StudentAttendance.findOneAndUpdate(
+            {
+                school_id: teacher.school_id,
+                class_id,
+                date: attDate
+            },
+            {
+                school_id: teacher.school_id,
+                class_id,
+                date: attDate,
+                records: formattedRecords
+            },
+            {
+                upsert: true,
+                new: true,
+                runValidators: true
+            }
+        );
+
+        res.status(200).json({
+            message: 'Attendance recorded successfully',
+            count: doc.records.length,
+            attendance: doc
+        });
     } catch (error) {
         res.status(500).json({ message: 'Failed to record attendance', error: error.message });
     }
@@ -496,33 +529,66 @@ const markAttendance = async (req, res) => {
 const getAttendanceReport = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
-        const { class_id, month, year, student_id } = req.query;
+        const class_id = req.query.class_id || req.query.classId;
+        const student_id = req.query.student_id || req.query.studentId;
+        const date = req.query.date;
+        const month = req.query.month;
+        const year = req.query.year;
 
         let query = { school_id: teacher.school_id };
         if (class_id) query.class_id = class_id;
-        if (student_id) query.student_id = student_id;
 
-        if (month && year) {
+        if (date) {
+            const queryDate = new Date(date);
+            queryDate.setHours(0, 0, 0, 0);
+            query.date = queryDate;
+        } else if (month && year) {
             const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
             const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
             query.date = { $gte: startDate, $lte: endDate };
         }
 
-        const records = await StudentAttendance.find(query)
-            .populate('student_id', 'student_name roll_no')
+        const attendanceDocs = await StudentAttendance.find(query)
+            .populate('records.student_id', 'student_name roll_no admission_number')
             .populate('class_id', 'class section')
             .sort({ date: -1 });
 
+        // Flatten records for single date/class query or general report
+        let allRecords = [];
+        attendanceDocs.forEach(att => {
+            (att.records || []).forEach(r => {
+                if (!student_id || r.student_id?._id?.toString() === student_id.toString() || r.student_id?.toString() === student_id.toString()) {
+                    allRecords.push({
+                        _id: r._id,
+                        attendance_id: att._id,
+                        class_id: att.class_id,
+                        date: att.date,
+                        student_id: {
+                            _id: r.student_id?._id || r.student_id,
+                            name: r.student_id?.student_name || r.name,
+                            student_name: r.student_id?.student_name || r.name,
+                            roll_no: r.student_id?.roll_no || r.roll_no || '-',
+                            admission_no: r.student_id?.admission_number || r.admission_number || '-'
+                        },
+                        status: r.status,
+                        remarks: r.remarks || ''
+                    });
+                }
+            });
+        });
+
         // Calculate summary statistics
         const stats = {
-            total: records.length,
-            present: records.filter(r => r.status === 'Present').length,
-            absent: records.filter(r => r.status === 'Absent').length,
-            leave: records.filter(r => r.status === 'Leave').length,
-            halfDay: records.filter(r => r.status === 'Half Day').length
+            total: allRecords.length,
+            present: allRecords.filter(r => r.status === 'Present').length,
+            absent: allRecords.filter(r => r.status === 'Absent').length,
+            leave: allRecords.filter(r => r.status === 'Leave').length,
+            halfDay: allRecords.filter(r => r.status === 'Half Day' || r.status === 'Late').length
         };
 
-        res.json({ records, stats });
+        // If queried for a specific date and class, frontend might accept allRecords or { records: allRecords, stats }
+        // We will make sure frontend TeacherAttendance.jsx handles both or we return an array decorated with records/stats.
+        res.json({ records: allRecords, stats, data: allRecords });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch attendance report', error: error.message });
     }

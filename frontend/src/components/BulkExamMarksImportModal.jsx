@@ -47,25 +47,49 @@ const BulkExamMarksImportModal = ({ isOpen, onClose, onSuccess, exams = [], clas
     toast.success('Sample Exam Marks CSV template downloaded');
   };
 
+  // Helper to parse individual CSV line handling quotes, commas, and escaped quotes
+  const parseCSVLine = (line) => {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
   const parseCSV = (csvText) => {
     const lines = csvText.split(/\r\n|\n/).filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[\s"']/g, '_'));
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[\s"'.]/g, '_'));
     const results = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-      const cleanValues = values.map(v => v.replace(/^"|"$/g, '').trim());
+      const cleanValues = parseCSVLine(lines[i]);
 
       const row = {};
       headers.forEach((h, index) => {
-        let val = cleanValues[index] || '';
+        let val = cleanValues[index] !== undefined ? cleanValues[index] : '';
         if (h.includes('roll')) row['roll_no'] = val;
         else if (h.includes('adm')) row['admission_number'] = val;
         else if (h.includes('name') || h.includes('student')) row['student_name'] = val;
-        else if (h.includes('mark') || h.includes('obtained') || h === 'score') row['marks_obtained'] = Number(val) || 0;
         else if (h.includes('max') || h.includes('total')) row['max_marks'] = Number(val) || 100;
+        else if (h.includes('mark') || h.includes('obtained') || h === 'score') row['marks_obtained'] = Number(val) || 0;
         else if (h.includes('remark') || h.includes('note')) row['remarks'] = val;
         else row[h] = val;
       });

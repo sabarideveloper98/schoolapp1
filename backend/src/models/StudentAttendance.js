@@ -20,9 +20,14 @@ const studentAttendanceRecordSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Present', 'Absent'],
+        enum: ['Present', 'Absent', 'Leave', 'Late', 'Half Day'],
         required: true,
         default: 'Present'
+    },
+    remarks: {
+        type: String,
+        required: false,
+        default: ''
     }
 });
 

@@ -91,7 +91,8 @@ const TeacherAttendance = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.get(`/api/teacher/attendance/report?classId=${selectedClass}&date=${attendanceDate}`, config);
-      setReportData(data);
+      const records = Array.isArray(data) ? data : (data?.records || data?.data || []);
+      setReportData(records);
       setReportLoading(false);
     } catch (error) {
       toast.error('Failed to load attendance report');

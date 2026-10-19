@@ -35,6 +35,10 @@ const staffSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
+    aadhaar_copy: {
+        type: String,
+        required: false,
+    },
     role: {
         type: String,
         required: true, // e.g., Driver, Peon, Security, Cleaner, Office Staff

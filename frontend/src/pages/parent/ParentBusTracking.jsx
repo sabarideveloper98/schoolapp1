@@ -119,7 +119,7 @@ const ParentBusTracking = () => {
         </div>
 
         <BusTrackingMap
-          center={activeTrip?.current_latitude ? { lat: activeTrip.current_latitude, lng: activeTrip.current_longitude } : { lat: 12.9716, lng: 77.5946 }}
+          center={Number.isFinite(Number(activeTrip?.current_latitude)) && Number.isFinite(Number(activeTrip?.current_longitude)) ? { lat: Number(activeTrip.current_latitude), lng: Number(activeTrip.current_longitude) } : { lat: 12.9716, lng: 77.5946 }}
           activeBusLocation={activeTrip}
           routeStops={routeStops}
           height="450px"

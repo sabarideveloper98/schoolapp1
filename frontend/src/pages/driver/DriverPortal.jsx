@@ -252,7 +252,7 @@ const DriverPortal = () => {
               )}
             </div>
             <BusTrackingMap
-              center={liveLocation ? { lat: liveLocation.latitude, lng: liveLocation.longitude } : { lat: 12.9716, lng: 77.5946 }}
+              center={Number.isFinite(Number(liveLocation?.latitude)) && Number.isFinite(Number(liveLocation?.longitude)) ? { lat: Number(liveLocation.latitude), lng: Number(liveLocation.longitude) } : { lat: 12.9716, lng: 77.5946 }}
               activeBusLocation={liveLocation}
               routeStops={routeStops}
               height="340px"

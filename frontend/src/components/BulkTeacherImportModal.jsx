@@ -24,7 +24,7 @@ const BulkTeacherImportModal = ({ isOpen, onClose, onSuccess }) => {
   // Download Sample CSV template for Teachers
   const handleDownloadSample = () => {
     const csvHeader = 'teacher_name,email,mobile,employee_id,qualification,department,designation,gender,joining_date,address,subjects\n';
-    const sampleRow1 = 'Dr. Rajesh Sharma,rajesh.teacher@school.com,9876543210,EMP101,Ph.D in Physics,Science,Senior HOD,Male,2022-06-01,123 Academy Lane,Physics,Mathematics\n';
+    const sampleRow1 = 'Dr. Rajesh Sharma,rajesh.teacher@school.com,9876543210,EMP101,Ph.D in Physics,Science,Senior HOD,Male,2022-06-01,123 Academy Lane,"Physics, Mathematics"\n';
     const sampleRow2 = 'Priya Nair,priya.teacher@school.com,9876543211,EMP102,M.A English,Languages,Senior Teacher,Female,2023-01-15,456 College Road,English Literature\n';
     
     const blob = new Blob([csvHeader + sampleRow1 + sampleRow2], { type: 'text/csv;charset=utf-8;' });
@@ -38,22 +38,46 @@ const BulkTeacherImportModal = ({ isOpen, onClose, onSuccess }) => {
     toast.success('Sample Teacher CSV template downloaded');
   };
 
+  // Helper to parse individual CSV line handling quotes, commas, and escaped quotes
+  const parseCSVLine = (line) => {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
   // Helper to parse CSV text into objects
   const parseCSV = (csvText) => {
     const lines = csvText.split(/\r\n|\n/).filter(line => line.trim() !== '');
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[\s"']/g, '_'));
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[\s"'.]/g, '_'));
     const results = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-      const cleanValues = values.map(v => v.replace(/^"|"$/g, '').trim());
+      const cleanValues = parseCSVLine(lines[i]);
 
       const row = {};
       headers.forEach((h, index) => {
-        let val = cleanValues[index] || '';
-        if (h.includes('name') && (h.includes('teacher') || h === 'name' || h === 'full_name')) row['teacher_name'] = val;
+        let val = cleanValues[index] !== undefined ? cleanValues[index] : '';
+        if (h.includes('name') && (h.includes('teacher') || h.includes('staff') || h === 'name' || h === 'full_name')) row['teacher_name'] = val;
         else if (h.includes('email')) row['email'] = val;
         else if (h.includes('mobile') || h.includes('phone') || h.includes('contact')) row['mobile'] = val;
         else if (h.includes('emp') || h.includes('employee')) row['employee_id'] = val;
