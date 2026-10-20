@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useSearchParams, Link } from 'react-router-dom';
-import { 
-    Plus, Save, Send, Sparkles, AlertCircle, Clock, Trash2, 
-    CheckCircle2, ShieldAlert, BookOpen, Layers, Check, Edit3 
+import {
+    Plus, Save, Send, Sparkles, AlertCircle, Clock, Trash2,
+    CheckCircle2, ShieldAlert, BookOpen, Layers, Check, Edit3
 } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
 import { getSubjectColor } from '../../../utils/timetableColors';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 const CreateTimetable = () => {
     const { user } = useAuthStore();
@@ -58,7 +59,7 @@ const CreateTimetable = () => {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             const { data } = await axios.get(`/api/timetable?academic_year=${academicYear}`, config);
             setMasterTimetables(data.timetables || []);
-        } catch (e) {}
+        } catch (e) { }
     };
 
     useEffect(() => {
@@ -71,7 +72,7 @@ const CreateTimetable = () => {
         const fetchInitialData = async () => {
             try {
                 const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                
+
                 let classesData = [];
                 try {
                     const cRes = await axios.get('/api/schooladmin/classes', config);
@@ -85,20 +86,25 @@ const CreateTimetable = () => {
                     try {
                         const cRes = await axios.get('/api/timetable/classes', config);
                         classesData = cRes.data || [];
-                    } catch (e) {}
+                    } catch (e) { }
                 }
 
-                const [sRes, tRes, aRes, setRes] = await Promise.all([
+                const [sRes, tRes, aRes, saAsgnRes, setRes] = await Promise.all([
                     axios.get('/api/schooladmin/subjects', config),
                     axios.get('/api/schooladmin/teachers', config),
-                    axios.get('/api/timetable/assignments', config),
+                    axios.get('/api/timetable/assignments', config).catch(() => ({ data: [] })),
+                    axios.get('/api/schooladmin/assignments', config).catch(() => ({ data: [] })),
                     axios.get('/api/timetable/settings', config).catch(() => null)
                 ]);
 
                 setClasses(classesData);
                 setSubjects(sRes.data || []);
                 setTeachers(tRes.data || []);
-                setAssignments(aRes.data || []);
+                const combinedAssignments = [
+                    ...(aRes.data || []),
+                    ...(saAsgnRes.data || [])
+                ];
+                setAssignments(combinedAssignments);
 
                 if (setRes?.data?.generated_periods && setRes.data.generated_periods.length > 0) {
                     setPeriods(setRes.data.generated_periods);
@@ -127,6 +133,9 @@ const CreateTimetable = () => {
     useEffect(() => {
         if (!selectedClassId) return;
 
+        // Close cell modal if open when class changes
+        setActiveCell(null);
+
         const fetchClassData = async () => {
             try {
                 const selectedCls = classes.find(c => c._id === selectedClassId);
@@ -149,6 +158,16 @@ const CreateTimetable = () => {
                     };
                 });
                 setGridMap(newGrid);
+
+                if (res.data.assignments && res.data.assignments.length > 0) {
+                    setAssignments(prev => {
+                        const existingOthers = prev.filter(a => {
+                            const cid = a.class_id?._id || a.class_id;
+                            return String(cid) !== String(selectedClassId);
+                        });
+                        return [...existingOthers, ...res.data.assignments];
+                    });
+                }
             } catch (err) {
                 // Empty grid if not found
             }
@@ -157,21 +176,70 @@ const CreateTimetable = () => {
         fetchClassData();
     }, [selectedClassId, user, classes]);
 
-    // Auto mapping teacher when subject is selected in modal
-    const handleSubjectChange = (subjectId) => {
-        const matchingAsgn = assignments.find(a =>
-            (a.subject_id?._id || a.subject_id) === subjectId &&
-            (a.class_id?._id || a.class_id) === selectedClassId
-        );
+    // Helper: get eligible teachers for a selected subject in the current class & section
+    const getEligibleTeachers = (subjectId, classId = selectedClassId) => {
+        if (!subjectId || !classId) return [];
 
-        const suggestedTeacherId = matchingAsgn
-            ? (matchingAsgn.teacher_id?._id || matchingAsgn.teacher_id)
-            : (teachers[0]?._id || '');
+        const currentClass = classes.find(c => String(c._id) === String(classId));
+        const matchedTeachers = [];
+        const seenIds = new Set();
+
+        assignments.forEach(asgn => {
+            const asgnClassId = asgn.class_id?._id ? String(asgn.class_id._id) : (asgn.class_id ? String(asgn.class_id) : '');
+            const matchesClass = (asgnClassId && String(asgnClassId) === String(classId)) ||
+                (currentClass && asgn.class_id && typeof asgn.class_id === 'object' &&
+                    String(asgn.class_id.class) === String(currentClass.class) &&
+                    String(asgn.class_id.section || '').toUpperCase() === String(currentClass.section || section || '').toUpperCase());
+
+            const asgnSubjId = asgn.subject_id?._id ? String(asgn.subject_id._id) : (asgn.subject_id ? String(asgn.subject_id) : '');
+            const matchesSubject = asgnSubjId && String(asgnSubjId) === String(subjectId);
+
+            if (matchesClass && matchesSubject) {
+                const tId = asgn.teacher_id?._id ? String(asgn.teacher_id._id) : (asgn.teacher_id ? String(asgn.teacher_id) : '');
+                if (tId && !seenIds.has(tId)) {
+                    seenIds.add(tId);
+                    const fullTeacher = teachers.find(t => String(t._id) === tId) ||
+                        (typeof asgn.teacher_id === 'object' && asgn.teacher_id ? asgn.teacher_id : null);
+
+                    if (fullTeacher) {
+                        const isClassIncharge = !!(
+                            asgn.is_class_teacher ||
+                            (currentClass?.class_incharge_id && (
+                                String(currentClass.class_incharge_id._id || currentClass.class_incharge_id) === tId
+                            ))
+                        );
+                        matchedTeachers.push({
+                            ...fullTeacher,
+                            isClassIncharge
+                        });
+                    }
+                }
+            }
+        });
+
+        return matchedTeachers;
+    };
+
+    // Auto mapping / refreshing teacher options when subject changes in modal
+    const handleSubjectChange = (subjectId) => {
+        const eligible = getEligibleTeachers(subjectId, selectedClassId);
+
+        // Check if currently selected teacher is still eligible
+        const isStillEligible = eligible.some(t => String(t._id) === String(cellForm.teacher_id));
+
+        let nextTeacherId = '';
+        if (isStillEligible) {
+            nextTeacherId = cellForm.teacher_id;
+        } else if (eligible.length > 0) {
+            nextTeacherId = eligible[0]._id;
+        } else {
+            nextTeacherId = ''; // Clear previously selected teacher if no longer eligible
+        }
 
         setCellForm(prev => ({
             ...prev,
             subject_id: subjectId,
-            teacher_id: suggestedTeacherId
+            teacher_id: nextTeacherId
         }));
     };
 
@@ -182,15 +250,21 @@ const CreateTimetable = () => {
         const key = `${day}-${p.period_name}`;
         const existing = gridMap[key];
 
-        const firstSubjId = subjects[0]?._id || '';
-        const matchingAsgn = assignments.find(a =>
-            (a.subject_id?._id || a.subject_id) === firstSubjId &&
-            (a.class_id?._id || a.class_id) === selectedClassId
-        );
+        const defaultSubjId = existing?.subject_id || (subjects[0]?._id || '');
+        const eligible = getEligibleTeachers(defaultSubjId, selectedClassId);
+
+        let defaultTeacherId = '';
+        if (existing?.teacher_id && eligible.some(t => String(t._id) === String(existing.teacher_id))) {
+            defaultTeacherId = existing.teacher_id;
+        } else if (eligible.length > 0) {
+            defaultTeacherId = eligible[0]._id;
+        } else {
+            defaultTeacherId = '';
+        }
 
         setCellForm({
-            subject_id: existing?.subject_id || firstSubjId,
-            teacher_id: existing?.teacher_id || (matchingAsgn ? (matchingAsgn.teacher_id?._id || matchingAsgn.teacher_id) : (teachers[0]?._id || '')),
+            subject_id: defaultSubjId,
+            teacher_id: defaultTeacherId,
             room_no: existing?.room_no || '',
             remarks: existing?.remarks || ''
         });
@@ -201,10 +275,19 @@ const CreateTimetable = () => {
     // Save cell assignment
     const handleSaveCell = () => {
         if (!activeCell) return;
-        const key = `${activeCell.day}-${activeCell.period_name}`;
+        if (!cellForm.subject_id) {
+            toast.error('Please select a subject');
+            return;
+        }
+        if (!cellForm.teacher_id) {
+            toast.error('Please select an assigned teacher for this subject');
+            return;
+        }
 
-        const subjObj = subjects.find(s => s._id === cellForm.subject_id);
-        const teacherObj = teachers.find(t => t._id === cellForm.teacher_id);
+        const key = `${activeCell.day}-${activeCell.period_name}`;
+        const subjObj = subjects.find(s => String(s._id) === String(cellForm.subject_id));
+        const teacherObj = teachers.find(t => String(t._id) === String(cellForm.teacher_id)) ||
+            getEligibleTeachers(cellForm.subject_id, selectedClassId).find(t => String(t._id) === String(cellForm.teacher_id));
 
         setGridMap(prev => ({
             ...prev,
@@ -275,12 +358,22 @@ const CreateTimetable = () => {
         return <div className="flex items-center justify-center min-h-[400px] text-slate-400 font-bold">Loading Create Timetable...</div>;
     }
 
-    const availableTeachersForSelectedSubject = teachers.filter(t => {
-        if (!cellForm.subject_id) return true;
-        return assignments.some(a =>
-            (a.subject_id?._id || a.subject_id) === cellForm.subject_id &&
-            (a.teacher_id?._id || a.teacher_id) === t._id
-        ) || true;
+    const currentEligibleTeachers = getEligibleTeachers(cellForm.subject_id, selectedClassId);
+
+    const teacherOptions = currentEligibleTeachers.map(t => {
+        const inchargeBadge = t.isClassIncharge ? ' • Class In-Charge' : '';
+        const subDetails = [
+            t.employee_id || t.employee_code || t.code,
+            t.qualification,
+            t.email,
+            t.phone ? `Ph: ${t.phone}` : ''
+        ].filter(Boolean).join(' | ');
+
+        return {
+            value: t._id,
+            label: `${t.name}${inchargeBadge}`,
+            sublabel: subDetails || `ID: ${String(t._id).slice(-6)}`
+        };
     });
 
     const scheduledMasterCount = masterTimetables.length;
@@ -393,16 +486,14 @@ const CreateTimetable = () => {
                                     setSelectedClassId(c._id);
                                     setSection(c.section || 'A');
                                 }}
-                                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                                    isSelected 
-                                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-sm' 
+                                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isSelected
+                                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
                                         : 'bg-slate-50/50 border-slate-200 hover:bg-slate-100/60 hover:border-slate-300'
-                                }`}
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs ${
-                                        isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-200 text-slate-700'
-                                    }`}>
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs ${isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-200 text-slate-700'
+                                        }`}>
                                         {c.class}
                                     </div>
                                     <div>
@@ -416,13 +507,12 @@ const CreateTimetable = () => {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                        status === 'Published' 
-                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
-                                            : status === 'Draft' 
-                                            ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                                            : 'bg-slate-200 text-slate-600'
-                                    }`}>
+                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${status === 'Published'
+                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                            : status === 'Draft'
+                                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                                : 'bg-slate-200 text-slate-600'
+                                        }`}>
                                         {status}
                                     </span>
                                     {isSelected && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
@@ -443,10 +533,9 @@ const CreateTimetable = () => {
                                 {periods.map(p => (
                                     <th
                                         key={p.period_name}
-                                        className={`p-2.5 text-center border-r border-slate-200 min-w-[110px] ${
-                                            p.type === 'Break' ? 'bg-amber-100/70 text-amber-900' :
-                                            p.type === 'Lunch' ? 'bg-amber-200/70 text-amber-950' : 'bg-slate-100'
-                                        }`}
+                                        className={`p-2.5 text-center border-r border-slate-200 min-w-[110px] ${p.type === 'Break' ? 'bg-amber-100/70 text-amber-900' :
+                                                p.type === 'Lunch' ? 'bg-amber-200/70 text-amber-950' : 'bg-slate-100'
+                                            }`}
                                     >
                                         <div className="font-extrabold text-xs">{p.period_name}</div>
                                         <div className="text-[10px] font-normal text-slate-500">{p.start_time} - {p.end_time}</div>
@@ -540,17 +629,31 @@ const CreateTimetable = () => {
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="text-xs font-bold text-slate-700 block mb-1">Teacher * (Auto-Mapped)</label>
-                                <select
+                            <div className="relative z-20">
+                                <label className="text-xs font-bold text-slate-700 block mb-1">
+                                    Teacher * {currentEligibleTeachers.length > 0 ? `(${currentEligibleTeachers.length} Assigned)` : ''}
+                                </label>
+                                <SearchableSelect
+                                    options={teacherOptions}
                                     value={cellForm.teacher_id}
-                                    onChange={(e) => setCellForm({ ...cellForm, teacher_id: e.target.value })}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
-                                >
-                                    {teachers.map(t => (
-                                        <option key={t._id} value={t._id}>{t.name} ({t.qualification || 'Teacher'})</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setCellForm(prev => ({ ...prev, teacher_id: val }))}
+                                    placeholder={teacherOptions.length === 0 ? "No teachers assigned to this subject" : "Select or search teacher..."}
+                                    searchPlaceholder="Search teacher by name, ID or qualification..."
+                                    emptyMessage="No matching teachers found"
+                                    noOptionsMessage="No teachers assigned to this subject"
+                                    disabled={teacherOptions.length === 0}
+                                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 flex items-center justify-between outline-none"
+                                />
+                                {teacherOptions.length === 0 ? (
+                                    <p className="text-[11px] font-semibold text-rose-600 mt-1 flex items-center gap-1">
+                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                        No teachers assigned to this subject for this class.
+                                    </p>
+                                ) : (
+                                    <p className="text-[10px] font-medium text-slate-400 mt-1">
+                                        Showing only teachers assigned to this subject & class.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">

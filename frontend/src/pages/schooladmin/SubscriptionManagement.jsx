@@ -16,7 +16,9 @@ import {
   ArrowRight, 
   X,
   Building2,
-  Clock
+  Clock,
+  Banknote,
+  Landmark
 } from 'lucide-react';
 
 const SubscriptionManagement = () => {
@@ -44,6 +46,20 @@ const SubscriptionManagement = () => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [activeInvoice, setActiveInvoice] = useState(null);
+
+  // Payment Method Selection: 'Razorpay' | 'Cash' | 'Cheque'
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Razorpay');
+
+  // Cheque Specific Form State
+  const [chequeForm, setChequeForm] = useState({
+    cheque_number: '',
+    cheque_date: new Date().toISOString().split('T')[0],
+    bank_name: '',
+    branch_name: ''
+  });
+
+  // Additional Payment Notes
+  const [paymentNotes, setPaymentNotes] = useState('');
 
   useEffect(() => {
     fetchCurrentSubscription();
@@ -104,6 +120,15 @@ const SubscriptionManagement = () => {
       toast.error('Please enter a valid student count greater than 0');
       return;
     }
+    // Reset payment method defaults on opening checkout
+    setSelectedPaymentMethod('Razorpay');
+    setChequeForm({
+      cheque_number: '',
+      cheque_date: new Date().toISOString().split('T')[0],
+      bank_name: '',
+      branch_name: ''
+    });
+    setPaymentNotes('');
     setIsCheckoutOpen(true);
   };
 
@@ -122,12 +147,47 @@ const SubscriptionManagement = () => {
     });
   };
 
-  const handleConfirmRazorpayPayment = async () => {
+  const handleConfirmPayment = async () => {
+    if (selectedPaymentMethod === 'Cheque') {
+      if (!chequeForm.cheque_number.trim()) {
+        toast.error('Please enter the cheque number');
+        return;
+      }
+      if (!chequeForm.bank_name.trim()) {
+        toast.error('Please enter the bank name');
+        return;
+      }
+    }
+
     setProcessingPayment(true);
+    const config = { headers: { Authorization: `Bearer ${user.token}` } };
+
     try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      
-      // Step 1: Create Razorpay Order from backend
+      if (selectedPaymentMethod === 'Cash' || selectedPaymentMethod === 'Cheque') {
+        const verifyRes = await axios.post('/api/subscription/schooladmin/verify-payment', {
+          student_count: parsedStudentCount,
+          duration: selectedDuration,
+          payment_method: selectedPaymentMethod,
+          cheque_details: selectedPaymentMethod === 'Cheque' ? chequeForm : undefined,
+          payment_notes: paymentNotes
+        }, config);
+
+        if (selectedPaymentMethod === 'Cheque') {
+          toast.success('📄 Cheque Payment Recorded! Subscription is pending cheque clearance.');
+        } else {
+          toast.success('💵 Cash Payment Recorded! Subscription Activated.');
+        }
+
+        setIsCheckoutOpen(false);
+        if (verifyRes.data?.subscription) {
+          setActiveInvoice(verifyRes.data.subscription);
+        }
+        fetchCurrentSubscription();
+        setProcessingPayment(false);
+        return;
+      }
+
+      // Razorpay Payment Workflow
       const orderRes = await axios.post('/api/subscription/schooladmin/create-order', {
         student_count: parsedStudentCount,
         duration: selectedDuration
@@ -149,6 +209,7 @@ const SubscriptionManagement = () => {
               const verifyRes = await axios.post('/api/subscription/schooladmin/verify-payment', {
                 student_count: parsedStudentCount,
                 duration: selectedDuration,
+                payment_method: 'Razorpay',
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature
@@ -191,6 +252,7 @@ const SubscriptionManagement = () => {
         const verifyRes = await axios.post('/api/subscription/schooladmin/verify-payment', {
           student_count: parsedStudentCount,
           duration: selectedDuration,
+          payment_method: 'Razorpay',
           razorpay_order_id: orderData.id,
           razorpay_payment_id: paymentId,
           razorpay_signature: 'sig_mock_verified'
@@ -206,7 +268,7 @@ const SubscriptionManagement = () => {
         setProcessingPayment(false);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Payment order creation failed');
+      toast.error(error.response?.data?.message || 'Payment processing failed');
       setProcessingPayment(false);
     }
   };
@@ -432,7 +494,7 @@ const SubscriptionManagement = () => {
               disabled={!isValidCount}
               className="w-full h-12 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              <CreditCard className="w-4 h-4" /> Subscribe Now with Razorpay
+              <CreditCard className="w-4 h-4" /> Subscribe / Renew Plan
             </button>
           </div>
         </div>
@@ -492,6 +554,7 @@ const SubscriptionManagement = () => {
                 <th className="py-3 px-4">Invoice #</th>
                 <th className="py-3 px-4">Student Capacity</th>
                 <th className="py-3 px-4">Duration</th>
+                <th className="py-3 px-4">Method</th>
                 <th className="py-3 px-4">Rate / Student</th>
                 <th className="py-3 px-4">Total Amount</th>
                 <th className="py-3 px-4">Payment ID</th>
@@ -511,6 +574,17 @@ const SubscriptionManagement = () => {
                   <td className="py-3.5 px-4 font-bold text-slate-700">
                     {sub.selected_duration}
                   </td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-700">
+                      {sub.payment_method === 'Cash' ? (
+                        <span className="text-amber-600 flex items-center gap-1 font-extrabold"><Banknote className="w-3.5 h-3.5" /> Cash</span>
+                      ) : sub.payment_method === 'Cheque' ? (
+                        <span className="text-indigo-600 flex items-center gap-1 font-extrabold"><Landmark className="w-3.5 h-3.5" /> Cheque</span>
+                      ) : (
+                        <span className="text-blue-600 flex items-center gap-1 font-extrabold"><CreditCard className="w-3.5 h-3.5" /> Online</span>
+                      )}
+                    </span>
+                  </td>
                   <td className="py-3.5 px-4 font-bold text-slate-600">
                     ₹{sub.price_per_student}
                   </td>
@@ -522,7 +596,11 @@ const SubscriptionManagement = () => {
                   </td>
                   <td className="py-3.5 px-4">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      sub.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                      sub.status === 'Active' 
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
+                        : sub.status === 'Pending'
+                        ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200'
                     }`}>
                       {sub.status}
                     </span>
@@ -540,7 +618,7 @@ const SubscriptionManagement = () => {
               ))}
               {subscriptionHistory.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-slate-400 font-bold text-xs">
+                  <td colSpan="9" className="py-8 text-center text-slate-400 font-bold text-xs">
                     No past subscription invoices found.
                   </td>
                 </tr>
@@ -550,14 +628,14 @@ const SubscriptionManagement = () => {
         </div>
       </div>
 
-      {/* Razorpay Checkout Payment Review Modal */}
+      {/* Subscription Checkout Payment Review Modal */}
       {isCheckoutOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 my-8 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 flex justify-between items-center">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-blue-200 block">Razorpay Secure Checkout</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-200 block">Subscription Checkout</span>
                 <h3 className="text-xl font-black tracking-tight">Complete Subscription</h3>
               </div>
               <button
@@ -593,12 +671,151 @@ const SubscriptionManagement = () => {
                 </div>
               </div>
 
-              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3">
-                <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0" />
-                <p className="text-[11px] font-semibold text-emerald-800">
-                  Instant activation upon successful payment verification. Invoice will be generated automatically.
-                </p>
+              {/* Payment Method Selector (Razorpay, Cash, Cheque) */}
+              <div className="space-y-3">
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                  Select Payment Method
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {/* Razorpay Option */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod('Razorpay')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === 'Razorpay'
+                        ? 'bg-blue-50/80 border-blue-500 text-blue-700 shadow-sm ring-1 ring-blue-500'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    <span className="text-xs font-black">Razorpay</span>
+                  </button>
+
+                  {/* Cash Option */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod('Cash')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === 'Cash'
+                        ? 'bg-amber-50/80 border-amber-500 text-amber-700 shadow-sm ring-1 ring-amber-500'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Banknote className="w-5 h-5" />
+                    <span className="text-xs font-black">Cash</span>
+                  </button>
+
+                  {/* Cheque Option */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod('Cheque')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === 'Cheque'
+                        ? 'bg-indigo-50/80 border-indigo-500 text-indigo-700 shadow-sm ring-1 ring-indigo-500'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Landmark className="w-5 h-5" />
+                    <span className="text-xs font-black">Cheque</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Conditional Cheque Details Form */}
+              {selectedPaymentMethod === 'Cheque' && (
+                <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2 text-indigo-900 font-black text-xs uppercase tracking-wide">
+                    <Landmark className="w-4 h-4 text-indigo-600" /> Cheque Information
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Cheque Number <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 000123"
+                        value={chequeForm.cheque_number}
+                        onChange={(e) => setChequeForm({ ...chequeForm, cheque_number: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Cheque Date <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={chequeForm.cheque_date}
+                        onChange={(e) => setChequeForm({ ...chequeForm, cheque_date: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Bank Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. State Bank of India"
+                        value={chequeForm.bank_name}
+                        onChange={(e) => setChequeForm({ ...chequeForm, bank_name: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Branch Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Main Branch"
+                        value={chequeForm.branch_name}
+                        onChange={(e) => setChequeForm({ ...chequeForm, branch_name: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] font-semibold text-indigo-700 pt-1">
+                    Note: Subscription will be recorded as <strong>Pending Verification</strong> and activated upon cheque clearance.
+                  </p>
+                </div>
+              )}
+
+              {/* Conditional Cash Details Form */}
+              {selectedPaymentMethod === 'Cash' && (
+                <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-100 space-y-2 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2 text-amber-900 font-black text-xs uppercase tracking-wide">
+                    <Banknote className="w-4 h-4 text-amber-600" /> Cash Payment Direct Entry
+                  </div>
+                  <p className="text-[11px] font-semibold text-amber-800">
+                    Payment will be recorded directly into subscription records as paid in cash. A verifiable cash payment receipt invoice will be generated automatically.
+                  </p>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">Reference Notes (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Received at Accounts Office"
+                      value={paymentNotes}
+                      onChange={(e) => setPaymentNotes(e.target.value)}
+                      className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Razorpay Info Box */}
+              {selectedPaymentMethod === 'Razorpay' && (
+                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                  <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0" />
+                  <p className="text-[11px] font-semibold text-emerald-800">
+                    Instant online activation upon successful payment verification. Invoice will be generated automatically.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button
@@ -610,12 +827,18 @@ const SubscriptionManagement = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleConfirmRazorpayPayment}
+                  onClick={handleConfirmPayment}
                   disabled={processingPayment}
                   className="w-1/2 h-11 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] active:scale-95 cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  {processingPayment ? 'Processing Payment...' : 'Pay & Activate Now'}
+                  {processingPayment 
+                    ? 'Processing...' 
+                    : selectedPaymentMethod === 'Cheque'
+                    ? 'Submit Cheque Order'
+                    : selectedPaymentMethod === 'Cash'
+                    ? 'Record Cash Payment'
+                    : 'Pay & Activate Now'}
                 </button>
               </div>
             </div>
@@ -626,7 +849,7 @@ const SubscriptionManagement = () => {
       {/* Printable Invoice Modal */}
       {activeInvoice && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-slate-100 space-y-6 relative animate-in fade-in zoom-in-95 duration-150 print-container">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-slate-100 space-y-6 relative animate-in fade-in zoom-in-95 duration-150 print-container my-8">
             {/* Header */}
             <div className="flex justify-between items-start pb-6 border-b border-slate-100">
               <div>
@@ -653,13 +876,36 @@ const SubscriptionManagement = () => {
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 block uppercase">Status</span>
-                <span className="text-emerald-600 font-black uppercase">PAID</span>
+                <span className={`font-black uppercase ${
+                  activeInvoice.status === 'Active' ? 'text-emerald-600' : 'text-amber-600'
+                }`}>
+                  {activeInvoice.status === 'Active' ? 'PAID' : activeInvoice.status}
+                </span>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Payment ID</span>
-                <span className="font-mono text-[11px]">{activeInvoice.payment_id}</span>
+                <span className="text-[10px] font-bold text-slate-400 block uppercase">Method / ID</span>
+                <span className="font-mono text-[11px] block">{activeInvoice.payment_method || 'Razorpay'}</span>
+                <span className="font-mono text-[10px] text-slate-500 block truncate">{activeInvoice.payment_id}</span>
               </div>
             </div>
+
+            {/* Cheque Info if paid via cheque */}
+            {activeInvoice.payment_method === 'Cheque' && activeInvoice.cheque_details?.cheque_number && (
+              <div className="p-3.5 bg-indigo-50/70 rounded-2xl border border-indigo-100 text-xs font-semibold text-indigo-900 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-indigo-500 block">Cheque Number</span>
+                  <strong>{activeInvoice.cheque_details.cheque_number}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-indigo-500 block">Bank</span>
+                  <strong>{activeInvoice.cheque_details.bank_name || '-'}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-indigo-500 block">Cheque Date</span>
+                  <strong>{activeInvoice.cheque_details.cheque_date ? new Date(activeInvoice.cheque_details.cheque_date).toLocaleDateString() : '-'}</strong>
+                </div>
+              </div>
+            )}
 
             {/* Line Items Table */}
             <div className="border border-slate-100 rounded-2xl overflow-hidden">

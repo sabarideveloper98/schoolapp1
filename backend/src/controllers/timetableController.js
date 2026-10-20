@@ -5,6 +5,7 @@ const TimetableEntry = require('../models/TimetableEntry');
 const PeriodConfig = require('../models/PeriodConfig');
 const TimetableSettings = require('../models/TimetableSettings');
 const TeacherAssignment = require('../models/TeacherAssignment');
+const ClassSubject = require('../models/ClassSubject');
 const TeacherAvailability = require('../models/TeacherAvailability');
 const ConflictLog = require('../models/ConflictLog');
 const TimetableHistory = require('../models/TimetableHistory');
@@ -96,9 +97,13 @@ const getClassTimetableBySection = async (req, res) => {
         }
 
         const periods = await PeriodConfig.find({ school_id }).sort({ order: 1 });
-        const assignments = await TeacherAssignment.find({ school_id, class_id: classObj._id })
+        const taAssignments = await TeacherAssignment.find({ school_id, class_id: classObj._id })
             .populate('teacher_id')
             .populate('subject_id');
+        const csAssignments = await ClassSubject.find({ school_id, class_id: classObj._id })
+            .populate('teacher_id')
+            .populate('subject_id');
+        const assignments = [...taAssignments, ...csAssignments];
 
         res.json({
             classObj,
@@ -268,6 +273,48 @@ const createTimetable = async (req, res) => {
                 return res.status(400).json({
                     message: `Subject Daily Limit Exceeded. ${subjObj?.name || 'Subject'} cannot exceed 2 periods on ${entry.day}.`
                 });
+            }
+        }
+
+        // VALIDATION 3: Teacher Eligibility Check (Teacher must be assigned to subject for this class if assignments exist)
+        for (const entry of entries) {
+            if (!entry.teacher_id || !entry.subject_id) continue;
+
+            const assignmentCount = await TeacherAssignment.countDocuments({
+                school_id,
+                class_id,
+                subject_id: entry.subject_id
+            });
+            const classSubjectCount = await ClassSubject.countDocuments({
+                school_id,
+                class_id,
+                subject_id: entry.subject_id
+            });
+
+            if (assignmentCount > 0 || classSubjectCount > 0) {
+                const isAssigned = await TeacherAssignment.exists({
+                    school_id,
+                    class_id,
+                    subject_id: entry.subject_id,
+                    teacher_id: entry.teacher_id
+                }) || await ClassSubject.exists({
+                    school_id,
+                    class_id,
+                    subject_id: entry.subject_id,
+                    teacher_id: entry.teacher_id
+                });
+
+                if (!isAssigned) {
+                    const cls = await Class.findById(class_id);
+                    const isIncharge = cls && cls.class_incharge_id && cls.class_incharge_id.toString() === entry.teacher_id.toString();
+                    if (!isIncharge) {
+                        const teacherObj = await Teacher.findById(entry.teacher_id);
+                        const subjObj = await Subject.findById(entry.subject_id);
+                        return res.status(400).json({
+                            message: `Teacher ${teacherObj?.name || 'Selected teacher'} is not assigned to teach ${subjObj?.name || 'this subject'} for this class.`
+                        });
+                    }
+                }
             }
         }
 
@@ -624,7 +671,8 @@ const getAssignments = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user);
         const assignments = await TeacherAssignment.find({ school_id }).populate('teacher_id subject_id class_id');
-        res.json(assignments);
+        const classSubjects = await ClassSubject.find({ school_id }).populate('teacher_id subject_id class_id');
+        res.json([...assignments, ...classSubjects]);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch assignments', error: error.message });
     }

@@ -33,6 +33,21 @@ const subscriptionSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    payment_method: {
+        type: String,
+        enum: ['Razorpay', 'Cash', 'Cheque'],
+        default: 'Razorpay'
+    },
+    cheque_details: {
+        cheque_number: { type: String, default: '' },
+        cheque_date: { type: Date },
+        bank_name: { type: String, default: '' },
+        branch_name: { type: String, default: '' }
+    },
+    payment_notes: {
+        type: String,
+        default: ''
+    },
     razorpay_order_id: {
         type: String
     },

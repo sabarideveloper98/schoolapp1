@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-    Calendar, Plus, Search, Filter, Edit3, Trash2, Eye, Printer, 
-    CheckCircle2, AlertCircle, RefreshCw, Layers, Users, BookOpen, Clock, FileText 
+import {
+    Calendar, Plus, Search, Filter, Edit3, Trash2, Eye, Printer,
+    CheckCircle2, AlertCircle, RefreshCw, Layers, Users, BookOpen, Clock, FileText
 } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
 
@@ -98,7 +98,7 @@ const ManageTimetable = () => {
         const className = item.class_id ? `${item.class_id.class}-${item.class_id.section}` : '';
         const incharge = item.class_id?.class_incharge_id?.name || '';
         const matchesSearch = className.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              incharge.toLowerCase().includes(searchQuery.toLowerCase());
+            incharge.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -136,33 +136,33 @@ const ManageTimetable = () => {
 
             {/* Stat Widgets */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatWidget 
-                    title="Total Timetables" 
-                    value={stats.totalTimetables} 
-                    icon={FileText} 
-                    color="bg-blue-500 text-blue-600" 
-                    subtitle={`Scheduled ${stats.classesScheduled} of ${stats.totalClasses} classes`} 
+                <StatWidget
+                    title="Total Timetables"
+                    value={stats.totalTimetables}
+                    icon={FileText}
+                    color="bg-blue-500 text-blue-600"
+                    subtitle={`Scheduled ${stats.classesScheduled} of ${stats.totalClasses} classes`}
                 />
-                <StatWidget 
-                    title="Classes Scheduled" 
-                    value={`${stats.classesScheduled} / ${stats.totalClasses}`} 
-                    icon={BookOpen} 
-                    color="bg-emerald-500 text-emerald-600" 
-                    subtitle="Class master coverage" 
+                <StatWidget
+                    title="Classes Scheduled"
+                    value={`${stats.classesScheduled} / ${stats.totalClasses}`}
+                    icon={BookOpen}
+                    color="bg-emerald-500 text-emerald-600"
+                    subtitle="Class master coverage"
                 />
-                <StatWidget 
-                    title="Teachers Assigned" 
-                    value={stats.teachersAssigned} 
-                    icon={Users} 
-                    color="bg-indigo-500 text-indigo-600" 
-                    subtitle="Active teaching staff" 
+                <StatWidget
+                    title="Teachers Assigned"
+                    value={stats.teachersAssigned}
+                    icon={Users}
+                    color="bg-indigo-500 text-indigo-600"
+                    subtitle="Active teaching staff"
                 />
-                <StatWidget 
-                    title="Unassigned Slots" 
-                    value={stats.unassignedPeriods} 
-                    icon={Clock} 
-                    color="bg-amber-500 text-amber-600" 
-                    subtitle="Free periods requiring subjects" 
+                <StatWidget
+                    title="Unassigned Slots"
+                    value={stats.unassignedPeriods}
+                    icon={Clock}
+                    color="bg-amber-500 text-amber-600"
+                    subtitle="Free periods requiring subjects"
                 />
             </div>
 
@@ -266,11 +266,10 @@ const ManageTimetable = () => {
                                             <td className="py-4 px-6">
                                                 <button
                                                     onClick={() => handleToggleStatus(item._id, item.status)}
-                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
-                                                        item.status === 'Published'
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${item.status === 'Published'
                                                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
                                                             : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <span className={`w-1.5 h-1.5 rounded-full ${item.status === 'Published' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                                                     {item.status}

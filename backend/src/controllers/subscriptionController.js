@@ -188,7 +188,7 @@ const createSubscriptionOrder = async (req, res) => {
     }
 };
 
-// @desc    Verify Razorpay Payment and Activate Subscription
+// @desc    Verify Payment and Activate Subscription (Razorpay, Cash, Cheque)
 // @route   POST /api/schooladmin/subscription/verify-payment
 // @access  Private (SchoolAdmin)
 const verifyAndActivateSubscription = async (req, res) => {
@@ -196,6 +196,9 @@ const verifyAndActivateSubscription = async (req, res) => {
         const {
             student_count,
             duration,
+            payment_method = 'Razorpay',
+            cheque_details,
+            payment_notes,
             razorpay_order_id,
             razorpay_payment_id,
             razorpay_signature
@@ -211,19 +214,43 @@ const verifyAndActivateSubscription = async (req, res) => {
             return res.status(400).json({ message: 'Valid student count is required' });
         }
 
-        // Razorpay HMAC SHA256 Signature Verification
-        if (razorpay_order_id && razorpay_payment_id && razorpay_signature) {
-            const body = razorpay_order_id + '|' + razorpay_payment_id;
-            const expectedSignature = crypto
-                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'Zq2gmbRuHL4FrNftymO4UULA')
-                .update(body.toString())
-                .digest('hex');
+        const validMethods = ['Razorpay', 'Cash', 'Cheque'];
+        if (!validMethods.includes(payment_method)) {
+            return res.status(400).json({ message: 'Invalid payment method selected' });
+        }
 
-            if (expectedSignature === razorpay_signature) {
-                console.log('Razorpay Payment Signature Verified Successfully!');
-            } else {
-                console.warn('Razorpay signature mismatch during verification. Proceeding with active payment ID:', razorpay_payment_id);
+        let payment_id;
+        let subStatus = 'Active';
+
+        if (payment_method === 'Razorpay') {
+            // Razorpay HMAC SHA256 Signature Verification
+            if (razorpay_order_id && razorpay_payment_id && razorpay_signature) {
+                const body = razorpay_order_id + '|' + razorpay_payment_id;
+                const expectedSignature = crypto
+                    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'Zq2gmbRuHL4FrNftymO4UULA')
+                    .update(body.toString())
+                    .digest('hex');
+
+                if (expectedSignature === razorpay_signature) {
+                    console.log('Razorpay Payment Signature Verified Successfully!');
+                } else {
+                    console.warn('Razorpay signature mismatch during verification. Proceeding with active payment ID:', razorpay_payment_id);
+                }
             }
+            payment_id = razorpay_payment_id || `pay_sub_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+            subStatus = 'Active';
+        } else if (payment_method === 'Cash') {
+            payment_id = `CASH_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+            subStatus = 'Active';
+        } else if (payment_method === 'Cheque') {
+            if (!cheque_details?.cheque_number || !cheque_details.cheque_number.trim()) {
+                return res.status(400).json({ message: 'Cheque number is required for Cheque payment' });
+            }
+            if (!cheque_details?.bank_name || !cheque_details.bank_name.trim()) {
+                return res.status(400).json({ message: 'Bank name is required for Cheque payment' });
+            }
+            payment_id = `CHQ_${cheque_details.cheque_number.trim()}_${Date.now()}`;
+            subStatus = 'Pending';
         }
 
         let years = 1;
@@ -239,7 +266,6 @@ const verifyAndActivateSubscription = async (req, res) => {
         else if (duration === '5 Years') price_per_student = config.rate_5_years;
 
         const total_amount = count * price_per_student * years;
-        const payment_id = razorpay_payment_id || `pay_sub_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
         // Calculate start and end date
         const startDate = new Date();
@@ -250,11 +276,13 @@ const verifyAndActivateSubscription = async (req, res) => {
         const randomNum = Math.floor(1000 + Math.random() * 9000);
         const invoice_number = `INV-SUB-${startDate.getFullYear()}${(startDate.getMonth()+1).toString().padStart(2,'0')}-${randomNum}`;
 
-        // Deactivate previous active subscriptions for this school
-        await Subscription.updateMany(
-            { school_id: school._id, status: 'Active' },
-            { status: 'Expired' }
-        );
+        // Deactivate previous active subscriptions for this school if activating a new active subscription
+        if (subStatus === 'Active') {
+            await Subscription.updateMany(
+                { school_id: school._id, status: 'Active' },
+                { status: 'Expired' }
+            );
+        }
 
         // Create new subscription record
         const newSubscription = await Subscription.create({
@@ -265,10 +293,18 @@ const verifyAndActivateSubscription = async (req, res) => {
             price_per_student,
             total_amount,
             payment_id,
-            razorpay_order_id: razorpay_order_id || `order_sub_${Date.now()}`,
-            razorpay_payment_id: payment_id,
-            razorpay_signature: razorpay_signature || 'sig_verified_mock',
-            status: 'Active',
+            payment_method,
+            cheque_details: payment_method === 'Cheque' ? {
+                cheque_number: cheque_details?.cheque_number?.trim() || '',
+                cheque_date: cheque_details?.cheque_date ? new Date(cheque_details.cheque_date) : new Date(),
+                bank_name: cheque_details?.bank_name?.trim() || '',
+                branch_name: cheque_details?.branch_name?.trim() || ''
+            } : undefined,
+            payment_notes: payment_notes?.trim() || '',
+            razorpay_order_id: razorpay_order_id || (payment_method === 'Razorpay' ? `order_sub_${Date.now()}` : undefined),
+            razorpay_payment_id: payment_method === 'Razorpay' ? payment_id : undefined,
+            razorpay_signature: razorpay_signature || (payment_method === 'Razorpay' ? 'sig_verified_mock' : undefined),
+            status: subStatus,
             subscription_start_date: startDate,
             subscription_end_date: endDate,
             invoice_number
@@ -276,8 +312,14 @@ const verifyAndActivateSubscription = async (req, res) => {
 
         const populatedSubscription = await Subscription.findById(newSubscription._id).populate('school_id');
 
+        const successMessage = payment_method === 'Cheque'
+            ? 'Cheque payment submitted successfully! Subscription is pending cheque clearance.'
+            : payment_method === 'Cash'
+                ? 'Cash payment recorded successfully! Subscription activated.'
+                : 'Subscription activated successfully!';
+
         res.status(201).json({
-            message: 'Subscription activated successfully!',
+            message: successMessage,
             subscription: populatedSubscription
         });
     } catch (error) {

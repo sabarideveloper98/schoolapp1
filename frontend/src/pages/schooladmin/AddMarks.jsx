@@ -69,6 +69,13 @@ const AddMarks = () => {
     }
   }, [user]);
 
+  // Auto-search default exam & class once configuration is loaded
+  useEffect(() => {
+    if (!loadingConfig && selectedExamId && sectionFilter && user?.token && !searched) {
+      handleSearch();
+    }
+  }, [loadingConfig, selectedExamId, sectionFilter, user]);
+
   // Extract unique class standard names
   const uniqueClassNames = [...new Set(classes.map(c => c.class))];
 
@@ -122,9 +129,9 @@ const AddMarks = () => {
       );
 
       setAllSubjects(data.subjects || []);
-      // Check first two subjects by default if available
+      // Select all subjects by default if available
       if (data.subjects && data.subjects.length > 0) {
-        setSelectedSubjectIds(data.subjects.slice(0, 3).map(s => s._id));
+        setSelectedSubjectIds(data.subjects.map(s => s._id));
       } else {
         setSelectedSubjectIds([]);
       }
@@ -143,6 +150,16 @@ const AddMarks = () => {
     setSelectedSubjectIds(prev =>
       prev.includes(subId) ? prev.filter(id => id !== subId) : [...prev, subId]
     );
+  };
+
+  // Select all subjects
+  const handleSelectAllSubjects = () => {
+    setSelectedSubjectIds(allSubjects.map(s => s._id));
+  };
+
+  // Deselect all subjects
+  const handleDeselectAllSubjects = () => {
+    setSelectedSubjectIds([]);
   };
 
   // Mark value input changes
@@ -312,7 +329,35 @@ const AddMarks = () => {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-8 space-y-8">
           {/* Subjects checklist selectors */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-550 uppercase tracking-wider">Select Subjects to Enter Marks</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Select Subjects to Enter Marks</h3>
+                {allSubjects.length > 0 && (
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                    {selectedSubjectIds.length} of {allSubjects.length} selected
+                  </span>
+                )}
+              </div>
+              {allSubjects.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSelectAllSubjects}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={handleDeselectAllSubjects}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-750 hover:underline cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="flex flex-wrap gap-4">
               {allSubjects.map((sub) => {
                 const isSelected = selectedSubjectIds.includes(sub._id);

@@ -4,6 +4,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Search, Printer, Download, Award, TrendingUp, AlertTriangle, ArrowRight } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const ExamReport = () => {
   const navigate = useNavigate();
@@ -200,66 +201,69 @@ const ExamReport = () => {
           {/* Exam Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Exam</label>
-            <select
+            <SearchableSelect
+              options={exams.map((exam) => ({ value: exam._id, label: exam.name }))}
               value={selectedExamId}
-              onChange={(e) => setSelectedExamId(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
-            >
-              <option value="">Select Exam</option>
-              {exams.map((exam) => (
-                <option key={exam._id} value={exam._id}>{exam.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedExamId(val)}
+              placeholder="Select Exam"
+              searchPlaceholder="Search exam..."
+              buttonClassName="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-left transition duration-200 hover:border-slate-300 text-xs sm:text-sm font-semibold"
+              emptyMessage="No exams found"
+            />
           </div>
 
           {/* Class Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Class</label>
-            <select
+            <SearchableSelect
+              options={uniqueClassNames.map((c) => ({ value: c, label: c }))}
               value={classFilter}
-              onChange={(e) => {
-                setClassFilter(e.target.value);
+              onChange={(val) => {
+                setClassFilter(val);
                 setSectionFilter('');
               }}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
-            >
-              <option value="">Select Class</option>
-              {uniqueClassNames.map((c, idx) => (
-                <option key={idx} value={c}>{c}</option>
-              ))}
-            </select>
+              placeholder="Select Class"
+              searchPlaceholder="Search class..."
+              buttonClassName="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-left transition duration-200 hover:border-slate-300 text-xs sm:text-sm font-semibold"
+              emptyMessage="No classes found"
+            />
           </div>
 
           {/* Section Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Section</label>
-            <select
+            <SearchableSelect
+              options={availableSections.map((s) => ({ value: s._id, label: s.section }))}
               value={sectionFilter}
-              onChange={(e) => setSectionFilter(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+              onChange={(val) => setSectionFilter(val)}
+              placeholder={classFilter ? 'Select Section' : 'Select Class First'}
+              searchPlaceholder="Search section..."
+              buttonClassName="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-left transition duration-200 hover:border-slate-300 text-xs sm:text-sm font-semibold"
               disabled={!classFilter}
-            >
-              <option value="">{classFilter ? 'Select Section' : 'Select Class First'}</option>
-              {availableSections.map((s) => (
-                <option key={s._id} value={s._id}>{s.section}</option>
-              ))}
-            </select>
+              emptyMessage="No sections found"
+            />
           </div>
 
           {/* Student Select (Optional) */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Student (Optional)</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: 'All Students (Class Report)' },
+                ...studentsList.map((s) => ({
+                  value: s._id,
+                  label: s.student_name,
+                  sublabel: s.roll_no ? `Roll: ${s.roll_no}` : undefined
+                }))
+              ]}
               value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+              onChange={(val) => setSelectedStudentId(val)}
+              placeholder="All Students (Class Report)"
+              searchPlaceholder="Search student by name or roll..."
+              buttonClassName="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-left transition duration-200 hover:border-slate-300 text-xs sm:text-sm font-semibold"
               disabled={!sectionFilter}
-            >
-              <option value="">All Students (Class Report)</option>
-              {studentsList.map(s => (
-                <option key={s._id} value={s._id}>{s.student_name}</option>
-              ))}
-            </select>
+              emptyMessage="No students found"
+            />
           </div>
 
           {/* Generate Button */}

@@ -8,6 +8,9 @@ const SearchableSelect = ({
   placeholder = 'Select an option...',
   searchPlaceholder = 'Search...',
   className = '',
+  buttonClassName = '',
+  emptyMessage = 'No matching options found',
+  noOptionsMessage = 'No options available',
   disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,14 +37,16 @@ const SearchableSelect = ({
     return { value: opt, label: String(opt ?? '') };
   });
 
-  const selectedOption = (value !== undefined && value !== null && value !== '')
+  const hasEmptyOption = normalizedOptions.some(opt => opt.value === '' || opt.value === null);
+  const selectedOption = (value !== undefined && value !== null && (value !== '' || hasEmptyOption))
     ? normalizedOptions.find(opt => String(opt.value) === String(value))
     : null;
 
   const filteredOptions = normalizedOptions.filter(opt => {
     const labelStr = String(opt.label || '').toLowerCase();
     const sublabelStr = opt.sublabel ? String(opt.sublabel).toLowerCase() : '';
-    const query = (searchTerm || '').toLowerCase();
+    const query = (searchTerm || '').trim().toLowerCase();
+    if (!query) return true;
     return labelStr.includes(query) || sublabelStr.includes(query);
   });
 
@@ -76,14 +81,18 @@ const SearchableSelect = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white ${
-          isOpen ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'
-        } ${disabled ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={
+          buttonClassName
+            ? `${buttonClassName} ${isOpen ? 'ring-2 ring-blue-500/20 border-blue-500' : ''} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`
+            : `w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white ${
+                isOpen ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'
+              } ${disabled ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'cursor-pointer'}`
+        }
       >
         <span className={`text-sm font-semibold truncate ${selectedOption ? 'text-slate-800' : 'text-slate-400'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-600' : ''}`} />
       </button>
 
       {/* Popover Dropdown Card */}
@@ -139,7 +148,7 @@ const SearchableSelect = ({
               })
             ) : (
               <div className="px-4 py-6 text-center text-xs font-bold text-slate-400">
-                No matching options found
+                {normalizedOptions.length === 0 ? noOptionsMessage : emptyMessage}
               </div>
             )}
           </div>

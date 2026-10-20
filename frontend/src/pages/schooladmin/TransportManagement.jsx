@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import BusTrackingMap from '../../components/BusTrackingMap';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const TransportManagement = () => {
   const [activeTab, setActiveTab] = useState('overview'); // overview, buses, drivers, routes, allocations, tracking, history
@@ -859,18 +860,22 @@ const TransportManagement = () => {
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-[200px]">
                 <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Filter Class:</span>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: '', label: '-- All Classes --' },
+                    ...classesList.map(c => ({
+                      value: c._id,
+                      label: c.class ? `Class ${c.class}${c.section ? ` - ${c.section}` : ''}` : (c.class_name || 'Class')
+                    }))
+                  ]}
                   value={selectedClassFilterAllocations}
-                  onChange={(e) => setSelectedClassFilterAllocations(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
-                >
-                  <option value="">-- All Classes --</option>
-                  {classesList.map(c => (
-                    <option key={c._id} value={c._id}>{c.class_name} {c.section ? `(${c.section})` : ''}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedClassFilterAllocations(val)}
+                  placeholder="-- All Classes --"
+                  searchPlaceholder="Search class..."
+                  buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 min-w-[150px] flex items-center justify-between"
+                />
               </div>
 
               <button
@@ -916,7 +921,11 @@ const TransportManagement = () => {
                   return filteredList.map((alloc) => (
                     <tr key={alloc._id} className="hover:bg-slate-50/50">
                       <td className="py-4 px-4 font-black text-slate-800">{alloc.student_id?.student_name || 'N/A'}</td>
-                      <td className="py-4 px-4 font-bold text-slate-600">{alloc.class_id?.class_name || alloc.student_id?.class_id?.class_name || 'N/A'}</td>
+                      <td className="py-4 px-4 font-bold text-slate-600">
+                        {alloc.class_id?.class
+                          ? `Class ${alloc.class_id.class}${alloc.class_id.section ? ` - ${alloc.class_id.section}` : ''}`
+                          : (alloc.class_id?.class_name || (alloc.student_id?.class_id?.class ? `Class ${alloc.student_id.class_id.class}${alloc.student_id.class_id.section ? ` - ${alloc.student_id.class_id.section}` : ''}` : alloc.student_id?.class_id?.class_name) || 'N/A')}
+                      </td>
                       <td className="py-4 px-4 font-bold text-purple-600">{alloc.route_id?.route_name}</td>
                       <td className="py-4 px-4 font-bold text-blue-600">{alloc.bus_id?.bus_name} ({alloc.bus_id?.bus_number})</td>
                       <td className="py-4 px-4 font-bold text-emerald-600">{alloc.pickup_stop_id?.stop_name}</td>
@@ -1093,16 +1102,19 @@ const TransportManagement = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-600 block mb-1">Bus Type</label>
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { value: 'Bus', label: 'Bus' },
+                      { value: 'Van', label: 'Van' },
+                      { value: 'Mini Bus', label: 'Mini Bus' },
+                      { value: 'AC Bus', label: 'AC Bus' }
+                    ]}
                     value={busForm.bus_type}
-                    onChange={(e) => setBusForm({ ...busForm, bus_type: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold"
-                  >
-                    <option value="Bus">Bus</option>
-                    <option value="Van">Van</option>
-                    <option value="Mini Bus">Mini Bus</option>
-                    <option value="AC Bus">AC Bus</option>
-                  </select>
+                    onChange={(val) => setBusForm({ ...busForm, bus_type: val })}
+                    placeholder="Select Bus Type"
+                    searchPlaceholder="Search type..."
+                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between"
+                  />
                 </div>
 
                 <div>
@@ -1364,46 +1376,56 @@ const TransportManagement = () => {
             <form onSubmit={handleAssignDriverToBus} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Select Driver *</label>
-                <select
+                <SearchableSelect
+                  options={drivers.map(d => ({
+                    value: d._id,
+                    label: d.name,
+                    sublabel: d.mobile_number ? `Phone: ${d.mobile_number}` : (d.license_number ? `Lic: ${d.license_number}` : undefined)
+                  }))}
                   value={assignDriverBusForm.driver_id}
-                  onChange={(e) => setAssignDriverBusForm({ ...assignDriverBusForm, driver_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                  required
-                >
-                  <option value="">-- Choose Driver --</option>
-                  {drivers.map(d => (
-                    <option key={d._id} value={d._id}>{d.name} ({d.mobile_number})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssignDriverBusForm(prev => ({ ...prev, driver_id: val }))}
+                  placeholder="-- Choose Driver --"
+                  searchPlaceholder="Search driver by name or phone..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  emptyMessage="No drivers found"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Select Bus *</label>
-                <select
+                <SearchableSelect
+                  options={buses.map(b => ({
+                    value: b._id,
+                    label: `${b.bus_name} (${b.bus_number})`,
+                    sublabel: b.vehicle_reg_number ? `Reg: ${b.vehicle_reg_number}` : undefined
+                  }))}
                   value={assignDriverBusForm.bus_id}
-                  onChange={(e) => setAssignDriverBusForm({ ...assignDriverBusForm, bus_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                  required
-                >
-                  <option value="">-- Choose Bus --</option>
-                  {buses.map(b => (
-                    <option key={b._id} value={b._id}>{b.bus_name} ({b.bus_number})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssignDriverBusForm(prev => ({ ...prev, bus_id: val }))}
+                  placeholder="-- Choose Bus --"
+                  searchPlaceholder="Search bus by name or number..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  emptyMessage="No buses found"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Select Route (Optional)</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: '', label: '-- Choose Route (Optional) --' },
+                    ...routes.map(r => ({
+                      value: r._id,
+                      label: r.route_name,
+                      sublabel: r.start_point && r.end_point ? `${r.start_point} ➔ ${r.end_point}` : undefined
+                    }))
+                  ]}
                   value={assignDriverBusForm.route_id}
-                  onChange={(e) => setAssignDriverBusForm({ ...assignDriverBusForm, route_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                >
-                  <option value="">-- Choose Route --</option>
-                  {routes.map(r => (
-                    <option key={r._id} value={r._id}>{r.route_name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssignDriverBusForm(prev => ({ ...prev, route_id: val }))}
+                  placeholder="-- Choose Route (Optional) --"
+                  searchPlaceholder="Search route by name or stops..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  emptyMessage="No routes found"
+                />
               </div>
 
               <div className="flex items-center justify-between pt-2">
@@ -1429,102 +1451,122 @@ const TransportManagement = () => {
             <form onSubmit={handleAssignStudent} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Select Class (Filter Students)</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: '', label: '-- All Classes / Choose Class --' },
+                    ...classesList.map(c => ({
+                      value: c._id,
+                      label: c.class ? `Class ${c.class}${c.section ? ` - Section ${c.section}` : ''}` : (c.class_name || 'Class'),
+                      sublabel: c.section ? `Section: ${c.section}` : undefined
+                    }))
+                  ]}
                   value={selectedClassFilterModal}
-                  onChange={(e) => {
-                    const cid = e.target.value;
+                  onChange={(cid) => {
                     setSelectedClassFilterModal(cid);
                     setAssignForm(prev => ({ ...prev, student_id: '', admission_number: '', class_id: cid }));
                   }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                >
-                  <option value="">-- All Classes / Choose Class --</option>
-                  {classesList.map(c => (
-                    <option key={c._id} value={c._id}>{c.class_name} {c.section ? `(${c.section})` : ''}</option>
-                  ))}
-                </select>
+                  placeholder="-- All Classes / Choose Class --"
+                  searchPlaceholder="Search class or section..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  emptyMessage="No classes found"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">
                   Select Student * {selectedClassFilterModal && `(${studentsList.filter(s => (s.class_id?._id || s.class_id)?.toString() === selectedClassFilterModal.toString()).length} found)`}
                 </label>
-                <select
-                  value={assignForm.student_id}
-                  onChange={(e) => {
-                    const selected = studentsList.find(s => s._id === e.target.value);
-                    setAssignForm({
-                      ...assignForm,
-                      student_id: e.target.value,
-                      admission_number: selected?.admission_number || 'N/A',
-                      class_id: selected?.class_id?._id || selected?.class_id || selectedClassFilterModal || ''
-                    });
-                  }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                  required
-                >
-                  <option value="">-- Choose Student --</option>
-                  {(selectedClassFilterModal
+                <SearchableSelect
+                  options={(selectedClassFilterModal
                     ? studentsList.filter(s => (s.class_id?._id || s.class_id)?.toString() === selectedClassFilterModal.toString())
                     : studentsList
-                  ).map(s => (
-                    <option key={s._id} value={s._id}>
-                      {s.student_name} (Roll: {s.roll_no || 'N/A'}, Adm: {s.admission_number || 'N/A'})
-                    </option>
-                  ))}
-                </select>
+                  ).map(s => {
+                    const clsName = s.class_id?.class ? `Class ${s.class_id.class}${s.class_id.section ? `-${s.class_id.section}` : ''}` : '';
+                    return {
+                      value: s._id,
+                      label: s.student_name,
+                      sublabel: [
+                        clsName,
+                        s.roll_no ? `Roll: ${s.roll_no}` : null,
+                        s.admission_number ? `Adm: ${s.admission_number}` : null
+                      ].filter(Boolean).join(' | ')
+                    };
+                  })}
+                  value={assignForm.student_id}
+                  onChange={(val) => {
+                    const selected = studentsList.find(s => s._id === val);
+                    setAssignForm(prev => ({
+                      ...prev,
+                      student_id: val,
+                      admission_number: selected?.admission_number || 'N/A',
+                      class_id: selected?.class_id?._id || selected?.class_id || selectedClassFilterModal || ''
+                    }));
+                  }}
+                  placeholder="-- Choose Student --"
+                  searchPlaceholder="Search student by name, roll, or admission no..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  emptyMessage="No students found"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Select Route *</label>
-                <select
+                <SearchableSelect
+                  options={routes.map(r => ({
+                    value: r._id,
+                    label: r.route_name,
+                    sublabel: r.start_point && r.end_point ? `${r.start_point} ➔ ${r.end_point}` : undefined
+                  }))}
                   value={assignForm.route_id}
-                  onChange={(e) => {
-                    const selRoute = routes.find(r => r._id === e.target.value);
-                    setAssignForm({
-                      ...assignForm,
-                      route_id: e.target.value,
-                      bus_id: selRoute?.assigned_bus_id?._id || selRoute?.assigned_bus_id || ''
-                    });
+                  onChange={(val) => {
+                    const selRoute = routes.find(r => r._id === val);
+                    setAssignForm(prev => ({
+                      ...prev,
+                      route_id: val,
+                      bus_id: selRoute?.assigned_bus_id?._id || selRoute?.assigned_bus_id || '',
+                      pickup_stop_id: ''
+                    }));
                   }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                  required
-                >
-                  <option value="">-- Choose Route --</option>
-                  {routes.map(r => (
-                    <option key={r._id} value={r._id}>{r.route_name}</option>
-                  ))}
-                </select>
+                  placeholder="-- Choose Route --"
+                  searchPlaceholder="Search route..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  emptyMessage="No routes found"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Select Bus *</label>
-                <select
+                <SearchableSelect
+                  options={buses.map(b => ({
+                    value: b._id,
+                    label: `${b.bus_name} (${b.bus_number})`,
+                    sublabel: b.vehicle_reg_number ? `Reg: ${b.vehicle_reg_number}` : undefined
+                  }))}
                   value={assignForm.bus_id}
-                  onChange={(e) => setAssignForm({ ...assignForm, bus_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                  required
-                >
-                  <option value="">-- Choose Bus --</option>
-                  {buses.map(b => (
-                    <option key={b._id} value={b._id}>{b.bus_name} ({b.bus_number})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssignForm(prev => ({ ...prev, bus_id: val }))}
+                  placeholder="-- Choose Bus --"
+                  searchPlaceholder="Search bus..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  emptyMessage="No buses found"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Select Pickup Stop *</label>
-                <select
+                <SearchableSelect
+                  options={(routes.find(r => r._id === assignForm.route_id)?.stops || []).map(st => ({
+                    value: st._id,
+                    label: `${st.stop_name} (Stop ${st.stop_order})`,
+                    sublabel: st.stop_address || (st.estimated_arrival_time ? `Arrival: ${st.estimated_arrival_time}` : undefined)
+                  }))}
                   value={assignForm.pickup_stop_id}
-                  onChange={(e) => setAssignForm({ ...assignForm, pickup_stop_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                  required
-                >
-                  <option value="">-- Choose Stop --</option>
-                  {(routes.find(r => r._id === assignForm.route_id)?.stops || []).map(st => (
-                    <option key={st._id} value={st._id}>{st.stop_name} (Stop {st.stop_order})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssignForm(prev => ({ ...prev, pickup_stop_id: val }))}
+                  placeholder={assignForm.route_id ? "-- Choose Stop --" : "Select Route First"}
+                  searchPlaceholder="Search pickup stop..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold flex items-center justify-between"
+                  disabled={!assignForm.route_id}
+                  emptyMessage="No stops found for this route"
+                />
               </div>
 
               <div className="flex items-center justify-between pt-2">

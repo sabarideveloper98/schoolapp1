@@ -16,6 +16,18 @@ const StudentAttendance = () => {
   // Filters
   const [classFilter, setClassFilter] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
+  const [periodFilter, setPeriodFilter] = useState('Full Day');
+  const [availablePeriods, setAvailablePeriods] = useState([
+    { value: 'Full Day', label: 'Full Day / Regular Session' },
+    { value: 'Period 1', label: 'Period 1' },
+    { value: 'Period 2', label: 'Period 2' },
+    { value: 'Period 3', label: 'Period 3' },
+    { value: 'Period 4', label: 'Period 4' },
+    { value: 'Period 5', label: 'Period 5' },
+    { value: 'Period 6', label: 'Period 6' },
+    { value: 'Period 7', label: 'Period 7' },
+    { value: 'Period 8', label: 'Period 8' },
+  ]);
   const [date, setDate] = useState(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -27,6 +39,7 @@ const StudentAttendance = () => {
   // Applied values (rendered in centering summary)
   const [appliedClassText, setAppliedClassText] = useState('');
   const [appliedSectionText, setAppliedSectionText] = useState('');
+  const [appliedPeriodText, setAppliedPeriodText] = useState('Full Day');
   const [appliedDate, setAppliedDate] = useState('');
 
   // Attendance Records
@@ -36,24 +49,45 @@ const StudentAttendance = () => {
   const [searched, setSearched] = useState(false);
 
   useEffect(() => {
-    const fetchClasses = async () => {
+    const fetchClassesAndPeriods = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get('/api/schooladmin/classes', config);
-        setClasses(data);
+        const [classesRes, timetableRes] = await Promise.all([
+          axios.get('/api/schooladmin/classes', config),
+          axios.get('/api/timetable/settings', config).catch(() => null)
+        ]);
+
+        const classData = classesRes.data || [];
+        setClasses(classData);
+
+        // Populate dynamic periods if timetable settings configured
+        if (timetableRes?.data?.generated_periods && timetableRes.data.generated_periods.length > 0) {
+          const teachingPeriods = timetableRes.data.generated_periods
+            .filter(p => !p.is_lunch && p.type !== 'Lunch' && !p.is_break && p.type !== 'Break')
+            .map(p => ({
+              value: p.period_name,
+              label: `${p.period_name} (${p.start_time} - ${p.end_time})`
+            }));
+
+          setAvailablePeriods([
+            { value: 'Full Day', label: 'Full Day / Regular Session' },
+            ...teachingPeriods
+          ]);
+        }
+
         setLoadingConfig(false);
 
         // Pre-fill first class standard and section if available
-        if (data.length > 0) {
-          setClassFilter(data[0].class);
-          setSectionFilter(data[0]._id);
+        if (classData.length > 0) {
+          setClassFilter(classData[0].class);
+          setSectionFilter(classData[0]._id);
         }
       } catch (error) {
         toast.error('Failed to load class configuration');
         setLoadingConfig(false);
       }
     };
-    if (user?.token) fetchClasses();
+    if (user?.token) fetchClassesAndPeriods();
   }, [user]);
 
   // Extract unique class standard names
@@ -95,6 +129,8 @@ const StudentAttendance = () => {
       setAppliedClassText(classFilter);
       const matchedSec = classes.find(c => c._id === sectionFilter);
       setAppliedSectionText(matchedSec ? matchedSec.section : '');
+      const matchedPeriod = availablePeriods.find(p => p.value === periodFilter);
+      setAppliedPeriodText(matchedPeriod ? matchedPeriod.label : periodFilter);
       setAppliedDate(date);
       setSearched(true);
       setLoadingRecords(false);
@@ -175,9 +211,9 @@ const StudentAttendance = () => {
         </div>
       </div>
 
-      {/* Class / Section / Date filters */}
+      {/* Class / Section / Period / Date filters */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
           {/* Class Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Class</label>
@@ -203,6 +239,18 @@ const StudentAttendance = () => {
               placeholder={classFilter ? 'Select Section' : 'Select Class First'}
               searchPlaceholder="Search section..."
               disabled={!classFilter}
+            />
+          </div>
+
+          {/* Period Select */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-1.5">Period</label>
+            <SearchableSelect
+              options={availablePeriods}
+              value={periodFilter}
+              onChange={(val) => setPeriodFilter(val)}
+              placeholder="Select Period"
+              searchPlaceholder="Search period..."
             />
           </div>
 
@@ -238,7 +286,7 @@ const StudentAttendance = () => {
             <h3 className="text-lg font-black text-slate-800">{schoolName}</h3>
             <p className="text-xs font-bold text-slate-500">Attendance For Class : <span className="text-slate-800">{appliedClassText}</span></p>
             <p className="text-xs font-bold text-slate-500">Section : <span className="text-slate-800">{appliedSectionText}</span></p>
-            <p className="text-xs font-bold text-slate-400">Period : </p>
+            <p className="text-xs font-bold text-slate-500">Period : <span className="text-slate-800 font-semibold">{appliedPeriodText}</span></p>
             <p className="text-sm font-bold text-blue-650 pt-1">Date : {formatHeaderDate(appliedDate)}</p>
           </div>
 
