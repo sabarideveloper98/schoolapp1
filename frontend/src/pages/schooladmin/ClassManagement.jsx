@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const ClassManagement = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ const ClassManagement = () => {
   const [assignTeacherFilter, setAssignTeacherFilter] = useState('');
 
   const { user } = useAuthStore();
-  const { register, handleSubmit, reset, setValue } = useForm();
+  const { register, handleSubmit, reset, setValue, watch } = useForm();
   const assignmentForm = useForm();
 
   const fetchData = async () => {
@@ -188,22 +189,24 @@ const ClassManagement = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-lg font-bold text-slate-800">Class Management</h2>
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <select 
+              <SearchableSelect 
+                options={[{ value: '', label: 'All Classes' }, ...classes.map(c => ({ value: c._id, label: `${c.class} - ${c.section}` }))]}
                 value={classFilter} 
-                onChange={e => setClassFilter(e.target.value)} 
-                className="rounded-xl border border-slate-205 bg-white text-slate-700 focus:border-blue-500 sm:text-sm p-2.5 outline-none cursor-pointer"
-              >
-                <option value="">All Classes</option>
-                {classes.map(c => <option key={c._id} value={c._id}>{c.class} - {c.section}</option>)}
-              </select>
-              <select 
+                onChange={(val) => setClassFilter(val)} 
+                placeholder="All Classes"
+                searchPlaceholder="Search class..."
+                className="w-44"
+                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+              />
+              <SearchableSelect 
+                options={[{ value: '', label: 'All Incharges' }, ...teachers.map(t => ({ value: t._id, label: t.name }))]}
                 value={inchargeFilter} 
-                onChange={e => setInchargeFilter(e.target.value)} 
-                className="rounded-xl border border-slate-205 bg-white text-slate-700 focus:border-blue-500 sm:text-sm p-2.5 outline-none cursor-pointer"
-              >
-                <option value="">All Incharges</option>
-                {teachers.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-              </select>
+                onChange={(val) => setInchargeFilter(val)} 
+                placeholder="All Incharges"
+                searchPlaceholder="Search incharge..."
+                className="w-44"
+                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+              />
               {(classFilter || inchargeFilter) && (
                 <button 
                   onClick={() => { setClassFilter(''); setInchargeFilter(''); }}
@@ -244,13 +247,14 @@ const ClassManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Class Incharge (Optional)</label>
-                  <select 
-                    {...register('class_incharge_id')} 
-                    className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-                  >
-                    <option value="">Select Teacher</option>
-                    {teachers.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                  </select>
+                  <SearchableSelect 
+                    options={[{ value: '', label: 'Select Teacher' }, ...teachers.map(t => ({ value: t._id, label: t.name }))]}
+                    value={watch('class_incharge_id')} 
+                    onChange={(val) => setValue('class_incharge_id', val)}
+                    placeholder="Select Teacher"
+                    searchPlaceholder="Search teacher..."
+                    buttonClassName="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none sm:text-sm"
+                  />
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
@@ -324,30 +328,33 @@ const ClassManagement = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-lg font-bold text-slate-800">Assign Subject Teachers</h2>
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <select 
+              <SearchableSelect 
+                options={[{ value: '', label: 'All Classes' }, ...classes.map(c => ({ value: c._id, label: `${c.class} - ${c.section}` }))]}
                 value={assignClassFilter} 
-                onChange={e => setAssignClassFilter(e.target.value)} 
-                className="rounded-xl border border-slate-205 bg-white text-slate-700 focus:border-blue-500 sm:text-sm p-2.5 outline-none cursor-pointer"
-              >
-                <option value="">All Classes</option>
-                {classes.map(c => <option key={c._id} value={c._id}>{c.class} - {c.section}</option>)}
-              </select>
-              <select 
+                onChange={(val) => setAssignClassFilter(val)} 
+                placeholder="All Classes"
+                searchPlaceholder="Search class..."
+                className="w-40"
+                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+              />
+              <SearchableSelect 
+                options={[{ value: '', label: 'All Subjects' }, ...subjects.map(s => ({ value: s._id, label: s.name }))]}
                 value={assignSubjectFilter} 
-                onChange={e => setAssignSubjectFilter(e.target.value)} 
-                className="rounded-xl border border-slate-205 bg-white text-slate-700 focus:border-blue-500 sm:text-sm p-2.5 outline-none cursor-pointer"
-              >
-                <option value="">All Subjects</option>
-                {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </select>
-              <select 
+                onChange={(val) => setAssignSubjectFilter(val)} 
+                placeholder="All Subjects"
+                searchPlaceholder="Search subject..."
+                className="w-40"
+                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+              />
+              <SearchableSelect 
+                options={[{ value: '', label: 'All Teachers' }, ...teachers.map(t => ({ value: t._id, label: t.name }))]}
                 value={assignTeacherFilter} 
-                onChange={e => setAssignTeacherFilter(e.target.value)} 
-                className="rounded-xl border border-slate-205 bg-white text-slate-700 focus:border-blue-500 sm:text-sm p-2.5 outline-none cursor-pointer"
-              >
-                <option value="">All Teachers</option>
-                {teachers.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-              </select>
+                onChange={(val) => setAssignTeacherFilter(val)} 
+                placeholder="All Teachers"
+                searchPlaceholder="Search teacher..."
+                className="w-40"
+                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+              />
               {(assignClassFilter || assignSubjectFilter || assignTeacherFilter) && (
                 <button 
                   onClick={() => { setAssignClassFilter(''); setAssignSubjectFilter(''); setAssignTeacherFilter(''); }}
@@ -372,33 +379,36 @@ const ClassManagement = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Class & Section</label>
-                  <select 
-                    {...assignmentForm.register('class_id', { required: 'Required' })} 
-                    className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-                  >
-                    <option value="">Select Class</option>
-                    {classes.map(c => <option key={c._id} value={c._id}>{c.class} - {c.section}</option>)}
-                  </select>
+                  <SearchableSelect 
+                    options={[{ value: '', label: 'Select Class' }, ...classes.map(c => ({ value: c._id, label: `${c.class} - ${c.section}` }))]}
+                    value={assignmentForm.watch('class_id')} 
+                    onChange={(val) => assignmentForm.setValue('class_id', val, { shouldValidate: true })}
+                    placeholder="Select Class"
+                    searchPlaceholder="Search class..."
+                    buttonClassName="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none sm:text-sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Subject</label>
-                  <select 
-                    {...assignmentForm.register('subject_id', { required: 'Required' })} 
-                    className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-                  >
-                    <option value="">Select Subject</option>
-                    {subjects.map(s => <option key={s._id} value={s._id}>{s.name} ({s.code})</option>)}
-                  </select>
+                  <SearchableSelect 
+                    options={[{ value: '', label: 'Select Subject' }, ...subjects.map(s => ({ value: s._id, label: `${s.name} (${s.code || 'SUB'})` }))]}
+                    value={assignmentForm.watch('subject_id')} 
+                    onChange={(val) => assignmentForm.setValue('subject_id', val, { shouldValidate: true })}
+                    placeholder="Select Subject"
+                    searchPlaceholder="Search subject..."
+                    buttonClassName="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none sm:text-sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Subject Teacher</label>
-                  <select 
-                    {...assignmentForm.register('teacher_id', { required: 'Required' })} 
-                    className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-                  >
-                    <option value="">Select Teacher</option>
-                    {teachers.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                  </select>
+                  <SearchableSelect 
+                    options={[{ value: '', label: 'Select Teacher' }, ...teachers.map(t => ({ value: t._id, label: t.name }))]}
+                    value={assignmentForm.watch('teacher_id')} 
+                    onChange={(val) => assignmentForm.setValue('teacher_id', val, { shouldValidate: true })}
+                    placeholder="Select Teacher"
+                    searchPlaceholder="Search teacher..."
+                    buttonClassName="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none sm:text-sm"
+                  />
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">

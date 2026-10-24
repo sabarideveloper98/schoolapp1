@@ -426,21 +426,17 @@ const CreateTimetable = () => {
 
                     <div>
                         <label className="text-xs font-bold text-slate-700 block mb-1">Class / Standard *</label>
-                        <select
+                        <SearchableSelect
+                            options={classes.map(c => ({
+                                value: c._id,
+                                label: `Class ${c.class} - Section ${c.section} ${c.class_incharge_id?.name ? `(${c.class_incharge_id.name})` : ''}`
+                            }))}
                             value={selectedClassId}
-                            onChange={(e) => setSelectedClassId(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
-                        >
-                            {classes.length === 0 ? (
-                                <option value="">No classes found</option>
-                            ) : (
-                                classes.map(c => (
-                                    <option key={c._id} value={c._id}>
-                                        Class {c.class} - Section {c.section} {c.class_incharge_id?.name ? `(${c.class_incharge_id.name})` : ''}
-                                    </option>
-                                ))
-                            )}
-                        </select>
+                            onChange={(val) => setSelectedClassId(val)}
+                            placeholder={classes.length === 0 ? "No classes found" : "Select Class..."}
+                            searchPlaceholder="Search class or section..."
+                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
+                        />
                     </div>
 
                     <div>
@@ -618,15 +614,17 @@ const CreateTimetable = () => {
                         <div className="space-y-3">
                             <div>
                                 <label className="text-xs font-bold text-slate-700 block mb-1">Subject *</label>
-                                <select
+                                <SearchableSelect
+                                    options={subjects.map(s => ({
+                                        value: s._id,
+                                        label: `${s.name} (${s.code || 'SUB'})`
+                                    }))}
                                     value={cellForm.subject_id}
-                                    onChange={(e) => handleSubjectChange(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
-                                >
-                                    {subjects.map(s => (
-                                        <option key={s._id} value={s._id}>{s.name} ({s.code || 'SUB'})</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => handleSubjectChange(val)}
+                                    placeholder="Select Subject..."
+                                    searchPlaceholder="Search subject..."
+                                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                />
                             </div>
 
                             <div className="relative z-20">

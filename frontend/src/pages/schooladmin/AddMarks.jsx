@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
-import BulkExamMarksImportModal from '../../components/BulkExamMarksImportModal';
+import BulkExamMarksImportModal, { downloadExamMarksSampleCSV } from '../../components/BulkExamMarksImportModal';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Save, Image as ImageIcon, CheckSquare, Square, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Save, Image as ImageIcon, CheckSquare, Square, FileSpreadsheet, Download } from 'lucide-react';
 
 const AddMarks = () => {
   const navigate = useNavigate();
@@ -252,6 +252,14 @@ const AddMarks = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={downloadExamMarksSampleCSV}
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+            title="Download CSV sample format for bulk marks import"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            Download Sample File
+          </button>
+          <button
             onClick={() => setShowBulkMarksModal(true)}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
           >
@@ -488,15 +496,17 @@ const AddMarks = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Term</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'First Term', label: 'First Term' },
+                    { value: 'Mid Term', label: 'Mid Term' },
+                    { value: 'Final Term', label: 'Final Term' }
+                  ]}
                   value={newExamTerm}
-                  onChange={(e) => setNewExamTerm(e.target.value)}
-                  className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
-                >
-                  <option value="First Term">First Term</option>
-                  <option value="Mid Term">Mid Term</option>
-                  <option value="Final Term">Final Term</option>
-                </select>
+                  onChange={(val) => setNewExamTerm(val)}
+                  placeholder="Select Term"
+                  buttonClassName="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none sm:text-sm"
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

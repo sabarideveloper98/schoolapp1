@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Plus, Edit, Trash2, Calendar, Settings, AlertCircle, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const FeeStructureManagement = () => {
   const { user } = useAuthStore();
@@ -227,25 +228,27 @@ const FeeStructureManagement = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 mb-1">Source Year</label>
-                <select
+                <SearchableSelect
                   value={fromYear}
-                  onChange={(e) => setFromYear(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
+                  onChange={(val) => setFromYear(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Source Year"
                 >
                   <option value="2024-2025">2024-2025</option>
                   <option value="2025-2026">2025-2026</option>
-                </select>
+                </SearchableSelect>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 mb-1">Target Year</label>
-                <select
+                <SearchableSelect
                   value={toYear}
-                  onChange={(e) => setToYear(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
+                  onChange={(val) => setToYear(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Target Year"
                 >
                   <option value="2025-2026">2025-2026</option>
                   <option value="2026-2027">2026-2027</option>
-                </select>
+                </SearchableSelect>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -349,31 +352,33 @@ const FeeStructureManagement = () => {
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">Select Class *</label>
-                <select
+                <SearchableSelect
                   value={selectedClassId}
-                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  onChange={(val) => setSelectedClassId(val)}
                   disabled={editMode}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                  className="w-full text-xs font-bold"
+                  placeholder="-- Choose Grade --"
                 >
                   <option value="">-- Choose Grade --</option>
                   {classes.map(cl => (
                     <option key={cl._id} value={cl._id}>{cl.class} - {cl.section}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">Academic Year *</label>
-                <select
+                <SearchableSelect
                   value={academicYear}
-                  onChange={(e) => setAcademicYear(e.target.value)}
+                  onChange={(val) => setAcademicYear(val)}
                   disabled={editMode}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                  className="w-full text-xs font-bold"
+                  placeholder="Academic Year"
                 >
                   <option value="2024-2025">2024-2025</option>
                   <option value="2025-2026">2025-2026</option>
                   <option value="2026-2027">2026-2027</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="space-y-3 pt-2">
@@ -399,16 +404,17 @@ const FeeStructureManagement = () => {
                     </button>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Category *</label>
-                      <select
+                      <SearchableSelect
                         value={item.category_id}
-                        onChange={(e) => handleItemChange(idx, 'category_id', e.target.value)}
-                        className="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-[11px] font-bold text-slate-700"
+                        onChange={(val) => handleItemChange(idx, 'category_id', val)}
+                        className="w-full text-[11px] font-bold"
+                        placeholder="-- Choose --"
                       >
                         <option value="">-- Choose --</option>
                         {categories.map(cat => (
                           <option key={cat._id} value={cat._id}>{cat.name}</option>
                         ))}
-                      </select>
+                      </SearchableSelect>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -436,16 +442,17 @@ const FeeStructureManagement = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Late Fine Type</label>
-                        <select
+                        <SearchableSelect
                           value={item.fine_type}
-                          onChange={(e) => handleItemChange(idx, 'fine_type', e.target.value)}
-                          className="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-[11px] font-bold text-slate-700"
+                          onChange={(val) => handleItemChange(idx, 'fine_type', val)}
+                          className="w-full text-[11px] font-bold"
+                          placeholder="Fine Type"
                         >
                           <option value="None">None</option>
                           <option value="Daily">Daily</option>
                           <option value="Weekly">Weekly</option>
                           <option value="Fixed">Fixed</option>
-                        </select>
+                        </SearchableSelect>
                       </div>
                       <div>
                         <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Fine Amount</label>

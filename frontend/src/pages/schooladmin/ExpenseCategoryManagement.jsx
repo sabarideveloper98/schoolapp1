@@ -6,6 +6,7 @@ import {
   Plus, Search, Edit2, Trash2, Tag, CheckCircle, XCircle,
   FileText, ShieldCheck, RefreshCw
 } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function ExpenseCategoryManagement() {
   const { user } = useAuthStore();
@@ -269,14 +270,15 @@ export default function ExpenseCategoryManagement() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Status</label>
-                <select
+                <SearchableSelect
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full h-10 px-3 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                  onChange={(val) => setFormData({ ...formData, status: val })}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Status"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

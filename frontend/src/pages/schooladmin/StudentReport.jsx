@@ -4,6 +4,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Search, User, BarChart3, TrendingUp, AlertCircle, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const StudentReport = () => {
   const navigate = useNavigate();
@@ -251,52 +252,55 @@ const StudentReport = () => {
           {/* Class Standard Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Class</label>
-            <select
+            <SearchableSelect
               value={classFilter}
-              onChange={(e) => {
-                setClassFilter(e.target.value);
+              onChange={(val) => {
+                setClassFilter(val);
                 setSectionFilter('');
               }}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+              className="w-full text-xs font-bold"
+              placeholder="Select Class"
             >
               <option value="">Select Class</option>
               {uniqueClassNames.map((c, idx) => (
                 <option key={idx} value={c}>{c}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Section Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Section</label>
-            <select
+            <SearchableSelect
               value={sectionFilter}
-              onChange={(e) => setSectionFilter(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+              onChange={(val) => setSectionFilter(val)}
+              className="w-full text-xs font-bold"
               disabled={!classFilter}
+              placeholder={classFilter ? 'Select Section' : 'Select Class First'}
             >
               <option value="">{classFilter ? 'Select Section' : 'Select Class First'}</option>
               {availableSections.map((s) => (
                 <option key={s._id} value={s._id}>{s.section}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Student Select (Only shown in individual tab) */}
           {activeTab === 'individual' && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Student</label>
-              <select
+              <SearchableSelect
                 value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+                onChange={(val) => setSelectedStudentId(val)}
+                className="w-full text-xs font-bold"
                 disabled={!sectionFilter}
+                placeholder="Select Student"
               >
                 <option value="">Select Student</option>
                 {studentsList.map(s => (
                   <option key={s._id} value={s._id}>{s.student_name}</option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           )}
 
@@ -304,14 +308,15 @@ const StudentReport = () => {
           {activeTab === 'individual' && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Report Mode</label>
-              <select
+              <SearchableSelect
                 value={individualMode}
-                onChange={(e) => setIndividualMode(e.target.value)}
-                className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+                onChange={(val) => setIndividualMode(val)}
+                className="w-full text-xs font-bold"
+                placeholder="Report Mode"
               >
                 <option value="month">Month wise</option>
                 <option value="week">Week wise</option>
-              </select>
+              </SearchableSelect>
             </div>
           )}
 
@@ -320,23 +325,25 @@ const StudentReport = () => {
             <>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Month</label>
-                <select
+                <SearchableSelect
                   value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+                  onChange={(val) => setSelectedMonth(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Month"
                 >
                   {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                </SearchableSelect>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Year</label>
-                <select
+                <SearchableSelect
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white sm:text-sm cursor-pointer"
+                  onChange={(val) => setSelectedYear(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Year"
                 >
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+                </SearchableSelect>
               </div>
             </>
           )}

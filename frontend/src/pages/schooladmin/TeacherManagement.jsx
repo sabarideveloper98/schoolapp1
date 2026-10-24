@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff, FileSpreadsheet, Copy, Key } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff, FileSpreadsheet, Copy, Key, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import BulkTeacherImportModal from '../../components/BulkTeacherImportModal';
+import BulkTeacherImportModal, { downloadTeacherSampleCSV } from '../../components/BulkTeacherImportModal';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const TeacherManagement = () => {
   const navigate = useNavigate();
@@ -167,7 +168,16 @@ const TeacherManagement = () => {
             <span className="text-blue-600">Teachers</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={downloadTeacherSampleCSV}
+            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+            title="Download sample teachers CSV template"
+          >
+            <Download className="w-4 h-4 text-indigo-600" />
+            Download Sample File
+          </button>
           <button
             onClick={() => setIsBulkModalOpen(true)}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
@@ -192,16 +202,18 @@ const TeacherManagement = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
             <span>Show</span>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 10, label: '10' },
+                { value: 20, label: '20' },
+                { value: 50, label: '50' },
+                { value: 100, label: '100' }
+              ]}
               value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 cursor-pointer focus:border-blue-500 text-xs font-semibold"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              onChange={(val) => setPageSize(Number(val))}
+              className="w-24"
+              buttonClassName="h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 text-xs font-semibold"
+            />
             <span>Entries</span>
           </div>
 

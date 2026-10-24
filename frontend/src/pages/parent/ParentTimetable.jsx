@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { getSubjectColor } from '../../utils/timetableColors';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const ParentTimetable = ({ childrenList }) => {
     const { user } = useAuthStore();
@@ -74,17 +75,17 @@ const ParentTimetable = ({ childrenList }) => {
 
                 <div className="w-full sm:w-64">
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Select Child</label>
-                    <select
+                    <SearchableSelect
+                        options={childrenList.map(c => ({
+                            value: c._id,
+                            label: `${c.student_name} (Class ${c.class_id?.class}-${c.class_id?.section})`
+                        }))}
                         value={selectedChildId}
-                        onChange={(e) => setSelectedChildId(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
-                    >
-                        {childrenList.map(c => (
-                            <option key={c._id} value={c._id}>
-                                {c.student_name} (Class {c.class_id?.class}-{c.class_id?.section})
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(val) => setSelectedChildId(val)}
+                        placeholder="Select Child..."
+                        searchPlaceholder="Search child..."
+                        buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
+                    />
                 </div>
             </div>
 

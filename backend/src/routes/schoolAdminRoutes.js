@@ -5,7 +5,7 @@ const {
     getSchoolAdminProfile,
     getDashboardStats,
     getTeachers, createTeacher, deleteTeacher, updateTeacher, bulkImportTeachers,
-    getStaff, createStaff, deleteStaff, updateStaff,
+    getStaff, createStaff, deleteStaff, updateStaff, bulkImportStaff,
     getSubjects, createSubject, deleteSubject, updateSubject,
     getClasses, createClass, deleteClass, updateClass,
     getClassSubjects, assignSubjectTeacher, removeSubjectTeacher, updateSubjectTeacher,
@@ -58,6 +58,7 @@ router.post('/teachers/bulk-import', bulkImportTeachers);
 router.route('/teachers/:id').put(updateTeacher).delete(deleteTeacher);
 
 router.route('/staff').get(getStaff).post(createStaff);
+router.post('/staff/bulk-import', bulkImportStaff);
 router.route('/staff/:id').put(updateStaff).delete(deleteStaff);
 
 router.route('/subjects').get(getSubjects).post(createSubject);

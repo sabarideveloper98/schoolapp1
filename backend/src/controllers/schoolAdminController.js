@@ -1098,7 +1098,6 @@ const bulkImportStudents = async (req, res) => {
                     school_id,
                     parent_user_id: parentUser._id
                 });
-
                 createdStudents.push({
                     student,
                     parentPassword: parentPassword || 'Existing Account'
@@ -1107,7 +1106,6 @@ const bulkImportStudents = async (req, res) => {
                 errors.push({ row: i + 1, message: rowErr.message });
             }
         }
-
         res.status(201).json({
             success: true,
             count: createdStudents.length,
@@ -1119,7 +1117,6 @@ const bulkImportStudents = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
-
 const bulkImportTeachers = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
@@ -1172,7 +1169,6 @@ const bulkImportTeachers = async (req, res) => {
                         password: initialPassword || '123456'
                     });
                 }
-
                 createdTeachers.push({
                     teacher,
                     initialPassword: initialPassword || 'Existing Account'
@@ -1188,6 +1184,102 @@ const bulkImportTeachers = async (req, res) => {
             createdTeachers,
             errors,
             message: `Successfully imported ${createdTeachers.length} teachers`
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+const bulkImportStaff = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { staff } = req.body;
+
+        if (!Array.isArray(staff) || staff.length === 0) {
+            return res.status(400).json({ message: 'No staff data provided for import' });
+        }
+
+        const createdStaff = [];
+        const errors = [];
+
+        for (let i = 0; i < staff.length; i++) {
+            const item = staff[i];
+            try {
+                const staff_name = item.staff_name || item.name || (item.last_name ? `${item.first_name} ${item.last_name}` : item.first_name);
+                if (!staff_name) {
+                    errors.push({ row: i + 1, message: 'Staff name is required' });
+                    continue;
+                }
+
+                const email = item.email ? item.email.trim().toLowerCase() : `staff${Date.now()}_${i}@school.com`;
+                const phone = item.mobile || item.mobile_number || item.phone || `9876${Math.floor(100000 + Math.random() * 900000)}`;
+                const staffRole = item.role || item.role_title || item.designation || 'Office Staff';
+                const parsedExperience = parseInt(item.experience, 10) || 0;
+
+                let user = await User.findOne({ $or: [{ email }, { phone }] });
+                let initialPassword = null;
+                if (!user) {
+                    initialPassword = item.password || 'Staff@123';
+                    user = await User.create({
+                        name: staff_name,
+                        email,
+                        phone,
+                        password: initialPassword,
+                        role: 'Staff'
+                    });
+                }
+
+                let staffMember = await Staff.findOne({ school_id, email });
+                if (!staffMember) {
+                    staffMember = await Staff.create({
+                        school_id,
+                        user_id: user._id,
+                        name: staff_name,
+                        email,
+                        phone,
+                        role: staffRole,
+                        address: item.address || 'N/A',
+                        qualification: item.qualification || 'N/A',
+                        experience: parsedExperience,
+                        photo: item.photo || '',
+                        password: initialPassword || 'Staff@123'
+                    });
+                    user.reference_id = staffMember._id;
+                    await user.save();
+                }
+
+                if (staffRole.trim().toLowerCase() === 'driver') {
+                    const driverExists = await Driver.findOne({ mobile_number: phone, school_id });
+                    if (!driverExists) {
+                        await Driver.create({
+                            school_id,
+                            driver_id: `DRV-${Date.now()}_${i}`,
+                            name: staff_name,
+                            mobile_number: phone,
+                            email,
+                            address: item.address || '',
+                            license_number: `DL-${phone || Date.now()}`,
+                            password: initialPassword || 'Staff@123',
+                            status: 'Active'
+                        });
+                    }
+                }
+
+                createdStaff.push({
+                    staff: staffMember,
+                    initialPassword: initialPassword || 'Existing Account'
+                });
+            } catch (rowErr) {
+                errors.push({ row: i + 1, message: rowErr.message });
+            }
+        }
+
+        res.status(201).json({
+            success: true,
+            count: createdStaff.length,
+            createdStaff,
+            errors,
+            message: `Successfully imported ${createdStaff.length} staff members`
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -1334,7 +1426,7 @@ module.exports = {
     getSchoolAdminProfile,
     getDashboardStats,
     getTeachers, createTeacher, deleteTeacher, updateTeacher, bulkImportTeachers,
-    getStaff, createStaff, deleteStaff, updateStaff,
+    getStaff, createStaff, deleteStaff, updateStaff, bulkImportStaff,
     getSubjects, createSubject, deleteSubject, updateSubject,
     getClasses, createClass, deleteClass, updateClass,
     getClassSubjects, assignSubjectTeacher, removeSubjectTeacher, updateSubjectTeacher,

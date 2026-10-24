@@ -4,6 +4,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Search, User, BarChart3, TrendingUp, AlertCircle, ArrowRight } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const StaffReport = () => {
   const navigate = useNavigate();
@@ -220,30 +221,32 @@ const StaffReport = () => {
           {/* Role selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Role</label>
-            <select
+            <SearchableSelect
               value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
+              onChange={(val) => setRole(val)}
+              className="w-full text-xs font-bold"
+              placeholder="Select Role"
             >
               <option value="Teacher">Teacher</option>
               <option value="Staff">Staff</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Individual selector (Shown only in Individual tab) */}
           {activeTab === 'individual' && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Staff Member</label>
-              <select
+              <SearchableSelect
                 value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
+                onChange={(val) => setSelectedUserId(val)}
+                className="w-full text-xs font-bold"
+                placeholder="Select Staff"
               >
                 <option value="">Select Staff</option>
                 {role === 'Teacher'
                   ? teachersList.map(t => <option key={t.user_id} value={t.user_id}>{t.name}</option>)
                   : staffList.map(s => <option key={s.user_id} value={s.user_id}>{s.name}</option>)}
-              </select>
+              </SearchableSelect>
             </div>
           )}
 
@@ -251,14 +254,15 @@ const StaffReport = () => {
           {activeTab === 'individual' && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Report Mode</label>
-              <select
+              <SearchableSelect
                 value={individualMode}
-                onChange={(e) => setIndividualMode(e.target.value)}
-                className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
+                onChange={(val) => setIndividualMode(val)}
+                className="w-full text-xs font-bold"
+                placeholder="Report Mode"
               >
                 <option value="month">Month wise</option>
                 <option value="week">Week wise</option>
-              </select>
+              </SearchableSelect>
             </div>
           )}
 
@@ -267,23 +271,25 @@ const StaffReport = () => {
             <>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Month</label>
-                <select
+                <SearchableSelect
                   value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
+                  onChange={(val) => setSelectedMonth(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Month"
                 >
                   {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                </SearchableSelect>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Year</label>
-                <select
+                <SearchableSelect
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
+                  onChange={(val) => setSelectedYear(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Year"
                 >
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+                </SearchableSelect>
               </div>
             </>
           )}

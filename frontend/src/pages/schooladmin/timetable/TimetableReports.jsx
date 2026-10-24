@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Download, Printer, FileText, FileSpreadsheet, Users, BookOpen } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 const TimetableReports = () => {
     const { user } = useAuthStore();
@@ -75,15 +76,17 @@ const TimetableReports = () => {
 
                     <div>
                         <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Select Class</label>
-                        <select
+                        <SearchableSelect
+                            options={classes.map(c => ({
+                                value: c._id,
+                                label: `Class ${c.class}-${c.section}`
+                            }))}
                             value={selectedClassId}
-                            onChange={(e) => setSelectedClassId(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
-                        >
-                            {classes.map(c => (
-                                <option key={c._id} value={c._id}>Class {c.class}-{c.section}</option>
-                            ))}
-                        </select>
+                            onChange={(val) => setSelectedClassId(val)}
+                            placeholder="Select Class..."
+                            searchPlaceholder="Search class..."
+                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
@@ -116,15 +119,17 @@ const TimetableReports = () => {
 
                     <div>
                         <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Select Teacher</label>
-                        <select
+                        <SearchableSelect
+                            options={teachers.map(t => ({
+                                value: t._id,
+                                label: t.name
+                            }))}
                             value={selectedTeacherId}
-                            onChange={(e) => setSelectedTeacherId(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
-                        >
-                            {teachers.map(t => (
-                                <option key={t._id} value={t._id}>{t.name}</option>
-                            ))}
-                        </select>
+                            onChange={(val) => setSelectedTeacherId(val)}
+                            placeholder="Select Teacher..."
+                            searchPlaceholder="Search teacher..."
+                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-100">

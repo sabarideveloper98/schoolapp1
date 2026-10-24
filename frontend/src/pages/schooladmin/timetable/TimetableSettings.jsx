@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Settings, Save, Clock, Calendar, UserX, Plus, Trash2, Sparkles, BookOpen, Layers, CheckCircle2, AlertCircle, Edit3, RefreshCw, Wand2 } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 // Helper to compute default period schedule from parameters
 const calculateLivePeriods = (config) => {
@@ -615,19 +616,21 @@ const TimetableSettingsPage = () => {
                                                 onChange={(e) => handleDirectPeriodUpdate(idx, 'period_name', e.target.value)}
                                                 className="font-black text-sm bg-white/80 border border-slate-200 rounded-lg px-2 py-0.5 text-slate-900 w-28 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             />
-                                            <select
+                                            <SearchableSelect
+                                                options={[
+                                                    { value: 'Teaching Period', label: 'Period' },
+                                                    { value: 'Break', label: 'Break' },
+                                                    { value: 'Lunch', label: 'Lunch' }
+                                                ]}
                                                 value={type}
-                                                onChange={(e) => handleDirectPeriodUpdate(idx, 'type', e.target.value)}
-                                                className={`text-[10px] font-bold px-2 py-1 rounded-lg border focus:outline-none ${
+                                                onChange={(val) => handleDirectPeriodUpdate(idx, 'type', val)}
+                                                className="w-24"
+                                                buttonClassName={`text-[10px] font-bold px-2 py-1 rounded-lg border focus:outline-none ${
                                                     isLunch ? 'bg-amber-200 text-amber-950 border-amber-300' :
                                                     isBreak ? 'bg-purple-200 text-purple-950 border-purple-300' :
                                                     'bg-blue-100 text-blue-900 border-blue-200'
                                                 }`}
-                                            >
-                                                <option value="Teaching Period">Period</option>
-                                                <option value="Break">Break</option>
-                                                <option value="Lunch">Lunch</option>
-                                            </select>
+                                            />
                                         </div>
 
                                         {/* Direct Time Inputs */}
@@ -774,15 +777,17 @@ const TimetableSettingsPage = () => {
                         </div>
 
                         <div className="w-full sm:w-64">
-                            <select
+                            <SearchableSelect
+                                options={teachers.map(t => ({
+                                    value: t._id,
+                                    label: t.name
+                                }))}
                                 value={selectedTeacherId}
-                                onChange={(e) => setSelectedTeacherId(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
-                            >
-                                {teachers.map(t => (
-                                    <option key={t._id} value={t._id}>{t.name}</option>
-                                ))}
-                            </select>
+                                onChange={(val) => setSelectedTeacherId(val)}
+                                placeholder="Select Teacher..."
+                                searchPlaceholder="Search teacher..."
+                                buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
+                            />
                         </div>
                     </div>
 
@@ -897,15 +902,17 @@ const TimetableSettingsPage = () => {
 
                             <div>
                                 <label className="text-xs font-bold text-slate-700 block mb-1">Period Type</label>
-                                <select
+                                <SearchableSelect
+                                    options={[
+                                        { value: 'Teaching Period', label: 'Teaching Period' },
+                                        { value: 'Break', label: 'Break / Short Break' },
+                                        { value: 'Lunch', label: 'Lunch Break' }
+                                    ]}
                                     value={periodForm.type}
-                                    onChange={(e) => setPeriodForm({ ...periodForm, type: e.target.value })}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
-                                >
-                                    <option value="Teaching Period">Teaching Period</option>
-                                    <option value="Break">Break / Short Break</option>
-                                    <option value="Lunch">Lunch Break</option>
-                                </select>
+                                    onChange={(val) => setPeriodForm({ ...periodForm, type: val })}
+                                    placeholder="Select Period Type..."
+                                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                />
                             </div>
                         </div>
 

@@ -497,16 +497,17 @@ const TeacherHomework = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Category</label>
-                  <select
+                  <SearchableSelect
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold outline-none focus:border-blue-500 focus:bg-white"
+                    onChange={(val) => setForm({ ...form, category: val })}
+                    className="w-full font-bold"
+                    placeholder="Select Category"
                   >
                     <option value="Homework">Homework</option>
                     <option value="Class Work">Class Work</option>
                     <option value="Assignment">Assignment</option>
                     <option value="Project Work">Project Work</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Max Marks</label>
@@ -590,15 +591,16 @@ const TeacherHomework = () => {
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Status *</label>
-                <select
+                <SearchableSelect
                   value={reviewForm.status}
-                  onChange={(e) => setReviewForm({ ...reviewForm, status: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 font-bold outline-none focus:border-blue-500 focus:bg-white"
+                  onChange={(val) => setReviewForm({ ...reviewForm, status: val })}
+                  className="w-full font-bold"
+                  placeholder="Select Status"
                 >
                   <option value="Approved">Approved</option>
                   <option value="Needs Improvement">Needs Improvement</option>
                   <option value="Rejected">Rejected</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>

@@ -54,11 +54,11 @@ const StudentManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [appliedClassFilter, setAppliedClassFilter] = useState('');
   const [appliedSectionFilter, setAppliedSectionFilter] = useState('');
-  
+
   // Table search & limit
   const [pageSize, setPageSize] = useState(50);
   const [globalSearch, setGlobalSearch] = useState('');
-  
+
   // Dropdown states
   const [activeDropdownId, setActiveDropdownId] = useState(null);
 
@@ -81,7 +81,7 @@ const StudentManagement = () => {
       const rawClasses = Array.isArray(classRes.data) ? classRes.data : (classRes.data?.classes || classRes.data?.data || []);
       setStudents(rawStudents);
       setClasses(rawClasses);
-      
+
       // If initial class ID is present in query parameters, apply it
       if (initialClassId && rawClasses.length > 0) {
         const matchingClass = rawClasses.find(c => c._id === initialClassId);
@@ -92,7 +92,7 @@ const StudentManagement = () => {
           setAppliedSectionFilter(matchingClass._id);
         }
       }
-      
+
       setLoading(false);
     } catch {
       toast.error('Failed to fetch data');
@@ -273,7 +273,7 @@ const StudentManagement = () => {
       const currentStatus = student.student_status || 'Active';
       if (currentStatus.toLowerCase() !== statusFilter.toLowerCase()) return false;
     }
-    
+
     if (globalSearch) {
       const searchLower = globalSearch.toLowerCase();
       return (
@@ -303,14 +303,14 @@ const StudentManagement = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setShowBulkModal(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(79,70,229,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
           >
             <FileSpreadsheet className="w-4 h-4" />
             Bulk CSV/Excel Import
           </button>
-          <button 
+          <button
             onClick={() => navigate('/school-admin/students/create')}
             className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(59,130,246,0.15)] flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
           >
@@ -367,18 +367,21 @@ const StudentManagement = () => {
           {/* Status Filter */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Status</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'Active', label: 'Active' },
+                { value: 'Inactive', label: 'Inactive' },
+                { value: 'Suspended', label: 'Suspended' },
+                { value: 'Transferred', label: 'Transferred' },
+                { value: 'Graduated', label: 'Graduated' }
+              ]}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-12 w-full px-4 border border-slate-200 rounded-xl outline-none bg-white text-slate-800 text-xs font-semibold focus:border-blue-500 cursor-pointer"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Transferred">Transferred</option>
-              <option value="Graduated">Graduated</option>
-            </select>
+              onChange={(val) => setStatusFilter(val)}
+              placeholder="Select Status..."
+              searchPlaceholder="Search status..."
+              buttonClassName="h-12 w-full px-4 border border-slate-200 rounded-xl outline-none bg-white text-slate-800 text-xs font-semibold"
+            />
           </div>
 
           {/* Search trigger button */}
@@ -396,21 +399,23 @@ const StudentManagement = () => {
 
       {/* Main Student List Table Card */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-6 overflow-hidden">
-        
+
         {/* Entries page size and Search text input */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
             <span>Show</span>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 10, label: '10' },
+                { value: 20, label: '20' },
+                { value: 50, label: '50' },
+                { value: 100, label: '100' }
+              ]}
               value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 cursor-pointer focus:border-blue-500 text-xs font-semibold"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              onChange={(val) => setPageSize(Number(val))}
+              className="w-24"
+              buttonClassName="h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 text-xs font-semibold"
+            />
             <span>Entries ({filteredStudents.length} total)</span>
           </div>
 
@@ -511,11 +516,10 @@ const StudentManagement = () => {
                     <td className="px-5 py-4 whitespace-nowrap">
                       <button
                         onClick={() => toggleStatus(student)}
-                        className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                          isActive
+                        className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${isActive
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
                             : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
-                        }`}
+                          }`}
                         title="Click to toggle Active / Inactive"
                       >
                         {currentStatus}
@@ -604,7 +608,7 @@ const StudentManagement = () => {
       {viewModalStudent && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 my-8 max-h-[90vh] overflow-y-auto space-y-6">
-            
+
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-4">
@@ -618,9 +622,8 @@ const StudentManagement = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl font-black text-slate-800">{viewModalStudent.student_name}</h3>
-                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                      (viewModalStudent.student_status || 'Active') === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                    }`}>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${(viewModalStudent.student_status || 'Active') === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      }`}>
                       {viewModalStudent.student_status || 'Active'}
                     </span>
                   </div>
@@ -630,7 +633,7 @@ const StudentManagement = () => {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => setViewModalStudent(null)}
                 className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -656,9 +659,8 @@ const StudentManagement = () => {
                   <button
                     key={t.id}
                     onClick={() => setViewModalTab(t.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
-                      isCurrent ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${isCurrent ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+                      }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
                     {t.label}
@@ -819,10 +821,10 @@ const StudentManagement = () => {
                 </button>
               </div>
             </div>
-            
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                
+
                 {/* Full Student Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Student Name *</label>
@@ -853,59 +855,62 @@ const StudentManagement = () => {
                 {/* Class Select */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Class *</label>
-                  <select
+                  <SearchableSelect
+                    options={uniqueClassNames.map(c => ({ value: c, label: c }))}
                     value={editClass}
-                    onChange={(e) => handleClassChange(e.target.value)}
-                    className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold cursor-pointer"
-                  >
-                    <option value="">Select Class</option>
-                    {uniqueClassNames.map((c, idx) => (
-                      <option key={idx} value={c}>{c}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => handleClassChange(val)}
+                    placeholder="Select Class"
+                    searchPlaceholder="Search class..."
+                    buttonClassName="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none text-xs font-semibold"
+                  />
                 </div>
 
                 {/* Section Select */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Section *</label>
-                  <select
-                    {...register('class_id', { required: 'Required' })}
-                    className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold cursor-pointer"
-                  >
-                    <option value="">Select Section</option>
-                    {editAvailableSections.map((s) => (
-                      <option key={s._id} value={s._id}>{s.section}</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={editAvailableSections.map(s => ({ value: s._id, label: s.section }))}
+                    value={watch('class_id')}
+                    onChange={(val) => setValue('class_id', val, { shouldValidate: true })}
+                    placeholder="Select Section"
+                    searchPlaceholder="Search section..."
+                    buttonClassName="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none text-xs font-semibold"
+                  />
                 </div>
 
                 {/* Academic Year */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Academic Year *</label>
-                  <select
-                    {...register('academic_year')}
-                    className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold cursor-pointer"
-                  >
-                    <option value="2024-2025">2024-2025</option>
-                    <option value="2025-2026">2025-2026</option>
-                    <option value="2026-2027">2026-2027</option>
-                    <option value="2027-2028">2027-2028</option>
-                  </select>
+                  <SearchableSelect
+                    options={[
+                      { value: '2024-2025', label: '2024-2025' },
+                      { value: '2025-2026', label: '2025-2026' },
+                      { value: '2026-2027', label: '2026-2027' },
+                      { value: '2027-2028', label: '2027-2028' }
+                    ]}
+                    value={watch('academic_year')}
+                    onChange={(val) => setValue('academic_year', val)}
+                    placeholder="Select Academic Year"
+                    buttonClassName="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none text-xs font-semibold"
+                  />
                 </div>
 
                 {/* Status */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Student Status *</label>
-                  <select
-                    {...register('student_status')}
-                    className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold cursor-pointer"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                    <option value="Suspended">Suspended</option>
-                    <option value="Transferred">Transferred</option>
-                    <option value="Graduated">Graduated</option>
-                  </select>
+                  <SearchableSelect
+                    options={[
+                      { value: 'Active', label: 'Active' },
+                      { value: 'Inactive', label: 'Inactive' },
+                      { value: 'Suspended', label: 'Suspended' },
+                      { value: 'Transferred', label: 'Transferred' },
+                      { value: 'Graduated', label: 'Graduated' }
+                    ]}
+                    value={watch('student_status')}
+                    onChange={(val) => setValue('student_status', val)}
+                    placeholder="Select Status"
+                    buttonClassName="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none text-xs font-semibold"
+                  />
                 </div>
 
                 {/* Date of Birth */}
@@ -921,14 +926,17 @@ const StudentManagement = () => {
                 {/* Gender */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Gender *</label>
-                  <select
-                    {...register('gender')}
-                    className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold cursor-pointer"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <SearchableSelect
+                    options={[
+                      { value: 'Male', label: 'Male' },
+                      { value: 'Female', label: 'Female' },
+                      { value: 'Other', label: 'Other' }
+                    ]}
+                    value={watch('gender')}
+                    onChange={(val) => setValue('gender', val)}
+                    placeholder="Select Gender"
+                    buttonClassName="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none text-xs font-semibold"
+                  />
                 </div>
 
                 {/* Guardian Name */}
@@ -952,18 +960,21 @@ const StudentManagement = () => {
                 {/* Guardian Relationship */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Relationship *</label>
-                  <select
-                    {...register('guardian_relation')}
-                    className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold cursor-pointer"
-                  >
-                    <option value="Father">Father</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Brother">Brother</option>
-                    <option value="Sister">Sister</option>
-                    <option value="Uncle">Uncle</option>
-                    <option value="Guardian">Guardian</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <SearchableSelect
+                    options={[
+                      { value: 'Father', label: 'Father' },
+                      { value: 'Mother', label: 'Mother' },
+                      { value: 'Brother', label: 'Brother' },
+                      { value: 'Sister', label: 'Sister' },
+                      { value: 'Uncle', label: 'Uncle' },
+                      { value: 'Guardian', label: 'Guardian' },
+                      { value: 'Other', label: 'Other' }
+                    ]}
+                    value={watch('guardian_relation')}
+                    onChange={(val) => setValue('guardian_relation', val)}
+                    placeholder="Select Relationship"
+                    buttonClassName="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none text-xs font-semibold"
+                  />
                 </div>
 
                 {/* Address Line */}
@@ -1028,3 +1039,4 @@ const StudentManagement = () => {
 };
 
 export default StudentManagement;
+

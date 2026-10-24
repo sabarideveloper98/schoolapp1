@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, UserCheck, ShieldAlert, CheckCircle, RefreshCcw, Edit2, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const StudentFeeAssignment = () => {
   const { user } = useAuthStore();
@@ -14,6 +15,7 @@ const StudentFeeAssignment = () => {
   const [loading, setLoading] = useState(false);
   const [studentsData, setStudentsData] = useState([]);
   const [filteredStructures, setFilteredStructures] = useState([]);
+  const [selectedBulkStructureId, setSelectedBulkStructureId] = useState('');
 
   // Assignment Modal/Single edit
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -166,29 +168,31 @@ const StudentFeeAssignment = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Class & Section</label>
-            <select
+            <SearchableSelect
               value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedClassId(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- Select Grade --"
             >
               <option value="">-- Select Grade --</option>
               {classes.map(cl => (
                 <option key={cl._id} value={cl._id}>{cl.class} - {cl.section}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Academic Year</label>
-            <select
+            <SearchableSelect
               value={academicYear}
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setAcademicYear(val)}
+              className="w-full text-xs font-bold"
+              placeholder="Academic Year"
             >
               <option value="2024-2025">2024-2025</option>
               <option value="2025-2026">2025-2026</option>
               <option value="2026-2027">2026-2027</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <button
@@ -215,25 +219,28 @@ const StudentFeeAssignment = () => {
 
           <div className="flex flex-col gap-1 max-w-sm w-full">
             <div className="flex items-center gap-2">
-              <select
-                id="bulk-structure-select"
-                className="flex-1 h-10 px-3 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-700"
-              >
-                <option value="">
-                  {filteredStructures.length === 0 
-                    ? "-- No Blueprints Found for Selected Class --" 
-                    : "-- Choose Structure Blueprint --"}
-                </option>
-                {filteredStructures.map(s => (
-                  <option key={s._id} value={s._id}>
-                    {s.items.length} items (₹{s.items.reduce((sum, item) => sum + item.amount, 0)} total)
+              <div className="flex-1">
+                <SearchableSelect
+                  value={selectedBulkStructureId}
+                  onChange={(val) => setSelectedBulkStructureId(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder={filteredStructures.length === 0 ? "-- No Blueprints Found --" : "-- Choose Blueprint --"}
+                >
+                  <option value="">
+                    {filteredStructures.length === 0 
+                      ? "-- No Blueprints Found for Selected Class --" 
+                      : "-- Choose Structure Blueprint --"}
                   </option>
-                ))}
-              </select>
+                  {filteredStructures.map(s => (
+                    <option key={s._id} value={s._id}>
+                      {s.items.length} items (₹{s.items.reduce((sum, item) => sum + item.amount, 0)} total)
+                    </option>
+                  ))}
+                </SearchableSelect>
+              </div>
               <button
                 onClick={() => {
-                  const el = document.getElementById('bulk-structure-select');
-                  handleBulkAssign(el?.value);
+                  handleBulkAssign(selectedBulkStructureId);
                 }}
                 disabled={filteredStructures.length === 0}
                 className="bg-blue-600 hover:bg-blue-500 text-white h-10 px-4 rounded-xl text-xs font-black shadow-md transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -344,16 +351,17 @@ const StudentFeeAssignment = () => {
 
                   <div>
                     <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Fee Category</label>
-                    <select
+                    <SearchableSelect
                       value={item.category_id}
-                      onChange={(e) => handleItemFieldChange(idx, 'category_id', e.target.value)}
-                      className="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-[11px] font-bold text-slate-700"
+                      onChange={(val) => handleItemFieldChange(idx, 'category_id', val)}
+                      className="w-full text-[11px] font-bold"
+                      placeholder="-- Choose Category --"
                     >
                       <option value="">-- Choose Category --</option>
                       {categories.map(c => (
                         <option key={c._id} value={c._id}>{c.name}</option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -380,16 +388,17 @@ const StudentFeeAssignment = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Fine Waiver/Daily penalty</label>
-                      <select
+                      <SearchableSelect
                         value={item.fine_type}
-                        onChange={(e) => handleItemFieldChange(idx, 'fine_type', e.target.value)}
-                        className="w-full h-8 px-2 bg-white border border-slate-200 rounded-md text-[11px] font-bold text-slate-700"
+                        onChange={(val) => handleItemFieldChange(idx, 'fine_type', val)}
+                        className="w-full text-[11px] font-bold"
+                        placeholder="Fine Waiver / Penalty"
                       >
                         <option value="None">None</option>
                         <option value="Daily">Daily</option>
                         <option value="Weekly">Weekly</option>
                         <option value="Fixed">Fixed</option>
-                      </select>
+                      </SearchableSelect>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Fine Amount</label>

@@ -6,6 +6,7 @@ import {
   Plus, Search, Edit2, Trash2, TrendingUp, DollarSign, Download,
   Filter, CheckCircle, RefreshCw, X
 } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function IncomeManagement() {
   const { user } = useAuthStore();
@@ -196,10 +197,11 @@ export default function IncomeManagement() {
           </div>
 
           <div>
-            <select
+            <SearchableSelect
               value={selectedIncomeType}
-              onChange={(e) => setSelectedIncomeType(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedIncomeType(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- All Income Types --"
             >
               <option value="">-- All Income Types --</option>
               <option value="Admission Fee">Admission Fee</option>
@@ -209,14 +211,15 @@ export default function IncomeManagement() {
               <option value="Donation">Donation</option>
               <option value="Sponsorship">Sponsorship</option>
               <option value="Other Income">Other Income</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>
-            <select
+            <SearchableSelect
               value={selectedPaymentMethod}
-              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedPaymentMethod(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- All Payment Methods --"
             >
               <option value="">-- All Payment Methods --</option>
               <option value="Cash">Cash</option>
@@ -224,7 +227,7 @@ export default function IncomeManagement() {
               <option value="Bank Transfer">Bank Transfer</option>
               <option value="Cheque">Cheque</option>
               <option value="Online Payment">Online Payment</option>
-            </select>
+            </SearchableSelect>
           </div>
         </div>
       </div>
@@ -328,11 +331,12 @@ export default function IncomeManagement() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Income Type *</label>
-                <select
+                <SearchableSelect
                   required
                   value={formData.income_type}
-                  onChange={(e) => setFormData({ ...formData, income_type: e.target.value })}
-                  className="w-full h-10 px-3 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                  onChange={(val) => setFormData({ ...formData, income_type: val })}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Income Type"
                 >
                   <option value="Admission Fee">Admission Fee</option>
                   <option value="Student Fee Collection">Student Fee Collection</option>
@@ -341,7 +345,7 @@ export default function IncomeManagement() {
                   <option value="Donation">Donation</option>
                   <option value="Sponsorship">Sponsorship</option>
                   <option value="Other Income">Other Income</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -360,17 +364,18 @@ export default function IncomeManagement() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Payment Method *</label>
-                  <select
+                  <SearchableSelect
                     value={formData.payment_method}
-                    onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                    className="w-full h-10 px-3 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                    onChange={(val) => setFormData({ ...formData, payment_method: val })}
+                    className="w-full text-xs font-bold"
+                    placeholder="Select Payment Method"
                   >
                     <option value="Cash">Cash</option>
                     <option value="UPI">UPI</option>
                     <option value="Bank Transfer">Bank Transfer</option>
                     <option value="Cheque">Cheque</option>
                     <option value="Online Payment">Online Payment</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 

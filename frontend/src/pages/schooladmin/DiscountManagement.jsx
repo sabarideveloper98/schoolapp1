@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Tag, Percent } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const DiscountManagement = () => {
   const { user } = useAuthStore();
@@ -13,7 +14,15 @@ const DiscountManagement = () => {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  const { register, handleSubmit, reset, setValue } = useForm();
+  const { register, handleSubmit, reset, setValue, watch } = useForm({
+    defaultValues: {
+      name: '',
+      type: 'Fixed',
+      amount: '',
+      reason: '',
+      status: 'Active'
+    }
+  });
 
   const fetchDiscounts = async () => {
     try {
@@ -189,13 +198,15 @@ const DiscountManagement = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">Discount Type *</label>
-                <select
-                  {...register('type', { required: true })}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                <SearchableSelect
+                  value={watch('type') || 'Fixed'}
+                  onChange={(val) => setValue('type', val, { shouldValidate: true })}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Type"
                 >
                   <option value="Fixed">Fixed Amount (₹)</option>
                   <option value="Percentage">Percentage waiver (%)</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -220,13 +231,15 @@ const DiscountManagement = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">Status</label>
-                <select
-                  {...register('status')}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                <SearchableSelect
+                  value={watch('status') || 'Active'}
+                  onChange={(val) => setValue('status', val, { shouldValidate: true })}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Status"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

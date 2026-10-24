@@ -6,6 +6,7 @@ import {
   Plus, Search, Edit2, Trash2, Printer, Download, Eye, FileText,
   Paperclip, Filter, CheckCircle, Clock, RefreshCw, X, ExternalLink
 } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function ExpenseManagement() {
   const { user } = useAuthStore();
@@ -218,23 +219,25 @@ export default function ExpenseManagement() {
           </div>
 
           <div>
-            <select
+            <SearchableSelect
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedCategory(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- All Categories --"
             >
               <option value="">-- All Categories --</option>
               {categories.map(cat => (
                 <option key={cat._id} value={cat._id}>{cat.name}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>
-            <select
+            <SearchableSelect
               value={selectedPaymentMethod}
-              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedPaymentMethod(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- All Payment Methods --"
             >
               <option value="">-- All Payment Methods --</option>
               <option value="Cash">Cash</option>
@@ -242,19 +245,20 @@ export default function ExpenseManagement() {
               <option value="Bank Transfer">Bank Transfer</option>
               <option value="Cheque">Cheque</option>
               <option value="Online Payment">Online Payment</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>
-            <select
+            <SearchableSelect
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedStatus(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- All Statuses --"
             >
               <option value="">-- All Statuses --</option>
               <option value="Paid">Paid</option>
               <option value="Pending">Pending</option>
-            </select>
+            </SearchableSelect>
           </div>
         </div>
       </div>
@@ -386,17 +390,18 @@ export default function ExpenseManagement() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Expense Category *</label>
-                  <select
+                  <SearchableSelect
                     required
                     value={formData.category_id}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className="w-full h-10 px-3 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                    onChange={(val) => setFormData({ ...formData, category_id: val })}
+                    className="w-full text-xs font-bold"
+                    placeholder="-- Choose Category --"
                   >
                     <option value="">-- Choose Category --</option>
                     {categories.map(cat => (
                       <option key={cat._id} value={cat._id}>{cat.name} ({cat.code})</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -428,17 +433,18 @@ export default function ExpenseManagement() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Payment Method *</label>
-                  <select
+                  <SearchableSelect
                     value={formData.payment_method}
-                    onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                    className="w-full h-10 px-3 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                    onChange={(val) => setFormData({ ...formData, payment_method: val })}
+                    className="w-full text-xs font-bold"
+                    placeholder="Select Payment Method"
                   >
                     <option value="Cash">Cash</option>
                     <option value="UPI">UPI</option>
                     <option value="Bank Transfer">Bank Transfer</option>
                     <option value="Cheque">Cheque</option>
                     <option value="Online Payment">Online Payment</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -456,14 +462,15 @@ export default function ExpenseManagement() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Expense Status</label>
-                  <select
+                  <SearchableSelect
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full h-10 px-3 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                    onChange={(val) => setFormData({ ...formData, status: val })}
+                    className="w-full text-xs font-bold"
+                    placeholder="Select Status"
                   >
                     <option value="Paid">Paid</option>
                     <option value="Pending">Pending</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 

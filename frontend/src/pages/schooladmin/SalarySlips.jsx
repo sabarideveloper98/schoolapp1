@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, Printer, FileText, CheckCircle2, AlertTriangle, Landmark } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const SalarySlips = () => {
   const { user } = useAuthStore();
@@ -77,40 +78,43 @@ const SalarySlips = () => {
           {/* Month Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Select Month</label>
-            <select
+            <SearchableSelect
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedMonth(Number(val))}
+              className="w-full text-xs font-bold"
+              placeholder="Select Month"
             >
               {[...Array(12)].map((_, i) => (
                 <option key={i} value={i + 1}>
                   {new Date(0, i).toLocaleString('en', { month: 'long' })}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Year Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Select Year</label>
-            <select
+            <SearchableSelect
               value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedYear(Number(val))}
+              className="w-full text-xs font-bold"
+              placeholder="Select Year"
             >
               {[2024, 2025, 2026, 2027].map(yr => (
                 <option key={yr} value={yr}>{yr}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Employee Select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Select Employee Payroll</label>
-            <select
+            <SearchableSelect
               value={selectedPayrollId}
-              onChange={(e) => setSelectedPayrollId(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedPayrollId(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- Choose Employee --"
             >
               <option value="">-- Choose Employee --</option>
               {payrolls.map((p) => (
@@ -118,7 +122,7 @@ const SalarySlips = () => {
                   {p.employee_name} ({p.designation}) - ${p.salary_breakdown.net_salary}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Generate Button */}

@@ -4,6 +4,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Users, Search, Clock, Save } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const StaffAttendance = () => {
   const navigate = useNavigate();
@@ -131,14 +132,16 @@ const StaffAttendance = () => {
           {/* Role select */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Role</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'Teacher', label: 'Teacher' },
+                { value: 'Staff', label: 'Staff' }
+              ]}
               value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 sm:text-sm cursor-pointer"
-            >
-              <option value="Teacher">Teacher</option>
-              <option value="Staff">Staff</option>
-            </select>
+              onChange={(val) => setRole(val)}
+              placeholder="Select Role"
+              buttonClassName="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none sm:text-sm"
+            />
           </div>
 
           {/* Date Picker */}
@@ -280,15 +283,18 @@ const StaffAttendance = () => {
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-100">
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <span className="text-xs font-bold text-slate-500 shrink-0">Notify via</span>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'Do not send', label: 'Do not send' },
+                    { value: 'SMS', label: 'SMS' },
+                    { value: 'Email', label: 'Email' }
+                  ]}
                   value={notifyVia}
-                  onChange={(e) => setNotifyVia(e.target.value)}
-                  className="h-12 px-4 border border-slate-200 rounded-xl outline-none bg-white text-slate-750 font-bold text-xs cursor-pointer focus:border-blue-500 w-full sm:w-48 shadow-sm"
-                >
-                  <option value="Do not send">Do not send</option>
-                  <option value="SMS">SMS</option>
-                  <option value="Email">Email</option>
-                </select>
+                  onChange={(val) => setNotifyVia(val)}
+                  placeholder="Select Notification"
+                  className="w-full sm:w-48"
+                  buttonClassName="h-12 px-4 border border-slate-200 rounded-xl outline-none bg-white text-slate-750 font-bold text-xs"
+                />
               </div>
 
               <button

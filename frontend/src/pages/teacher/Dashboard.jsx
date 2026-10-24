@@ -1,23 +1,22 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  MessageSquare, 
-  User, 
-  Bus, 
-  CalendarRange, 
-  CheckSquare, 
-  Award, 
-  FileText, 
-  Star, 
-  Calendar, 
-  Bell, 
-  FileSpreadsheet 
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  MessageSquare,
+  User,
+  Bus,
+  CalendarRange,
+  CheckSquare,
+  Award,
+  FileText,
+  Star,
+  Calendar,
+  Bell,
+  FileSpreadsheet
 } from 'lucide-react';
 import Layout from '../../components/Layout';
 import useAuthStore from '../../store/useAuthStore';
-
 import TeacherOverview from './TeacherOverview';
 import TeacherStudents from './TeacherStudents';
 import TeacherClasses from './TeacherClasses';
@@ -48,8 +47,8 @@ const TeacherDashboard = () => {
       icon: CalendarRange,
       path: '/teacher/timetable'
     },
-    { 
-      label: 'Academic Management', 
+    {
+      label: 'Academic Management',
       icon: BookOpen,
       subItems: [
         { label: 'Assigned Classes', path: '/teacher/classes' },
@@ -70,19 +69,19 @@ const TeacherDashboard = () => {
       icon: Calendar,
       path: '/teacher/leaves'
     },
-    { 
-      label: 'Communication Hub', 
+    {
+      label: 'Communication Hub',
       icon: MessageSquare,
       subItems: [
         { label: 'Parent Queries & Messages', path: '/teacher/messages' },
         { label: 'School Circulars', path: '/teacher/announcements' }
       ]
     },
-    {
-      label: 'Bus Tracking',
-      icon: Bus,
-      path: '/teacher/bus-tracking'
-    },
+    // {
+    //   label: 'Bus Tracking',
+    //   icon: Bus,
+    //   path: '/teacher/bus-tracking'
+    // },
     {
       label: 'Academic Reports',
       icon: FileSpreadsheet,
@@ -118,5 +117,4 @@ const TeacherDashboard = () => {
     </Layout>
   );
 };
-
 export default TeacherDashboard;

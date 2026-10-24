@@ -43,6 +43,7 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/school-admin" element={<Navigate to="/school-admin/dashboard" replace />} />
           <Route path="/school-admin/*" element={
             <ProtectedRoute allowedRoles={['SchoolAdmin']}>
               <SchoolAdminDashboard />
@@ -68,6 +69,7 @@ function App() {
           } />
           
           <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         <ToastContainer position="top-right" autoClose={3000} />
       </div>

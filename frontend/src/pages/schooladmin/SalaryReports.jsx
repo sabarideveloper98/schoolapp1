@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, Download, CreditCard, PieChart, Users, BarChart3, AlertCircle, FileSpreadsheet, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const SalaryReports = () => {
   const { user } = useAuthStore();
@@ -193,10 +194,11 @@ const SalaryReports = () => {
           {/* Report Type */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Report Category</label>
-            <select
+            <SearchableSelect
               value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setReportType(val)}
+              className="w-full text-xs font-bold"
+              placeholder="Report Category"
             >
               <option value="Monthly Payroll">Monthly Payroll Report</option>
               <option value="Teacher Salary">Teacher Salary Report</option>
@@ -204,7 +206,7 @@ const SalaryReports = () => {
               <option value="Paid Salary">Paid Salary Report</option>
               <option value="Pending Salary">Pending Salary Report</option>
               <option value="Department-wise">Department-wise Salary Report</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Department filter option */}
@@ -224,31 +226,33 @@ const SalaryReports = () => {
           {/* Month Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Month</label>
-            <select
+            <SearchableSelect
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedMonth(Number(val))}
+              className="w-full text-xs font-bold"
+              placeholder="Month"
             >
               {[...Array(12)].map((_, i) => (
                 <option key={i} value={i + 1}>
                   {new Date(0, i).toLocaleString('en', { month: 'long' })}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Year Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Year</label>
-            <select
+            <SearchableSelect
               value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedYear(Number(val))}
+              className="w-full text-xs font-bold"
+              placeholder="Year"
             >
               {[2024, 2025, 2026, 2027].map(yr => (
                 <option key={yr} value={yr}>{yr}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
         </div>
       </div>

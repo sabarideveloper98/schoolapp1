@@ -6,6 +6,7 @@ import {
   AlertCircle, Download, ExternalLink, Calendar, CheckSquare, X, Filter, Sparkles, Award
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const HomeworkManagement = () => {
   const [activeTab, setActiveTab] = useState('list'); // 'list', 'grading', 'reports'
@@ -289,29 +290,37 @@ const HomeworkManagement = () => {
             <h3 className="text-base font-black text-slate-800 uppercase tracking-wide">Assigned Homework Register</h3>
             
             <div className="flex flex-wrap items-center gap-3">
-              <select
+              <SearchableSelect
+                options={[
+                  { value: '', label: '-- All Classes --' },
+                  ...classesList.map(c => ({
+                    value: c._id,
+                    label: `${c.class || c.class_name || 'Class'} ${c.section ? `(${c.section})` : ''}`
+                  }))
+                ]}
                 value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
-              >
-                <option value="">-- All Classes --</option>
-                {classesList.map(c => (
-                  <option key={c._id} value={c._id}>
-                    {c.class || c.class_name || 'Class'} {c.section ? `(${c.section})` : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setFilterClass(val)}
+                placeholder="-- All Classes --"
+                searchPlaceholder="Search class..."
+                className="w-44"
+                buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+              />
 
-              <select
+              <SearchableSelect
+                options={[
+                  { value: '', label: '-- All Categories --' },
+                  ...['Class Work', 'Homework', 'Project Work', 'Assignment', 'Practical Work', 'Lab Activity'].map(cat => ({
+                    value: cat,
+                    label: cat
+                  }))
+                ]}
                 value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
-              >
-                <option value="">-- All Categories --</option>
-                {['Class Work', 'Homework', 'Project Work', 'Assignment', 'Practical Work', 'Lab Activity'].map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+                onChange={(val) => setFilterCategory(val)}
+                placeholder="-- All Categories --"
+                searchPlaceholder="Search category..."
+                className="w-44"
+                buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+              />
             </div>
           </div>
 
@@ -601,15 +610,17 @@ const HomeworkManagement = () => {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-600 block mb-1">Category / Type *</label>
-                  <select
+                  <SearchableSelect
+                    options={['Class Work', 'Homework', 'Project Work', 'Assignment', 'Practical Work', 'Lab Activity'].map(cat => ({
+                      value: cat,
+                      label: cat
+                    }))}
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                  >
-                    {['Class Work', 'Homework', 'Project Work', 'Assignment', 'Practical Work', 'Lab Activity'].map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setForm({ ...form, category: val })}
+                    placeholder="Select Category..."
+                    searchPlaceholder="Search category..."
+                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
+                  />
                 </div>
               </div>
 
@@ -643,19 +654,17 @@ const HomeworkManagement = () => {
               {form.assignment_type === 'Class' && (
                 <div>
                   <label className="text-xs font-bold text-slate-600 block mb-1">Select Target Class *</label>
-                  <select
+                  <SearchableSelect
+                    options={classesList.map(c => ({
+                      value: c._id,
+                      label: `${c.class || c.class_name || 'Class'} ${c.section ? `(${c.section})` : ''}`
+                    }))}
                     value={form.assigned_classes[0] || ''}
-                    onChange={(e) => setForm({ ...form, assigned_classes: [e.target.value] })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                    required
-                  >
-                    <option value="">-- Choose Class --</option>
-                    {classesList.map(c => (
-                      <option key={c._id} value={c._id}>
-                        {c.class || c.class_name || 'Class'} {c.section ? `(${c.section})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setForm({ ...form, assigned_classes: [val] })}
+                    placeholder="-- Choose Class --"
+                    searchPlaceholder="Search class..."
+                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
+                  />
                 </div>
               )}
 
@@ -663,19 +672,17 @@ const HomeworkManagement = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-600 block mb-1">Select Class *</label>
-                    <select
+                    <SearchableSelect
+                      options={classesList.map(c => ({
+                        value: c._id,
+                        label: `${c.class || c.class_name || 'Class'} ${c.section ? `(${c.section})` : ''}`
+                      }))}
                       value={form.assigned_classes[0] || ''}
-                      onChange={(e) => setForm({ ...form, assigned_classes: [e.target.value] })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                      required
-                    >
-                      <option value="">-- Choose Class --</option>
-                      {classesList.map(c => (
-                        <option key={c._id} value={c._id}>
-                          {c.class || c.class_name || 'Class'} {c.section ? `(${c.section})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setForm({ ...form, assigned_classes: [val] })}
+                      placeholder="-- Choose Class --"
+                      searchPlaceholder="Search class..."
+                      buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-600 block mb-1">Section Code *</label>
@@ -694,17 +701,17 @@ const HomeworkManagement = () => {
               {form.assignment_type === 'Student' && (
                 <div>
                   <label className="text-xs font-bold text-slate-600 block mb-1">Select Specific Student *</label>
-                  <select
+                  <SearchableSelect
+                    options={studentsList.map(s => ({
+                      value: s._id,
+                      label: `${s.student_name} (Roll: ${s.roll_no || 'N/A'})`
+                    }))}
                     value={form.assigned_students[0] || ''}
-                    onChange={(e) => setForm({ ...form, assigned_students: [e.target.value] })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                    required
-                  >
-                    <option value="">-- Choose Student --</option>
-                    {studentsList.map(s => (
-                      <option key={s._id} value={s._id}>{s.student_name} (Roll: {s.roll_no || 'N/A'})</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setForm({ ...form, assigned_students: [val] })}
+                    placeholder="-- Choose Student --"
+                    searchPlaceholder="Search student..."
+                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
+                  />
                 </div>
               )}
 
@@ -841,15 +848,17 @@ const HomeworkManagement = () => {
 
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">Evaluation Status *</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'Approved', label: 'Approved / Completed' },
+                    { value: 'Needs Improvement', label: 'Needs Improvement' },
+                    { value: 'Rejected', label: 'Rejected / Re-submit' }
+                  ]}
                   value={reviewForm.status}
-                  onChange={(e) => setReviewForm({ ...reviewForm, status: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
-                >
-                  <option value="Approved">Approved / Completed</option>
-                  <option value="Needs Improvement">Needs Improvement</option>
-                  <option value="Rejected">Rejected / Re-submit</option>
-                </select>
+                  onChange={(val) => setReviewForm({ ...reviewForm, status: val })}
+                  placeholder="Select Status..."
+                  buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
+                />
               </div>
 
               <div>

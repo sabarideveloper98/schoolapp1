@@ -84,7 +84,8 @@ const DashboardOverview = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const token = user?.token || user?.accessToken || (typeof localStorage !== 'undefined' ? (JSON.parse(localStorage.getItem('user') || '{}')?.token || localStorage.getItem('token')) : '') || '';
+        const config = { headers: { Authorization: `Bearer ${token}` } };
         const { data } = await axios.get('/api/schooladmin/dashboard', config);
         setStats(data);
       } catch (error) {
@@ -94,7 +95,7 @@ const DashboardOverview = () => {
       }
     };
 
-    if (user?.token) {
+    if (user) {
       fetchStats();
     } else {
       setLoading(false);
@@ -832,13 +833,13 @@ const DashboardOverview = () => {
 
             </div>
           </div>
-
-          {/* Quick Analytics Drawer Toggle */}
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <DashboardAnalyticsBar role="SchoolAdmin" />
-          </div>
         </div>
 
+      </div>
+
+      {/* Analytics & Quick Operational Bar */}
+      <div className="pt-2">
+        <DashboardAnalyticsBar role="SchoolAdmin" />
       </div>
 
       {/* Bottom Footer Details Bar */}
@@ -869,7 +870,8 @@ const SchoolAdminDashboard = () => {
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       try {
-        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const token = user?.token || user?.accessToken || (typeof localStorage !== 'undefined' ? (JSON.parse(localStorage.getItem('user') || '{}')?.token || localStorage.getItem('token')) : '') || '';
+        const config = { headers: { Authorization: `Bearer ${token}` } };
         const { data } = await axios.get('/api/subscription/schooladmin/current', config);
         
         const activeSub = data?.activeSubscription;
@@ -883,7 +885,7 @@ const SchoolAdminDashboard = () => {
       }
     };
 
-    if (user?.token) {
+    if (user) {
       checkSubscriptionStatus();
     } else {
       setLoadingSub(false);
@@ -1008,8 +1010,8 @@ const SchoolAdminDashboard = () => {
   return (
     <Layout menuItems={menuItems} title="School Admin Portal">
       <Routes>
-        <Route index element={<Navigate to="/school-admin/dashboard" replace />} />
-        <Route path="/" element={<Navigate to="/school-admin/dashboard" replace />} />
+        <Route index element={<DashboardOverview />} />
+        <Route path="/" element={<DashboardOverview />} />
         <Route path="/dashboard" element={<DashboardOverview />} />
         
         {/* Timetable Sub-routes */}

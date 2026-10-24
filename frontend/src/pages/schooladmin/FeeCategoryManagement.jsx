@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Search, Settings } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const FeeCategoryManagement = () => {
   const { user } = useAuthStore();
@@ -13,7 +14,15 @@ const FeeCategoryManagement = () => {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
-  const { register, handleSubmit, reset, setValue } = useForm();
+  const { register, handleSubmit, reset, setValue, watch } = useForm({
+    defaultValues: {
+      name: '',
+      code: '',
+      description: '',
+      academic_year: '2025-2026',
+      status: 'Active'
+    }
+  });
 
   const fetchCategories = async () => {
     try {
@@ -199,25 +208,29 @@ const FeeCategoryManagement = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">Academic Year *</label>
-                <select
-                  {...register('academic_year', { required: true })}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                <SearchableSelect
+                  value={watch('academic_year') || '2025-2026'}
+                  onChange={(val) => setValue('academic_year', val, { shouldValidate: true })}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Academic Year"
                 >
                   <option value="2024-2025">2024-2025</option>
                   <option value="2025-2026">2025-2026</option>
                   <option value="2026-2027">2026-2027</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">Status</label>
-                <select
-                  {...register('status')}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                <SearchableSelect
+                  value={watch('status') || 'Active'}
+                  onChange={(val) => setValue('status', val, { shouldValidate: true })}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Status"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>

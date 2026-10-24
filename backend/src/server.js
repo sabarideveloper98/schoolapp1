@@ -14,11 +14,12 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.IO
+// Initialize Socket.IO with CORS
 const io = new Server(server, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'DELETE']
+        origin: (origin, callback) => callback(null, true),
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        credentials: true
     }
 });
 
@@ -32,11 +33,48 @@ io.on('connection', (socket) => {
 
 const path = require('path');
 
+// Configure CORS
+const corsOptions = {
+    origin: function (origin, callback) {
+        callback(null, true);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+        'Origin',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'x-access-token'
+    ],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+// Enable CORS as top-level middleware
+app.use(cors(corsOptions));
+
+// Explicit fallback headers middleware for CORS preflight and requests
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    next();
+});
+
 // Body parser
 app.use(express.json());
-
-// Enable CORS
-app.use(cors());
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -76,7 +114,7 @@ app.get('/', (req, res) => {
     res.send('School Management System API is running... Swagger docs available at /api-docs');
 });
 
-const PORT = 5005;
+const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

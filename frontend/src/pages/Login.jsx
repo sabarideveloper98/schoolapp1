@@ -3,15 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useAuthStore from '../store/useAuthStore';
 import {
-  GraduationCap,
   Lock,
   User,
-  ShieldAlert,
-  ShieldCheck,
-  Users,
   Info,
   LogIn,
-  UserCheck,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -57,12 +52,6 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await handleLoginSubmit(emailOrPhone, password);
-  };
-
-  const handleDemoLogin = async (demoEmailOrPhone, demoPassword) => {
-    setEmailOrPhone(demoEmailOrPhone);
-    setPassword(demoPassword);
-    await handleLoginSubmit(demoEmailOrPhone, demoPassword);
   };
 
   return (
@@ -253,53 +242,6 @@ const Login = () => {
                   {isLoading ? 'Signing In...' : 'Login Now'}
                 </button>
 
-                {/* Demo Logins */}
-                <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDemoLogin('admin@system.com', 'Admin@123')}
-                    className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-indigo-500/20 cursor-pointer"
-                  >
-                    <ShieldCheck className="w-5 h-5 mr-3 text-indigo-400" />
-                    Admin
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDemoLogin('jonson@gmail.com', 'jonson@123')}
-                    className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-green-500/20 cursor-pointer"
-                  >
-                    <ShieldAlert className="w-5 h-5 mr-3 text-green-400" />
-                    School Admin
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDemoLogin('teacher@system.com', 'Admin@123')}
-                    className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-purple-500/20 cursor-pointer"
-                  >
-                    <GraduationCap className="w-5 h-5 mr-3 text-purple-400" />
-                    Teacher
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDemoLogin('staff@system.com', 'Admin@123')}
-                    className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-yellow-500/20 cursor-pointer"
-                  >
-                    <UserCheck className="w-5 h-5 mr-3 text-yellow-400" />
-                    Staff
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDemoLogin('1234567890', 'Admin@123')}
-                    className="flex items-center justify-start px-4 font-semibold text-white transition duration-300 border h-14 rounded-2xl border-white/10 bg-white/10 hover:bg-orange-500/20 md:col-span-2 md:justify-center cursor-pointer"
-                  >
-                    <Users className="w-5 h-5 mr-3 text-orange-400" />
-                    Parent
-                  </button>
-                </div>
 
               </form>
             </div>

@@ -7,6 +7,7 @@ import {
     CheckCircle2, AlertCircle, RefreshCw, Layers, Users, BookOpen, Clock, FileText
 } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 const StatWidget = ({ title, value, icon: Icon, color, subtitle }) => {
     return (
@@ -183,27 +184,31 @@ const ManageTimetable = () => {
                     <div className="flex items-center gap-2">
                         <Filter className="w-4 h-4 text-slate-400" />
                         <span className="text-xs font-bold text-slate-500">Status:</span>
-                        <select
+                        <SearchableSelect
+                            options={[
+                                { value: 'All', label: 'All Statuses' },
+                                { value: 'Published', label: 'Published' },
+                                { value: 'Draft', label: 'Draft' }
+                            ]}
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        >
-                            <option value="All">All Statuses</option>
-                            <option value="Published">Published</option>
-                            <option value="Draft">Draft</option>
-                        </select>
+                            onChange={(val) => setStatusFilter(val)}
+                            className="w-36"
+                            buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-500">Academic Year:</span>
-                        <select
+                        <SearchableSelect
+                            options={[
+                                { value: '2026-2027', label: '2026-2027' },
+                                { value: '2025-2026', label: '2025-2026' }
+                            ]}
                             value={academicYear}
-                            onChange={(e) => setAcademicYear(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        >
-                            <option value="2026-2027">2026-2027</option>
-                            <option value="2025-2026">2025-2026</option>
-                        </select>
+                            onChange={(val) => setAcademicYear(val)}
+                            className="w-36"
+                            buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
+                        />
                     </div>
                 </div>
             </div>

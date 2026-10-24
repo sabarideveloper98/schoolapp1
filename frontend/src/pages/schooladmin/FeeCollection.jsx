@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, Coins, CreditCard, Receipt, FileText, CheckCircle, AlertTriangle, Printer, Tag } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const FeeCollection = () => {
   const { user } = useAuthStore();
@@ -246,29 +247,31 @@ const FeeCollection = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Filter by Class</label>
-            <select
+            <SearchableSelect
               value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setSelectedClassId(val)}
+              className="w-full text-xs font-bold"
+              placeholder="-- Choose Grade --"
             >
               <option value="">-- Choose Grade --</option>
               {classes.map(cl => (
                 <option key={cl._id} value={cl._id}>{cl.class} - {cl.section}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Academic Year</label>
-            <select
+            <SearchableSelect
               value={academicYear}
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setAcademicYear(val)}
+              className="w-full text-xs font-bold"
+              placeholder="Academic Year"
             >
               <option value="2024-2025">2024-2025</option>
               <option value="2025-2026">2025-2026</option>
               <option value="2026-2027">2026-2027</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <button
@@ -435,17 +438,18 @@ const FeeCollection = () => {
             <div className="border-t border-slate-100 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Payment Method *</label>
-                <select
+                <SearchableSelect
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer"
+                  onChange={(val) => setPaymentMethod(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Payment Method"
                 >
                   <option value="Cash">Cash</option>
                   <option value="UPI">UPI</option>
                   <option value="Credit Card">Credit Card</option>
                   <option value="Debit Card">Debit Card</option>
                   <option value="Net Banking">Net Banking</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>

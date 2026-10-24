@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, Download, DollarSign, PieChart, TrendingUp, AlertTriangle, Percent, HelpCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const FeeReports = () => {
   const { user } = useAuthStore();
@@ -189,15 +190,16 @@ const FeeReports = () => {
           {/* Report Category */}
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1.5">Report Type</label>
-            <select
+            <SearchableSelect
               value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
-              className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+              onChange={(val) => setReportType(val)}
+              className="w-full text-xs font-bold"
+              placeholder="Report Type"
             >
               <option value="Daily Collection">Daily Collection Report</option>
               <option value="Monthly Collection">Monthly Collection Report</option>
               <option value="Class Wise">Class Wise Report</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* Date Selector for Daily */}
@@ -218,29 +220,31 @@ const FeeReports = () => {
             <>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Month</label>
-                <select
+                <SearchableSelect
                   value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                  onChange={(val) => setSelectedMonth(Number(val))}
+                  className="w-full text-xs font-bold"
+                  placeholder="Month"
                 >
                   {[...Array(12)].map((_, idx) => (
                     <option key={idx} value={idx + 1}>
                       {new Date(0, idx).toLocaleString('en', { month: 'long' })}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Year</label>
-                <select
+                <SearchableSelect
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                  onChange={(val) => setSelectedYear(Number(val))}
+                  className="w-full text-xs font-bold"
+                  placeholder="Year"
                 >
                   {[2024, 2025, 2026, 2027].map(yr => (
                     <option key={yr} value={yr}>{yr}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
             </>
           )}
@@ -249,16 +253,17 @@ const FeeReports = () => {
           {reportType === 'Class Wise' && (
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Class Standard</label>
-              <select
+              <SearchableSelect
                 value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full h-11 px-4 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer"
+                onChange={(val) => setSelectedClassId(val)}
+                className="w-full text-xs font-bold"
+                placeholder="-- All Classes --"
               >
                 <option value="">-- All Classes --</option>
                 {classes.map(cl => (
                   <option key={cl._id} value={cl._id}>{cl.class} - {cl.section}</option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           )}
         </div>

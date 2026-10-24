@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Printer, Download, FileSpreadsheet, RefreshCw, Calendar, UserCheck, BookOpen, Layers } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
 import { getSubjectColor } from '../../../utils/timetableColors';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 const PrintTimetable = () => {
     const { user } = useAuthStore();
@@ -191,14 +192,16 @@ const PrintTimetable = () => {
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                             View Type
                         </label>
-                        <select
+                        <SearchableSelect
+                            options={[
+                                { value: 'class', label: 'Class Timetable' },
+                                { value: 'teacher', label: 'Teacher Timetable' }
+                            ]}
                             value={mode}
-                            onChange={(e) => setMode(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        >
-                            <option value="class">Class Timetable</option>
-                            <option value="teacher">Teacher Timetable</option>
-                        </select>
+                            onChange={(val) => setMode(val)}
+                            placeholder="Select Mode..."
+                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                        />
                     </div>
 
                     {mode === 'class' ? (
@@ -206,30 +209,34 @@ const PrintTimetable = () => {
                             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                                 Select Class & Section
                             </label>
-                            <select
+                            <SearchableSelect
+                                options={classes.map(c => ({
+                                    value: c._id,
+                                    label: `Class ${c.class} - ${c.section}`
+                                }))}
                                 value={selectedClassId}
-                                onChange={(e) => setSelectedClassId(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                            >
-                                {classes.map(c => (
-                                    <option key={c._id} value={c._id}>Class {c.class} - {c.section}</option>
-                                ))}
-                            </select>
+                                onChange={(val) => setSelectedClassId(val)}
+                                placeholder="Select Class..."
+                                searchPlaceholder="Search class..."
+                                buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                            />
                         </div>
                     ) : (
                         <div>
                             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                                 Select Teacher
                             </label>
-                            <select
+                            <SearchableSelect
+                                options={teachers.map(t => ({
+                                    value: t._id,
+                                    label: `${t.name} (${t.qualification || 'Teacher'})`
+                                }))}
                                 value={selectedTeacherId}
-                                onChange={(e) => setSelectedTeacherId(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                            >
-                                {teachers.map(t => (
-                                    <option key={t._id} value={t._id}>{t.name} ({t.qualification || 'Teacher'})</option>
-                                ))}
-                            </select>
+                                onChange={(val) => setSelectedTeacherId(val)}
+                                placeholder="Select Teacher..."
+                                searchPlaceholder="Search teacher..."
+                                buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                            />
                         </div>
                     )}
 
@@ -237,14 +244,16 @@ const PrintTimetable = () => {
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                             Academic Year
                         </label>
-                        <select
+                        <SearchableSelect
+                            options={[
+                                { value: '2026-2027', label: '2026-2027' },
+                                { value: '2025-2026', label: '2025-2026' }
+                            ]}
                             value={academicYear}
-                            onChange={(e) => setAcademicYear(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        >
-                            <option value="2026-2027">2026-2027</option>
-                            <option value="2025-2026">2025-2026</option>
-                        </select>
+                            onChange={(val) => setAcademicYear(val)}
+                            placeholder="Select Year..."
+                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                        />
                     </div>
                 </div>
             </div>

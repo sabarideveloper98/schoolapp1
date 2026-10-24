@@ -4,6 +4,7 @@ import { Plus, Edit, Search, History, CheckCircle, XCircle, ArrowLeft, Landmark,
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const SalarySetup = () => {
   const [employees, setEmployees] = useState([]);
@@ -139,16 +140,17 @@ const SalarySetup = () => {
           />
         </div>
         
-        <div className="flex gap-3 w-full md:w-auto">
-          <select
+        <div className="flex gap-3 w-full md:w-auto min-w-[200px]">
+          <SearchableSelect
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="h-11 px-4 text-xs font-bold bg-slate-50/50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer focus:border-blue-500 focus:bg-white"
+            onChange={(val) => setRoleFilter(val)}
+            className="w-full text-xs font-bold"
+            placeholder="All Employee Types"
           >
             <option value="">All Employee Types</option>
             <option value="Teacher">Teachers</option>
             <option value="Staff">Office Staff / Others</option>
-          </select>
+          </SearchableSelect>
         </div>
       </div>
 
@@ -303,13 +305,15 @@ const SalarySetup = () => {
                 {/* Status */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Salary Status</label>
-                  <select
-                    {...register('status')}
-                    className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 sm:text-xs font-semibold cursor-pointer"
+                  <SearchableSelect
+                    value={watch('status') || 'Active'}
+                    onChange={(val) => setValue('status', val, { shouldValidate: true })}
+                    className="w-full text-xs font-bold"
+                    placeholder="Salary Status"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 {/* Monthly Salary */}

@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, Edit, FileText, Upload, CheckCircle2, X, Eye } from 'lucide-react';
+import { Plus, Trash2, Edit, FileText, Upload, CheckCircle2, X, Eye, FileSpreadsheet, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
+import SearchableSelect from '../../components/SearchableSelect';
+import BulkStaffImportModal, { downloadStaffSampleCSV } from '../../components/BulkStaffImportModal';
 
 const StaffManagement = () => {
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -156,14 +159,33 @@ const StaffManagement = () => {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] overflow-hidden">
-      <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/40">
+      <div className="p-6 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3 bg-slate-50/40">
         <h2 className="text-lg font-bold text-slate-800">Staff Management</h2>
-        <button
-          onClick={() => { reset(); setEditMode(false); setEditingId(null); setAadhaarBase64(''); setAadhaarFileName(''); setAadhaarFileType(''); setIsFormOpen(true); }}
-          className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_4px_12px_rgba(37,99,235,0.1)] cursor-pointer"
-        >
-          <Plus className="w-4 h-4 mr-2" /> Add Staff
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={downloadStaffSampleCSV}
+            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+            title="Download sample staff CSV template"
+          >
+            <Download className="w-4 h-4 text-indigo-600" />
+            Download Sample File
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsBulkModalOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Bulk Import Staff
+          </button>
+          <button
+            onClick={() => { reset(); setEditMode(false); setEditingId(null); setAadhaarBase64(''); setAadhaarFileName(''); setAadhaarFileType(''); setIsFormOpen(true); }}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_4px_12px_rgba(37,99,235,0.1)] cursor-pointer"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Add Staff
+          </button>
+        </div>
       </div>
 
       <div className="p-6">
@@ -181,18 +203,21 @@ const StaffManagement = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Role/Designation</label>
-                <select 
-                  {...register('role', { required: 'Required' })} 
-                  className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
-                >
-                  <option value="">Select Role</option>
-                  <option value="Driver">Driver</option>
-                  <option value="Peon">Peon</option>
-                  <option value="Security">Security</option>
-                  <option value="Cleaner">Cleaner</option>
-                  <option value="Clerk">Clerk</option>
-                  <option value="Other">Other</option>
-                </select>
+                <SearchableSelect 
+                  options={[
+                    { value: 'Driver', label: 'Driver' },
+                    { value: 'Peon', label: 'Peon' },
+                    { value: 'Security', label: 'Security' },
+                    { value: 'Cleaner', label: 'Cleaner' },
+                    { value: 'Clerk', label: 'Clerk' },
+                    { value: 'Other', label: 'Other' }
+                  ]}
+                  value={watch('role')}
+                  onChange={(val) => setValue('role', val, { shouldValidate: true })}
+                  placeholder="Select Role"
+                  searchPlaceholder="Search role..."
+                  buttonClassName="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none sm:text-sm"
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email (Optional)</label>
@@ -448,6 +473,16 @@ const StaffManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Bulk Staff Import Modal */}
+      <BulkStaffImportModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={() => {
+          setIsBulkModalOpen(false);
+          fetchStaff();
+        }}
+      />
     </div>
   );
 };

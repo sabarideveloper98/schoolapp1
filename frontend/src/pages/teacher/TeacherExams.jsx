@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
-import BulkExamMarksImportModal from '../../components/BulkExamMarksImportModal';
+import BulkExamMarksImportModal, { downloadExamMarksSampleCSV } from '../../components/BulkExamMarksImportModal';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { 
@@ -12,7 +12,8 @@ import {
   Trophy, 
   Users, 
   Search,
-  Filter
+  Filter,
+  Download
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -169,6 +170,14 @@ const TeacherExams = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={downloadExamMarksSampleCSV}
+            className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold text-xs shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02]"
+            title="Download CSV sample format for bulk marks import"
+          >
+            <Download className="w-4 h-4 text-emerald-600" /> Download Sample File
+          </button>
+
           <button
             onClick={() => setIsBulkModalOpen(true)}
             className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02]"

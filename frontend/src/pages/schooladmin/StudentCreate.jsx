@@ -468,11 +468,10 @@ const StudentCreate = () => {
                 const el = document.getElementById(`section-${tab.id}`);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all cursor-pointer ${
-                isActive
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all cursor-pointer ${isActive
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <Icon className="w-3.5 h-3.5" />
               {tab.label}

@@ -4,6 +4,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { MessageSquarePlus } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const TeacherMessages = () => {
   const [messages, setMessages] = useState([]);
@@ -13,7 +14,7 @@ const TeacherMessages = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { user } = useAuthStore();
   
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
       receiver_type: 'Class',
       receiver_ids: []
@@ -93,27 +94,34 @@ const TeacherMessages = () => {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Send To (Type)</label>
-              <select 
-                {...register('receiver_type', { required: 'Required' })}
-                className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
+              <SearchableSelect 
+                value={watch('receiver_type') || 'Class'}
+                onChange={(val) => {
+                  setValue('receiver_type', val, { shouldValidate: true });
+                  setValue('receiver_ids', '');
+                }}
+                className="w-full text-sm font-semibold"
+                placeholder="Send To (Type)"
               >
                 <option value="Class">Group Chat (Entire Class)</option>
                 <option value="Student">Single Chat (Specific Student/Parent)</option>
-              </select>
+              </SearchableSelect>
             </div>
 
             {receiverType === 'Class' && (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Class</label>
-                <select 
-                  {...register('receiver_ids', { required: 'Please select a class' })}
-                  className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
+                <SearchableSelect 
+                  value={watch('receiver_ids') || ''}
+                  onChange={(val) => setValue('receiver_ids', val, { shouldValidate: true })}
+                  className="w-full text-sm font-semibold"
+                  placeholder="-- Choose Class --"
                 >
                   <option value="">-- Choose Class --</option>
                   {classes.map(c => (
                     <option key={c._id} value={c._id}>{c.class} - {c.section}</option>
                   ))}
-                </select>
+                </SearchableSelect>
                 {errors.receiver_ids && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.receiver_ids.message}</p>}
               </div>
             )}
@@ -121,15 +129,17 @@ const TeacherMessages = () => {
             {receiverType === 'Student' && (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Student</label>
-                <select 
-                  {...register('receiver_ids', { required: 'Please select a student' })}
-                  className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm cursor-pointer"
+                <SearchableSelect 
+                  value={watch('receiver_ids') || ''}
+                  onChange={(val) => setValue('receiver_ids', val, { shouldValidate: true })}
+                  className="w-full text-sm font-semibold"
+                  placeholder="-- Choose Student --"
                 >
                   <option value="">-- Choose Student --</option>
                   {students.map(s => (
                     <option key={s._id} value={s._id}>{s.student_name} (Parent: {s.parent_name})</option>
                   ))}
-                </select>
+                </SearchableSelect>
                 {errors.receiver_ids && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.receiver_ids.message}</p>}
               </div>
             )}

@@ -4,6 +4,7 @@ import { Search, Save, Edit, Play, CheckSquare, CreditCard, ChevronDown, CheckCi
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const PayrollProcess = () => {
   const { user } = useAuthStore();
@@ -247,28 +248,34 @@ const PayrollProcess = () => {
 
         <div className="flex gap-3 w-full md:w-auto">
           {/* Month Selector */}
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="h-11 px-4 text-xs font-bold bg-slate-50/50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer focus:border-blue-500 focus:bg-white"
-          >
-            {[...Array(12)].map((_, i) => (
-              <option key={i} value={i + 1}>
-                {new Date(0, i).toLocaleString('en', { month: 'long' })}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[160px]">
+            <SearchableSelect
+              value={selectedMonth}
+              onChange={(val) => setSelectedMonth(Number(val))}
+              className="w-full text-xs font-bold"
+              placeholder="Select Month"
+            >
+              {[...Array(12)].map((_, i) => (
+                <option key={i} value={i + 1}>
+                  {new Date(0, i).toLocaleString('en', { month: 'long' })}
+                </option>
+              ))}
+            </SearchableSelect>
+          </div>
 
           {/* Year Selector */}
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="h-11 px-4 text-xs font-bold bg-slate-50/50 border border-slate-200 rounded-xl outline-none text-slate-700 cursor-pointer focus:border-blue-500 focus:bg-white"
-          >
-            {[2024, 2025, 2026, 2027].map(yr => (
-              <option key={yr} value={yr}>{yr}</option>
-            ))}
-          </select>
+          <div className="min-w-[120px]">
+            <SearchableSelect
+              value={selectedYear}
+              onChange={(val) => setSelectedYear(Number(val))}
+              className="w-full text-xs font-bold"
+              placeholder="Select Year"
+            >
+              {[2024, 2025, 2026, 2027].map(yr => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </SearchableSelect>
+          </div>
         </div>
       </div>
 
@@ -533,16 +540,17 @@ const PayrollProcess = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Payment Method</label>
-                <select
+                <SearchableSelect
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="block w-full h-11 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-bold cursor-pointer"
+                  onChange={(val) => setPaymentMethod(val)}
+                  className="w-full text-xs font-bold"
+                  placeholder="Select Payment Method"
                 >
                   <option value="Cash">Cash</option>
                   <option value="Bank Transfer">Bank Transfer</option>
                   <option value="UPI">UPI</option>
                   <option value="Cheque">Cheque</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>

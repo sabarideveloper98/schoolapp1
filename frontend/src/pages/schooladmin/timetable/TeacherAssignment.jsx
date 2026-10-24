@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Plus, Trash2, Edit3, UserSquare2, BookOpen, Users } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 const TeacherAssignment = () => {
     const { user } = useAuthStore();
@@ -239,46 +240,49 @@ const TeacherAssignment = () => {
                             {/* Teacher */}
                             <div>
                                 <label className="text-xs font-bold text-slate-700 block mb-1">Select Teacher *</label>
-                                <select
+                                <SearchableSelect
+                                    options={teachers.map(t => ({
+                                        value: t._id,
+                                        label: `${t.name} (${t.qualification || 'Teacher'})`
+                                    }))}
                                     value={formData.teacher_id}
-                                    onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800"
-                                >
-                                    {teachers.map(t => (
-                                        <option key={t._id} value={t._id}>{t.name} ({t.qualification})</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, teacher_id: val })}
+                                    placeholder="Select Teacher..."
+                                    searchPlaceholder="Search teacher..."
+                                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800"
+                                />
                             </div>
 
                             {/* Subject */}
                             <div>
                                 <label className="text-xs font-bold text-slate-700 block mb-1">Select Subject *</label>
-                                <select
+                                <SearchableSelect
+                                    options={subjects.map(s => ({
+                                        value: s._id,
+                                        label: `${s.name} (${s.code || 'SUB'})`
+                                    }))}
                                     value={formData.subject_id}
-                                    onChange={(e) => setFormData({ ...formData, subject_id: e.target.value })}
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800"
-                                >
-                                    {subjects.map(s => (
-                                        <option key={s._id} value={s._id}>{s.name} ({s.code})</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, subject_id: val })}
+                                    placeholder="Select Subject..."
+                                    searchPlaceholder="Search subject..."
+                                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800"
+                                />
                             </div>
 
                             {/* Class */}
                             <div>
                                 <label className="text-xs font-bold text-slate-700 block mb-1">Select Class & Section *</label>
-                                <select
+                                <SearchableSelect
+                                    options={classes.map(c => ({
+                                        value: c._id,
+                                        label: `Class ${c.class}-${c.section}`
+                                    }))}
                                     value={formData.class_id}
-                                    onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800"
-                                >
-                                    {classes.map(c => (
-                                        <option key={c._id} value={c._id}>Class {c.class}-{c.section}</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, class_id: val })}
+                                    placeholder="Select Class..."
+                                    searchPlaceholder="Search class..."
+                                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800"
+                                />
                             </div>
 
                             {/* Weekly Periods Required */}
@@ -319,15 +323,17 @@ const TeacherAssignment = () => {
                                 {formData.is_lab_required && (
                                     <div className="pl-6 pt-1">
                                         <label className="text-xs font-bold text-slate-600 block mb-1">Lab Type</label>
-                                        <select
+                                        <SearchableSelect
+                                            options={[
+                                                { value: 'Computer', label: 'Computer Lab' },
+                                                { value: 'Science', label: 'Science Lab' },
+                                                { value: 'Language', label: 'Language Lab' }
+                                            ]}
                                             value={formData.lab_type}
-                                            onChange={(e) => setFormData({ ...formData, lab_type: e.target.value })}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-1.5 text-xs font-semibold text-slate-800"
-                                        >
-                                            <option value="Computer">Computer Lab</option>
-                                            <option value="Science">Science Lab</option>
-                                            <option value="Language">Language Lab</option>
-                                        </select>
+                                            onChange={(val) => setFormData({ ...formData, lab_type: val })}
+                                            placeholder="Select Lab Type..."
+                                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-1.5 text-xs font-semibold text-slate-800"
+                                        />
                                     </div>
                                 )}
                             </div>
