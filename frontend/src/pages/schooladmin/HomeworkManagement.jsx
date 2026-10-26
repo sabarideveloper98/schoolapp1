@@ -289,7 +289,7 @@ const HomeworkManagement = () => {
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <h3 className="text-base font-black text-slate-800 uppercase tracking-wide">Assigned Homework Register</h3>
             
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto ">
               <SearchableSelect
                 options={[
                   { value: '', label: '-- All Classes --' },
@@ -303,7 +303,7 @@ const HomeworkManagement = () => {
                 placeholder="-- All Classes --"
                 searchPlaceholder="Search class..."
                 className="w-44"
-                buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                
               />
 
               <SearchableSelect
@@ -319,7 +319,6 @@ const HomeworkManagement = () => {
                 placeholder="-- All Categories --"
                 searchPlaceholder="Search category..."
                 className="w-44"
-                buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
               />
             </div>
           </div>
@@ -619,7 +618,6 @@ const HomeworkManagement = () => {
                     onChange={(val) => setForm({ ...form, category: val })}
                     placeholder="Select Category..."
                     searchPlaceholder="Search category..."
-                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
                   />
                 </div>
               </div>
@@ -663,7 +661,7 @@ const HomeworkManagement = () => {
                     onChange={(val) => setForm({ ...form, assigned_classes: [val] })}
                     placeholder="-- Choose Class --"
                     searchPlaceholder="Search class..."
-                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
+                    // buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold"
                   />
                 </div>
               )}

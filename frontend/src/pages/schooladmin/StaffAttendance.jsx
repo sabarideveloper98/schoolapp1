@@ -140,7 +140,7 @@ const StaffAttendance = () => {
               value={role}
               onChange={(val) => setRole(val)}
               placeholder="Select Role"
-              buttonClassName="block w-full h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none sm:text-sm"
+              buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer h-12 px-4 text-slate-800 bg-slate-50 border border-slate-100 rounded-xl outline-none sm:text-sm"
             />
           </div>
 

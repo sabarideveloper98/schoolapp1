@@ -503,7 +503,7 @@ const CreateTimetable = () => {
                             type="text"
                             value={academicYear}
                             onChange={(e) => setAcademicYear(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
+                            className="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
                         />
                     </div>
 
@@ -518,7 +518,7 @@ const CreateTimetable = () => {
                             onChange={(val) => setSelectedClassId(val)}
                             placeholder={classes.length === 0 ? "No classes found" : "Select Class..."}
                             searchPlaceholder="Search class or section..."
-                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
+                            buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
                         />
                     </div>
 
@@ -528,7 +528,7 @@ const CreateTimetable = () => {
                             type="text"
                             value={section}
                             onChange={(e) => setSection(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
+                            className="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
                         />
                     </div>
                 </div>

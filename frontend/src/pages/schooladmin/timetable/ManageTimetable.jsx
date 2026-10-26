@@ -149,28 +149,28 @@ const ManageTimetable = () => {
                     title="Total Timetables"
                     value={stats.totalTimetables}
                     icon={FileText}
-                    color="bg-blue-500 text-blue-600"
+                    color="bg-blue-500 text-white"
                     subtitle={`Scheduled ${stats.classesScheduled} of ${stats.totalClasses} classes`}
                 />
                 <StatWidget
                     title="Classes Scheduled"
                     value={`${stats.classesScheduled} / ${stats.totalClasses}`}
                     icon={BookOpen}
-                    color="bg-emerald-500 text-emerald-600"
+                    color="bg-emerald-500 text-white"
                     subtitle="Class master coverage"
                 />
                 <StatWidget
                     title="Teachers Assigned"
                     value={stats.teachersAssigned}
                     icon={Users}
-                    color="bg-indigo-500 text-indigo-600"
+                    color="bg-indigo-500 text-white"
                     subtitle="Active teaching staff"
                 />
                 <StatWidget
                     title="Unassigned Slots"
                     value={stats.unassignedPeriods}
                     icon={Clock}
-                    color="bg-amber-500 text-amber-600"
+                    color="bg-amber-500 text-white"
                     subtitle="Free periods requiring subjects"
                 />
             </div>
@@ -184,7 +184,7 @@ const ManageTimetable = () => {
                         placeholder="Search class, section, teacher..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer  bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                     />
                 </div>
 
@@ -201,7 +201,7 @@ const ManageTimetable = () => {
                             value={statusFilter}
                             onChange={(val) => setStatusFilter(val)}
                             className="w-36"
-                            buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
+                            buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
                         />
                     </div>
 
@@ -215,7 +215,7 @@ const ManageTimetable = () => {
                             value={academicYear}
                             onChange={(val) => setAcademicYear(val)}
                             className="w-36"
-                            buttonClassName="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
+                            buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700"
                         />
                     </div>
                 </div>

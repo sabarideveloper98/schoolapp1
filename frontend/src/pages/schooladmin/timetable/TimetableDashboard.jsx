@@ -20,7 +20,7 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle, linkTo }) => {
                 )}
             </div>
             <div className={`p-4 rounded-2xl ${color} bg-opacity-10 shrink-0`}>
-                <Icon className={`w-7 h-7 ${textColorClass}`} />
+                <Icon className={`w-7 h-7 text-white`} />
             </div>
         </div>
     );

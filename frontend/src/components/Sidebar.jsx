@@ -36,7 +36,7 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
     <div className={`bg-gradient-to-b from-[#041E42] via-[#062B63] to-[#0A3575] text-slate-200 shadow-2xl flex flex-col z-20 sticky top-0 h-screen overflow-y-auto transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
 
       {/* Brand Header */}
-      <div className="p-5 border-b border-white/10 flex justify-between items-center h-[72px] bg-black/10 backdrop-blur-xs">
+      <div className="p-5 border-b border-white/10 flex justify-between items-center  bg-black/10 backdrop-blur-xs" style={{padding:20,height:60}}>
         <div className="flex items-center gap-3 overflow-hidden">
           <img src="../../public/NEW_WHITE_SCHOOL1.png" />
 

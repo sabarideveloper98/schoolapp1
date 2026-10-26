@@ -200,7 +200,7 @@ const PrintTimetable = () => {
                             value={mode}
                             onChange={(val) => setMode(val)}
                             placeholder="Select Mode..."
-                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                            buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
                         />
                     </div>
 
@@ -218,7 +218,7 @@ const PrintTimetable = () => {
                                 onChange={(val) => setSelectedClassId(val)}
                                 placeholder="Select Class..."
                                 searchPlaceholder="Search class..."
-                                buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                                buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
                             />
                         </div>
                     ) : (
@@ -252,7 +252,7 @@ const PrintTimetable = () => {
                             value={academicYear}
                             onChange={(val) => setAcademicYear(val)}
                             placeholder="Select Year..."
-                            buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+                            buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
                         />
                     </div>
                 </div>

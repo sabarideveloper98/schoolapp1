@@ -212,7 +212,7 @@ const TeacherManagement = () => {
               value={pageSize}
               onChange={(val) => setPageSize(Number(val))}
               className="w-24"
-              buttonClassName="h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 text-xs font-semibold"
+              buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 text-xs font-semibold"
             />
             <span>Entries</span>
           </div>

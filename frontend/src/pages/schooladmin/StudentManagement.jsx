@@ -409,7 +409,7 @@ const StudentManagement = () => {
               onChange={(val) => setStatusFilter(val)}
               placeholder="Select Status..."
               searchPlaceholder="Search status..."
-              buttonClassName="h-12 w-full px-4 border border-slate-200 rounded-xl outline-none bg-white text-slate-800 text-xs font-semibold"
+              
             />
           </div>
 
@@ -443,7 +443,7 @@ const StudentManagement = () => {
               value={pageSize}
               onChange={(val) => setPageSize(Number(val))}
               className="w-24"
-              buttonClassName="h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 text-xs font-semibold"
+              // buttonClassName="h-10 px-3 border border-slate-200 rounded-lg outline-none bg-white text-slate-700 text-xs font-semibold"
             />
             <span>Entries ({filteredStudents.length} total)</span>
           </div>

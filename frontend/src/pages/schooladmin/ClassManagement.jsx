@@ -245,17 +245,17 @@ const ClassManagement = () => {
 
       {activeTab === 'classes' && (
         <div className="p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 ">
             <h2 className="text-lg font-bold text-slate-800">Class Management</h2>
-            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto">
               <SearchableSelect 
                 options={[{ value: '', label: 'All Classes' }, ...classes.map(c => ({ value: c._id, label: `${c.class} - ${c.section}` }))]}
                 value={classFilter} 
                 onChange={(val) => setClassFilter(val)} 
                 placeholder="All Classes"
                 searchPlaceholder="Search class..."
-                className="w-44"
-                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+                className="relative w-full sm:w-40"
+                buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
               />
               <SearchableSelect 
                 options={[{ value: '', label: 'All Incharges' }, ...teachers.map(t => ({ value: t._id, label: t.name }))]}
@@ -263,8 +263,8 @@ const ClassManagement = () => {
                 onChange={(val) => setInchargeFilter(val)} 
                 placeholder="All Incharges"
                 searchPlaceholder="Search incharge..."
-                className="w-44"
-                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+                className="relative w-full sm:w-40"
+                buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
               />
               {(classFilter || inchargeFilter) && (
                 <button 
@@ -529,7 +529,7 @@ const ClassManagement = () => {
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-lg font-bold text-slate-800">Assign Subject Teachers</h2>
-            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto">
               <SearchableSelect 
                 options={[{ value: '', label: 'All Classes' }, ...classes.map(c => ({ value: c._id, label: `${c.class} - ${c.section}` }))]}
                 value={assignClassFilter} 
@@ -537,7 +537,7 @@ const ClassManagement = () => {
                 placeholder="All Classes"
                 searchPlaceholder="Search class..."
                 className="w-40"
-                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+                buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
               />
               <SearchableSelect 
                 options={[{ value: '', label: 'All Subjects' }, ...subjects.map(s => ({ value: s._id, label: s.name }))]}
@@ -546,7 +546,7 @@ const ClassManagement = () => {
                 placeholder="All Subjects"
                 searchPlaceholder="Search subject..."
                 className="w-40"
-                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+                buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
               />
               <SearchableSelect 
                 options={[{ value: '', label: 'All Teachers' }, ...teachers.map(t => ({ value: t._id, label: t.name }))]}
@@ -555,7 +555,7 @@ const ClassManagement = () => {
                 placeholder="All Teachers"
                 searchPlaceholder="Search teacher..."
                 className="w-40"
-                buttonClassName="rounded-xl border border-slate-200 bg-white text-slate-700 sm:text-sm p-2.5 outline-none cursor-pointer"
+                buttonClassName="w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white border-slate-200 hover:border-slate-300 cursor-pointer"
               />
               {(assignClassFilter || assignSubjectFilter || assignTeacherFilter) && (
                 <button 
@@ -567,8 +567,9 @@ const ClassManagement = () => {
                 </button>
               )}
               <button 
+                style={{fontSize:12}}
                 onClick={() => { closeAssignmentForm(); setIsFormOpen(true); }}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_4px_12px_rgba(37,99,235,0.1)] cursor-pointer"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_4px_12px_rgba(37,99,235,0.1)] cursor-pointer"
               >
                 <LinkIcon className="w-4 h-4 mr-2" /> Assign Teacher
               </button>
