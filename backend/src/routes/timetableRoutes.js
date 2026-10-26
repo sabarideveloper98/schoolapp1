@@ -24,7 +24,8 @@ const {
     deleteAssignment,
     getTeacherAvailability,
     saveTeacherAvailability,
-    getStudentTimetable
+    getStudentTimetable,
+    updatePeriodTiming
 } = require('../controllers/timetableController');
 
 // Protect all routes
@@ -40,6 +41,10 @@ router.put('/update/:id', authorize('SchoolAdmin', 'SuperAdmin'), updateTimetabl
 router.delete('/delete/:id', authorize('SchoolAdmin', 'SuperAdmin'), deleteTimetable);
 router.post('/auto-generate', authorize('SchoolAdmin', 'SuperAdmin'), autoGenerate);
 router.get('/print', authorize('SchoolAdmin', 'SuperAdmin', 'Teacher'), getPrintTimetable);
+
+// Period Timing Edit endpoints
+router.put('/period/:id', authorize('SchoolAdmin', 'SuperAdmin'), updatePeriodTiming);
+router.put('/periods/:id', authorize('SchoolAdmin', 'SuperAdmin'), updatePeriodTiming);
 
 // Module Sub-routes
 router.get('/dashboard', authorize('SchoolAdmin', 'SuperAdmin'), getDashboardStats);

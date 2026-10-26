@@ -5,6 +5,30 @@ import { Settings, Save, Clock, Calendar, UserX, Plus, Trash2, Sparkles, BookOpe
 import useAuthStore from '../../../store/useAuthStore';
 import SearchableSelect from '../../../components/SearchableSelect';
 
+// Helper functions for time parsing and formatting
+export const parseTime = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (!match) return null;
+    let hrs = parseInt(match[1], 10);
+    const mins = parseInt(match[2], 10);
+    const ampm = match[3] ? match[3].toUpperCase() : null;
+    if (ampm === 'PM' && hrs < 12) hrs += 12;
+    if (ampm === 'AM' && hrs === 12) hrs = 0;
+    return hrs * 60 + mins;
+};
+
+export const formatTime = (totalMins) => {
+    let hrs = Math.floor(totalMins / 60) % 24;
+    const mins = totalMins % 60;
+    const ampm = hrs >= 12 ? 'PM' : 'AM';
+    let displayHrs = hrs % 12;
+    if (displayHrs === 0) displayHrs = 12;
+    const displayMins = mins < 10 ? `0${mins}` : `${mins}`;
+    const displayHrsStr = displayHrs < 10 ? `0${displayHrs}` : `${displayHrs}`;
+    return `${displayHrsStr}:${displayMins} ${ampm}`;
+};
+
 // Helper to compute default period schedule from parameters
 const calculateLivePeriods = (config) => {
     const {
@@ -15,30 +39,7 @@ const calculateLivePeriods = (config) => {
         periods_per_day = 8
     } = config;
 
-    const parseTime = (timeStr) => {
-        if (!timeStr) return 8 * 60 + 45;
-        const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-        if (!match) return 8 * 60 + 45;
-        let hrs = parseInt(match[1], 10);
-        const mins = parseInt(match[2], 10);
-        const ampm = match[3] ? match[3].toUpperCase() : 'AM';
-        if (ampm === 'PM' && hrs < 12) hrs += 12;
-        if (ampm === 'AM' && hrs === 12) hrs = 0;
-        return hrs * 60 + mins;
-    };
-
-    const formatTime = (totalMins) => {
-        let hrs = Math.floor(totalMins / 60) % 24;
-        const mins = totalMins % 60;
-        const ampm = hrs >= 12 ? 'PM' : 'AM';
-        let displayHrs = hrs % 12;
-        if (displayHrs === 0) displayHrs = 12;
-        const displayMins = mins < 10 ? `0${mins}` : `${mins}`;
-        const displayHrsStr = displayHrs < 10 ? `0${displayHrs}` : `${displayHrs}`;
-        return `${displayHrsStr}:${displayMins} ${ampm}`;
-    };
-
-    let currentMins = parseTime(school_start_time);
+    let currentMins = parseTime(school_start_time) ?? (8 * 60 + 45);
     const periods = [];
 
     for (let i = 1; i <= periods_per_day; i++) {
@@ -209,34 +210,11 @@ const TimetableSettingsPage = () => {
     const handleAutoAlignNextTimes = () => {
         if (customPeriods.length === 0) return;
 
-        const parseTime = (timeStr) => {
-            if (!timeStr) return 8 * 60 + 45;
-            const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-            if (!match) return 8 * 60 + 45;
-            let hrs = parseInt(match[1], 10);
-            const mins = parseInt(match[2], 10);
-            const ampm = match[3] ? match[3].toUpperCase() : 'AM';
-            if (ampm === 'PM' && hrs < 12) hrs += 12;
-            if (ampm === 'AM' && hrs === 12) hrs = 0;
-            return hrs * 60 + mins;
-        };
-
-        const formatTime = (totalMins) => {
-            let hrs = Math.floor(totalMins / 60) % 24;
-            const mins = totalMins % 60;
-            const ampm = hrs >= 12 ? 'PM' : 'AM';
-            let displayHrs = hrs % 12;
-            if (displayHrs === 0) displayHrs = 12;
-            const displayMins = mins < 10 ? `0${mins}` : `${mins}`;
-            const displayHrsStr = displayHrs < 10 ? `0${displayHrs}` : `${displayHrs}`;
-            return `${displayHrsStr}:${displayMins} ${ampm}`;
-        };
-
         const aligned = [];
-        let currentMins = parseTime(customPeriods[0].start_time || formData.school_start_time);
+        let currentMins = parseTime(customPeriods[0].start_time || formData.school_start_time) ?? (8 * 60 + 45);
 
         customPeriods.forEach(p => {
-            const duration = Math.max(10, parseTime(p.end_time) - parseTime(p.start_time) || (p.type === 'Lunch' ? formData.lunch_duration : formData.period_duration));
+            const duration = Math.max(10, (parseTime(p.end_time) - parseTime(p.start_time)) || (p.type === 'Lunch' ? formData.lunch_duration : formData.period_duration));
             const pStart = currentMins;
             const pEnd = pStart + duration;
 
@@ -260,6 +238,7 @@ const TimetableSettingsPage = () => {
             const lastPeriod = customPeriods[customPeriods.length - 1];
             const nextStart = lastPeriod ? lastPeriod.end_time : formData.school_start_time;
             setPeriodForm({
+                _id: null,
                 period_name: `P${customPeriods.length + 1}`,
                 start_time: nextStart,
                 end_time: nextStart,
@@ -272,6 +251,7 @@ const TimetableSettingsPage = () => {
             const target = customPeriods[idx];
             const derivedType = (target.is_lunch || target.type === 'Lunch') ? 'Lunch' : (target.is_break || target.type === 'Break') ? 'Break' : (target.type || 'Teaching Period');
             setPeriodForm({
+                _id: target._id || null,
                 period_name: target.period_name || '',
                 start_time: target.start_time || '',
                 end_time: target.end_time || '',
@@ -283,10 +263,23 @@ const TimetableSettingsPage = () => {
         }
     };
 
-    // Save edited period item from modal
-    const handleSavePeriodItem = () => {
-        if (!periodForm.period_name || !periodForm.start_time || !periodForm.end_time) {
+    // Save edited period item from modal directly to backend
+    const handleSavePeriodItem = async () => {
+        if (!periodForm.period_name?.trim() || !periodForm.start_time?.trim() || !periodForm.end_time?.trim()) {
             toast.error('Please fill in Period Name, Start Time, and End Time');
+            return;
+        }
+
+        const startMins = parseTime(periodForm.start_time);
+        const endMins = parseTime(periodForm.end_time);
+
+        if (startMins === null || endMins === null) {
+            toast.error('Invalid time format. Please use format like "09:00 AM" or "09:00".');
+            return;
+        }
+
+        if (endMins <= startMins) {
+            toast.error(`Invalid timing: End time (${periodForm.end_time}) must be later than start time (${periodForm.start_time}).`);
             return;
         }
 
@@ -294,24 +287,33 @@ const TimetableSettingsPage = () => {
         const isBreak = periodForm.type === 'Break';
         const updatedItem = {
             ...periodForm,
+            period_name: periodForm.period_name.trim(),
+            start_time: periodForm.start_time.trim(),
+            end_time: periodForm.end_time.trim(),
             type: periodForm.type,
             is_lunch: isLunch,
             is_break: isBreak
         };
 
-        if (editingPeriodIndex === -1) {
-            setCustomPeriods(prev => [...prev, updatedItem]);
-        } else {
-            setCustomPeriods(prev => {
-                const copy = [...prev];
-                copy[editingPeriodIndex] = updatedItem;
-                return copy;
-            });
-        }
+        const updatedPeriods = editingPeriodIndex === -1
+            ? [...customPeriods, updatedItem]
+            : customPeriods.map((p, i) => (i === editingPeriodIndex ? updatedItem : p));
 
-        setIsCustomEdited(true);
-        setEditingPeriodIndex(null);
-        toast.success(`Period "${periodForm.period_name}" updated!`);
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const payload = {
+                ...formData,
+                generated_periods: updatedPeriods
+            };
+            await axios.post('/api/timetable/settings', payload, config);
+            setCustomPeriods(updatedPeriods);
+            setIsCustomEdited(true);
+            setEditingPeriodIndex(null);
+            toast.success(`Period "${updatedItem.period_name}" timing updated successfully!`);
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Failed to update period timing';
+            toast.error(msg);
+        }
     };
 
     // Delete single period
@@ -344,6 +346,25 @@ const TimetableSettingsPage = () => {
 
     const handleSaveSettings = async (e) => {
         e.preventDefault();
+
+        // Validate all period timings before sending to backend
+        for (const p of customPeriods) {
+            if (!p.period_name?.trim() || !p.start_time?.trim() || !p.end_time?.trim()) {
+                toast.error(`Please provide complete details for period "${p.period_name || 'Unnamed'}"`);
+                return;
+            }
+            const sMins = parseTime(p.start_time);
+            const eMins = parseTime(p.end_time);
+            if (sMins === null || eMins === null) {
+                toast.error(`Invalid time format for period "${p.period_name}". Use format like "09:00 AM".`);
+                return;
+            }
+            if (eMins <= sMins) {
+                toast.error(`Invalid timing for period "${p.period_name}": End time (${p.end_time}) must be later than start time (${p.start_time}).`);
+                return;
+            }
+        }
+
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             const payload = {
@@ -353,7 +374,8 @@ const TimetableSettingsPage = () => {
             const res = await axios.post('/api/timetable/settings', payload, config);
             toast.success('Timetable settings & period schedule saved successfully!');
         } catch (err) {
-            toast.error('Failed to save settings');
+            const msg = err.response?.data?.message || 'Failed to save settings';
+            toast.error(msg);
         }
     };
 
@@ -596,6 +618,9 @@ const TimetableSettingsPage = () => {
                                 const type = p.type || (p.is_lunch ? 'Lunch' : p.is_break ? 'Break' : 'Teaching Period');
                                 const isLunch = type === 'Lunch' || p.is_lunch;
                                 const isBreak = type === 'Break' || p.is_break;
+                                const sMins = parseTime(p.start_time);
+                                const eMins = parseTime(p.end_time);
+                                const isInvalidTime = sMins !== null && eMins !== null && eMins <= sMins;
 
                                 return (
                                     <div
@@ -641,7 +666,9 @@ const TimetableSettingsPage = () => {
                                                     type="text"
                                                     value={p.start_time}
                                                     onChange={(e) => handleDirectPeriodUpdate(idx, 'start_time', e.target.value)}
-                                                    className="w-24 bg-slate-50 border border-slate-200 rounded-md px-1.5 py-0.5 text-center font-extrabold text-slate-800 text-xs"
+                                                    className={`w-24 bg-slate-50 border rounded-md px-1.5 py-0.5 text-center font-extrabold text-slate-800 text-xs ${
+                                                        isInvalidTime ? 'border-rose-400 ring-1 ring-rose-400 bg-rose-50/50' : 'border-slate-200'
+                                                    }`}
                                                 />
                                             </div>
                                             <div className="flex items-center justify-between gap-1 text-[11px] font-bold text-slate-600">
@@ -650,9 +677,17 @@ const TimetableSettingsPage = () => {
                                                     type="text"
                                                     value={p.end_time}
                                                     onChange={(e) => handleDirectPeriodUpdate(idx, 'end_time', e.target.value)}
-                                                    className="w-24 bg-slate-50 border border-slate-200 rounded-md px-1.5 py-0.5 text-center font-extrabold text-slate-800 text-xs"
+                                                    className={`w-24 bg-slate-50 border rounded-md px-1.5 py-0.5 text-center font-extrabold text-slate-800 text-xs ${
+                                                        isInvalidTime ? 'border-rose-400 ring-1 ring-rose-400 bg-rose-50/50' : 'border-slate-200'
+                                                    }`}
                                                 />
                                             </div>
+                                            {isInvalidTime && (
+                                                <div className="text-[10px] text-rose-600 font-bold flex items-center gap-1 pt-1 border-t border-rose-100">
+                                                    <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                                                    <span>End time must be after start time</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Actions */}

@@ -452,8 +452,24 @@ const updateSubject = async (req, res) => {
 const getClasses = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const classes = await Class.find({ school_id }).populate('class_incharge_id', 'name email');
-        res.json(classes);
+        const classes = await Class.find({ school_id }).populate('class_incharge_id', 'name email').lean();
+        
+        const classesWithCount = await Promise.all(classes.map(async (cls) => {
+            const count = await Student.countDocuments({
+                school_id,
+                $or: [
+                    { class_id: cls._id },
+                    { class: cls.class, section: cls.section }
+                ]
+            });
+            return {
+                ...cls,
+                no_student: count,
+                studentCount: count
+            };
+        }));
+
+        res.json(classesWithCount);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -574,7 +590,20 @@ const updateSubjectTeacher = async (req, res) => {
 const getStudents = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const students = await Student.find({ school_id })
+        const filter = { school_id };
+        const requestedClassId = req.query.class_id || req.query.classId;
+        if (requestedClassId) {
+            const cls = await Class.findById(requestedClassId);
+            if (cls) {
+                filter.$or = [
+                    { class_id: requestedClassId },
+                    { class: cls.class, section: cls.section }
+                ];
+            } else {
+                filter.class_id = requestedClassId;
+            }
+        }
+        const students = await Student.find(filter)
             .populate('class_id', 'class section')
             .populate('parent_user_id', 'email phone')
             .sort({ createdAt: -1 });

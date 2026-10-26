@@ -1,15 +1,27 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { ShieldAlert, AlertCircle } from 'lucide-react';
+import { ShieldAlert, AlertCircle, Edit3, Clock } from 'lucide-react';
 import useAuthStore from '../../../store/useAuthStore';
 import { getSubjectColor } from '../../../utils/timetableColors';
+import SearchableSelect from '../../../components/SearchableSelect';
+import { parseTime } from './TimetableSettings';
 
 const GlobalTimetable = () => {
     const { user } = useAuthStore();
     const [selectedDay, setSelectedDay] = useState('Monday');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // Period Timing Edit Modal State
+    const [editingPeriodIdx, setEditingPeriodIdx] = useState(null);
+    const [periodForm, setPeriodForm] = useState({
+        _id: null,
+        period_name: '',
+        start_time: '',
+        end_time: '',
+        type: 'Teaching Period'
+    });
 
     useEffect(() => {
         const fetchGlobalTimetable = async () => {
@@ -78,12 +90,98 @@ const GlobalTimetable = () => {
         });
     });
 
+    // Period timing modal handlers
+    const handleOpenEditPeriodModal = (periodObj, idx) => {
+        if (!periodObj) return;
+        const pNameLower = (periodObj.period_name || '').toLowerCase();
+        const derivedType = (periodObj.is_lunch || periodObj.type === 'Lunch' || pNameLower.includes('lunch'))
+            ? 'Lunch'
+            : (periodObj.is_break || periodObj.type === 'Break' || pNameLower.includes('break'))
+                ? 'Break'
+                : (periodObj.type || 'Teaching Period');
+        setPeriodForm({
+            _id: periodObj._id || null,
+            period_name: periodObj.period_name || '',
+            start_time: periodObj.start_time || '',
+            end_time: periodObj.end_time || '',
+            type: derivedType
+        });
+        setEditingPeriodIdx(idx);
+    };
+
+    const handleSavePeriodTiming = async () => {
+        if (!periodForm.period_name?.trim() || !periodForm.start_time?.trim() || !periodForm.end_time?.trim()) {
+            toast.error('Please fill in Period Name, Start Time, and End Time');
+            return;
+        }
+
+        const startMins = parseTime(periodForm.start_time);
+        const endMins = parseTime(periodForm.end_time);
+
+        if (startMins !== null && endMins !== null && endMins <= startMins) {
+            toast.error(`Invalid timing: End time (${periodForm.end_time}) must be later than start time (${periodForm.start_time}).`);
+            return;
+        }
+
+        const isLunch = periodForm.type === 'Lunch';
+        const isBreak = periodForm.type === 'Break';
+        const updatedPeriodItem = {
+            ...(periodForm._id ? { _id: periodForm._id } : {}),
+            period_name: periodForm.period_name.trim(),
+            start_time: periodForm.start_time.trim(),
+            end_time: periodForm.end_time.trim(),
+            is_lunch: isLunch,
+            is_break: isBreak,
+            type: periodForm.type
+        };
+
+        const updatedPeriodsList = [...periodsList];
+        updatedPeriodsList[editingPeriodIdx] = updatedPeriodItem;
+
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const payload = {
+                ...(data?.settings || {}),
+                generated_periods: updatedPeriodsList
+            };
+
+            const res = await axios.post('/api/timetable/settings', payload, config);
+            const savedPeriods = res.data?.generated_periods || updatedPeriodsList;
+
+            setData(prev => ({
+                ...prev,
+                settings: {
+                    ...(prev?.settings || {}),
+                    generated_periods: savedPeriods
+                }
+            }));
+
+            setEditingPeriodIdx(null);
+            toast.success(`Period "${periodForm.period_name}" timings updated successfully!`);
+        } catch (err) {
+            console.error('Error saving period timing:', err);
+            toast.error(err.response?.data?.message || 'Failed to update period timing');
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h2 className="text-xl font-black text-slate-800 tracking-tight">🌐 Global School Timetable View</h2>
-                <p className="text-xs font-bold text-slate-400 mt-0.5">Spot teacher clashes and school-wide slot coverage across all active classes simultaneously</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">🌐 Global School Timetable View</h2>
+                    <p className="text-xs font-bold text-slate-400 mt-0.5">Spot teacher clashes and school-wide slot coverage across all active classes simultaneously</p>
+                </div>
+                {periodsList.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => handleOpenEditPeriodModal(periodsList[0], 0)}
+                        className="self-start md:self-auto flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                    >
+                        <Clock className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Edit Period Timings</span>
+                    </button>
+                )}
             </div>
 
             {/* Day Selector Tabs */}
@@ -118,9 +216,22 @@ const GlobalTimetable = () => {
                         <thead>
                             <tr className="bg-slate-900 text-white text-xs font-bold uppercase tracking-wider">
                                 <th className="p-3.5 text-center border-r border-slate-800 w-28">Class</th>
-                                {periodsList.map(p => (
-                                    <th key={p.period_name} className="p-3.5 text-center border-r border-slate-800">
-                                        {p.period_name}
+                                {periodsList.map((p, idx) => (
+                                    <th key={`${p.period_name}-${idx}`} className="p-3 text-center border-r border-slate-800">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <span>{p.period_name}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenEditPeriodModal(p, idx)}
+                                                title={`Edit timing for ${p.period_name}`}
+                                                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                                            >
+                                                <Edit3 className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 font-normal lowercase tracking-normal mt-0.5">
+                                            {p.start_time} - {p.end_time}
+                                        </div>
                                     </th>
                                 ))}
                             </tr>
@@ -188,6 +299,114 @@ const GlobalTimetable = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Edit Period Timing Modal */}
+            {editingPeriodIdx !== null && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                                <Edit3 className="w-4 h-4 text-blue-600" />
+                                Edit Period Timing: {periodForm.period_name}
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => setEditingPeriodIdx(null)}
+                                className="text-slate-400 hover:text-slate-600 font-bold text-xs cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {periodsList.length > 1 && (
+                                <div>
+                                    <label className="text-xs font-bold text-slate-700 block mb-1">Select Period to Edit</label>
+                                    <SearchableSelect
+                                        options={periodsList.map((p, idx) => ({
+                                            value: String(idx),
+                                            label: `${p.period_name} (${p.start_time} - ${p.end_time})`
+                                        }))}
+                                        value={String(editingPeriodIdx)}
+                                        onChange={(val) => {
+                                            const idx = parseInt(val, 10);
+                                            handleOpenEditPeriodModal(periodsList[idx], idx);
+                                        }}
+                                        placeholder="Select Period"
+                                        buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">Period / Break Name *</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. P1, Lunch, Break"
+                                    value={periodForm.period_name}
+                                    onChange={(e) => setPeriodForm({ ...periodForm, period_name: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-700 block mb-1">Start Time *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. 08:45 AM"
+                                        value={periodForm.start_time}
+                                        onChange={(e) => setPeriodForm({ ...periodForm, start_time: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-700 block mb-1">End Time *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. 09:25 AM"
+                                        value={periodForm.end_time}
+                                        onChange={(e) => setPeriodForm({ ...periodForm, end_time: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">Period Type</label>
+                                <SearchableSelect
+                                    options={[
+                                        { value: 'Teaching Period', label: 'Teaching Period' },
+                                        { value: 'Break', label: 'Break / Short Break' },
+                                        { value: 'Lunch', label: 'Lunch Break' }
+                                    ]}
+                                    value={periodForm.type}
+                                    onChange={(val) => setPeriodForm({ ...periodForm, type: val })}
+                                    placeholder="Select Period Type..."
+                                    buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setEditingPeriodIdx(null)}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSavePeriodTiming}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

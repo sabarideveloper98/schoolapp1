@@ -126,6 +126,14 @@ const ManageTimetable = () => {
                         <RefreshCw className="w-4 h-4" />
                     </button>
                     <Link
+                        to="/school-admin/academics/timetable/settings"
+                        className="bg-white hover:bg-slate-50 text-slate-700 px-3.5 py-2.5 rounded-xl text-xs font-bold border border-slate-200 shadow-sm flex items-center gap-1.5 transition-all"
+                        title="Configure and edit period timings"
+                    >
+                        <Clock className="w-4 h-4 text-blue-600" />
+                        Period Timings
+                    </Link>
+                    <Link
                         to="/school-admin/academics/timetable/create"
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 flex items-center gap-2 transition-all"
                     >

@@ -1,14 +1,14 @@
 import { useState, useRef } from 'react';
 import axios from 'axios';
 import useAuthStore from '../store/useAuthStore';
-import { 
-  FileSpreadsheet, 
-  Download, 
-  Upload, 
-  X, 
-  CheckCircle2, 
-  AlertCircle, 
-  Users, 
+import {
+  FileSpreadsheet,
+  Download,
+  Upload,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Users,
   FileText,
   Trash2,
   AlertTriangle,
@@ -471,9 +471,9 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
           const admStr = String(rowObj.admission_number || '').toUpperCase();
           const nameStr = String(rowObj.student_name || '').toUpperCase();
           if (
-            admStr.startsWith('SAMPLE-') || 
-            admStr.includes('SAMPLE') || 
-            nameStr.startsWith('SAMPLE') || 
+            admStr.startsWith('SAMPLE-') ||
+            admStr.includes('SAMPLE') ||
+            nameStr.startsWith('SAMPLE') ||
             nameStr.includes('[SAMPLE]')
           ) {
             sampleExcludedCount++;
@@ -490,7 +490,7 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
 
         if (extractedRows.length === 0) {
           toast.warning(
-            sampleExcludedCount > 0 
+            sampleExcludedCount > 0
               ? `Only sample rows (${sampleExcludedCount}) were detected and excluded. Please add your real student records.`
               : 'No student data rows could be detected in this CSV file.'
           );
@@ -624,7 +624,7 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50 overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-5xl w-full p-5 sm:p-8 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 my-auto max-h-[92vh] flex flex-col">
-        
+
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
@@ -642,7 +642,7 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           </div>
 
-          <button 
+          <button
             type="button"
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -654,10 +654,10 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
 
         {/* Modal Scrollable Body */}
         <div className="overflow-y-auto py-5 space-y-6 flex-1 pr-1">
-          
+
           {/* Step 1 & 2 Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
+
             {/* Step 1: Download Sample File */}
             <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-100 flex flex-col justify-between">
               <div>
@@ -706,8 +706,8 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
                 </div>
                 <h3 className="font-extrabold text-slate-800 text-sm mt-2">Upload Completed File</h3>
                 <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
-                  {fileName 
-                    ? `Loaded: ${fileName} (${parsedRows.length} student records detected)` 
+                  {fileName
+                    ? `Loaded: ${fileName} (${parsedRows.length} student records detected)`
                     : 'Select your filled student CSV template from your computer to inspect and validate.'}
                 </p>
               </div>
@@ -717,12 +717,12 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
                   <div className="flex items-center gap-2 w-full">
                     <label className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer">
                       <RefreshCw className="w-3.5 h-3.5" /> Change File
-                      <input 
+                      <input
                         ref={fileInputRef}
-                        type="file" 
-                        accept=".csv,.txt" 
-                        onChange={handleFileUpload} 
-                        className="hidden" 
+                        type="file"
+                        accept=".csv,.txt"
+                        onChange={handleFileUpload}
+                        className="hidden"
                       />
                     </label>
                     <button
@@ -737,12 +737,12 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
                 ) : (
                   <label className="w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg">
                     <Upload className="w-4 h-4" /> Browse CSV / Excel File
-                    <input 
+                    <input
                       ref={fileInputRef}
-                      type="file" 
-                      accept=".csv,.txt" 
-                      onChange={handleFileUpload} 
-                      className="hidden" 
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={handleFileUpload}
+                      className="hidden"
                     />
                   </label>
                 )}
@@ -827,18 +827,16 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
                   <button
                     type="button"
                     onClick={() => setFilterTab('all')}
-                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                      filterTab === 'all' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${filterTab === 'all' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      }`}
                   >
                     All Records ({parsedRows.length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setFilterTab('valid')}
-                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
-                      filterTab === 'valid' ? 'bg-white text-emerald-700 shadow-xs' : 'text-emerald-600 hover:text-emerald-800'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${filterTab === 'valid' ? 'bg-white text-emerald-700 shadow-xs' : 'text-emerald-600 hover:text-emerald-800'
+                      }`}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     Valid ({validCount})
@@ -846,9 +844,8 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
                   <button
                     type="button"
                     onClick={() => setFilterTab('errors')}
-                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${
-                      filterTab === 'errors' ? 'bg-white text-red-700 shadow-xs' : 'text-red-600 hover:text-red-800'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1 ${filterTab === 'errors' ? 'bg-white text-red-700 shadow-xs' : 'text-red-600 hover:text-red-800'
+                      }`}
                   >
                     <AlertCircle className="w-3.5 h-3.5 text-red-600" />
                     Has Errors ({errorCount})
@@ -883,11 +880,10 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {displayedRows.map((row) => (
-                      <tr 
-                        key={row.rowNumber} 
-                        className={`font-medium transition-colors ${
-                          row.isValid ? 'hover:bg-slate-50/80' : 'bg-red-50/40 hover:bg-red-50/80'
-                        }`}
+                      <tr
+                        key={row.rowNumber}
+                        className={`font-medium transition-colors ${row.isValid ? 'hover:bg-slate-50/80' : 'bg-red-50/40 hover:bg-red-50/80'
+                          }`}
                       >
                         <td className="px-3 py-2 font-bold text-slate-400">
                           #{row.rowNumber}
@@ -951,7 +947,7 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
           <div className="text-xs text-slate-500 font-medium">
             {parsedRows.length > 0 && (
               <span>
-                Ready to import <strong className="text-emerald-700 font-extrabold">{validCount}</strong> valid student{validCount !== 1 ? 's' : ''} 
+                Ready to import <strong className="text-emerald-700 font-extrabold">{validCount}</strong> valid student{validCount !== 1 ? 's' : ''}
                 {errorCount > 0 && <span className="text-red-600 font-bold"> ({errorCount} rows have validation issues)</span>}.
               </span>
             )}

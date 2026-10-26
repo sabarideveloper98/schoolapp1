@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
 import BulkStudentImportModal from '../../components/BulkStudentImportModal';
 import axios from 'axios';
@@ -23,6 +23,39 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+// Timezone-safe age calculation from Date of Birth (YYYY-MM-DD)
+const calculateAge = (dobString) => {
+  if (!dobString) return '';
+  const parts = String(dobString).split('T')[0].split('-');
+  if (parts.length === 3) {
+    const birthYear = parseInt(parts[0], 10);
+    const birthMonth = parseInt(parts[1], 10);
+    const birthDay = parseInt(parts[2], 10);
+    if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) return '';
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // 1-12
+    const currentDay = today.getDate();
+
+    let computedAge = currentYear - birthYear;
+    if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
+      computedAge--;
+    }
+    return computedAge >= 0 ? computedAge : '';
+  }
+
+  const birthDate = new Date(dobString);
+  if (isNaN(birthDate.getTime())) return '';
+  const today = new Date();
+  let computedAge = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    computedAge--;
+  }
+  return computedAge >= 0 ? computedAge : '';
+};
+
 const StudentCreate = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
@@ -38,6 +71,18 @@ const StudentCreate = () => {
   const [photoBase64, setPhotoBase64] = useState('');
   const [photoPreview, setPhotoPreview] = useState('');
   const [activeSectionTab, setActiveSectionTab] = useState('basic');
+
+  // Location API states for State dropdown
+  const [statesList, setStatesList] = useState([]);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [stateApiError, setStateApiError] = useState(null);
+
+  // Location API cities for City dropdown
+  const [citiesList, setCitiesList] = useState([]);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [cityApiError, setCityApiError] = useState(null);
+  const citiesCacheRef = useRef({});
+  const allCountryCitiesLoadedRef = useRef(false);
 
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -86,6 +131,20 @@ const StudentCreate = () => {
   const watchTransportRequired = watch('transport_required');
   const watchIsCwsn = watch('is_cwsn');
   const watchSelectedRoute = watch('route_name');
+  const watchDateOfBirth = watch('date_of_birth');
+
+  // Automatically calculate and update age when Date of Birth changes or is cleared
+  useEffect(() => {
+    if (watchDateOfBirth) {
+      const calculatedAge = calculateAge(watchDateOfBirth);
+      setValue('age', calculatedAge !== '' ? calculatedAge : '', {
+        shouldValidate: true,
+        shouldDirty: true
+      });
+    } else {
+      setValue('age', '', { shouldValidate: true, shouldDirty: true });
+    }
+  }, [watchDateOfBirth, setValue]);
 
   // Auto-compose student_name from first and last name if student_name is empty or clean
   useEffect(() => {
@@ -369,6 +428,229 @@ const StudentCreate = () => {
     toast.info('Address copied to Guardian Address');
   };
 
+  // Restrict keydown to numbers only for 10-digit phone inputs
+  const handlePhoneKeyDown = (e) => {
+    if (
+      ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'Escape'].includes(e.key) ||
+      (e.ctrlKey || e.metaKey)
+    ) {
+      return;
+    }
+    if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  // Sanitize pasted text to retain only up to 10 digits
+  const handlePhonePaste = (fieldName) => (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    const digitsOnly = pasted.replace(/\D/g, '').slice(0, 10);
+    setValue(fieldName, digitsOnly, { shouldValidate: true, shouldDirty: true });
+  };
+
+  // Fetch available states using Country State City API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchStates = async () => {
+      try {
+        setLoadingStates(true);
+        setStateApiError(null);
+        const apiKey = import.meta.env.VITE_CSC_API_KEY || '597e808cc1104dc55ce5e4e311a6bb784021265308d3305be0c501f186efeca8';
+
+        let statesData = [];
+
+        // 1. Primary: Fetch from Country State City API endpoint specified in task
+        try {
+          const response = await fetch('https://api.countrystatecity.in/v1/states', {
+            headers: {
+              'X-CSCAPI-KEY': apiKey
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              statesData = data;
+              console.log(`Found ${data.length} states`);
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('Direct bulk states fetch notice:', fetchErr?.message);
+        }
+
+        // 2. Seamless tier fallback: Community plan has access to country-level states (/v1/countries/IN/states)
+        if (statesData.length === 0) {
+          const response = await fetch('https://api.countrystatecity.in/v1/countries/IN/states', {
+            headers: {
+              'X-CSCAPI-KEY': apiKey
+            }
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to fetch states (HTTP ${response.status})`);
+          }
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            statesData = data;
+            console.log(`Found ${data.length} states`);
+          } else {
+            throw new Error('Invalid states data format received from API');
+          }
+        }
+
+        if (isMounted) {
+          setStatesList(statesData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch states:', error);
+        if (isMounted) {
+          setStateApiError(error.message || 'Failed to fetch states');
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingStates(false);
+        }
+      }
+    };
+
+    fetchStates();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Formulate State dropdown options, preserving existing saved state in edit mode
+  const stateOptions = useMemo(() => {
+    const list = statesList.map(s => (typeof s === 'object' && s !== null ? (s.name || s.state || s.label || s.value) : s)).filter(Boolean);
+    if (watchState && !list.includes(watchState)) {
+      list.unshift(watchState);
+    }
+    return list.map(item => ({ value: item, label: item }));
+  }, [statesList, watchState]);
+
+  // Fetch available cities using Country State City API for India
+  useEffect(() => {
+    let isMounted = true;
+
+    // Avoid unnecessary API requests if all country cities are already loaded
+    if (allCountryCitiesLoadedRef.current) return;
+
+    const fetchCities = async () => {
+      try {
+        setLoadingCities(true);
+        setCityApiError(null);
+        const apiKey = import.meta.env.VITE_CSC_API_KEY || '597e808cc1104dc55ce5e4e311a6bb784021265308d3305be0c501f186efeca8';
+
+        let citiesData = [];
+
+        // 1. Primary: Fetch from Country State City API endpoint specified in task
+        try {
+          const response = await fetch('https://api.countrystatecity.in/v1/countries/IN/cities', {
+            headers: {
+              'X-CSCAPI-KEY': apiKey
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              citiesData = data;
+              allCountryCitiesLoadedRef.current = true;
+              console.log('Cities fetched:', data.length);
+            }
+          } else {
+            const errData = await response.json().catch(() => null);
+            console.warn('Primary cities fetch response notice:', response.status, errData);
+          }
+        } catch (fetchErr) {
+          console.warn('Direct country cities fetch notice:', fetchErr?.message);
+        }
+
+        // 2. Seamless tier fallback:
+        // On free/community plan, /v1/countries/IN/cities returns 403 (feature: 'citiesByCountry', requiredTier: 'starter').
+        // If citiesData is empty, fetch cities via /v1/countries/IN/states/{stateIso}/cities for selected state or key states.
+        if (citiesData.length === 0) {
+          let targetStateIso = '';
+          if (watchState) {
+            const matchedState = statesList.find(s =>
+              (s.name && s.name.toLowerCase() === String(watchState).toLowerCase()) ||
+              (s.iso2 && s.iso2.toLowerCase() === String(watchState).toLowerCase())
+            );
+            if (matchedState?.iso2) {
+              targetStateIso = matchedState.iso2;
+            }
+          }
+
+          const fallbackIsos = targetStateIso ? [targetStateIso] : ['TN', 'MH', 'DL', 'KA'];
+          const fetchPromises = fallbackIsos.map(async (iso) => {
+            if (citiesCacheRef.current[iso]) return citiesCacheRef.current[iso];
+            const res = await fetch(`https://api.countrystatecity.in/v1/countries/IN/states/${iso}/cities`, {
+              headers: { 'X-CSCAPI-KEY': apiKey }
+            });
+            if (!res.ok) return [];
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              citiesCacheRef.current[iso] = data;
+              return data;
+            }
+            return [];
+          });
+
+          const results = await Promise.all(fetchPromises);
+          const merged = results.flat();
+          if (merged.length > 0) {
+            citiesData = merged;
+          } else {
+            throw new Error('Failed to fetch cities');
+          }
+        }
+
+        if (isMounted) {
+          setCitiesList(prev => [...prev, ...citiesData]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch cities:', error);
+        if (isMounted) {
+          setCityApiError(error.message || 'Failed to fetch cities');
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingCities(false);
+        }
+      }
+    };
+
+    fetchCities();
+    return () => { isMounted = false; };
+  }, [watchState, statesList]);
+
+  // Formulate City dropdown options, avoiding duplicates and preserving existing saved city in edit mode
+  const cityOptions = useMemo(() => {
+    const seen = new Set();
+    const options = [];
+
+    // 1. If there is a current/saved city in form state, ensure it is available and first
+    if (watchCity && typeof watchCity === 'string' && watchCity.trim()) {
+      const trimmed = watchCity.trim();
+      seen.add(trimmed.toLowerCase());
+      options.push({ value: trimmed, label: trimmed });
+    }
+
+    // 2. Add all unique cities from API list
+    for (const item of citiesList) {
+      const cityName = typeof item === 'object' && item !== null
+        ? (item.name || item.city || item.label || item.value)
+        : item;
+
+      if (cityName && typeof cityName === 'string') {
+        const trimmed = cityName.trim();
+        const lower = trimmed.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          options.push({ value: trimmed, label: trimmed });
+        }
+      }
+    }
+
+    return options;
+  }, [citiesList, watchCity]);
+
   const onSubmit = async (data) => {
     if (!isEditMode && data.login_password !== data.login_confirm_password) {
       toast.error('Passwords do not match');
@@ -469,8 +751,8 @@ const StudentCreate = () => {
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all cursor-pointer ${isActive
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -528,7 +810,18 @@ const StudentCreate = () => {
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Date of Birth <span className="text-red-500">*</span></label>
               <input
                 type="date"
-                {...register('date_of_birth', { required: 'Date of Birth is required' })}
+                max={new Date().toISOString().split('T')[0]}
+                {...register('date_of_birth', {
+                  required: 'Date of Birth is required',
+                  onChange: (e) => {
+                    const val = e.target.value;
+                    const calculatedAge = calculateAge(val);
+                    setValue('age', calculatedAge !== '' ? calculatedAge : '', {
+                      shouldValidate: true,
+                      shouldDirty: true
+                    });
+                  }
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
               />
               {errors.date_of_birth && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.date_of_birth.message}</p>}
@@ -615,8 +908,9 @@ const StudentCreate = () => {
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Age <span className="text-slate-400 font-normal">(Years)</span></label>
               <input
                 type="number"
+                readOnly={Boolean(watchDateOfBirth)}
                 {...register('age')}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
+                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm read-only:bg-slate-50 read-only:cursor-not-allowed"
                 placeholder="e.g. 14"
               />
             </div>
@@ -909,9 +1203,26 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Guardian Phone Number <span className="text-red-500">*</span></label>
               <input
-                {...register('guardian_phone', { required: 'Guardian Phone is required' })}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 placeholder="10-digit Phone Number"
+                onKeyDown={handlePhoneKeyDown}
+                onPaste={handlePhonePaste('guardian_phone')}
+                {...register('guardian_phone', {
+                  required: 'Guardian Phone Number is required',
+                  validate: (val) => {
+                    if (!val) return 'Guardian Phone Number is required';
+                    if (!/^\d{10}$/.test(val)) return 'Guardian Phone Number must be exactly 10 digits';
+                    return true;
+                  },
+                  onChange: (e) => {
+                    const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    e.target.value = sanitized;
+                    setValue('guardian_phone', sanitized, { shouldValidate: true, shouldDirty: true });
+                  }
+                })}
+                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
               />
               {errors.guardian_phone && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.guardian_phone.message}</p>}
             </div>
@@ -931,20 +1242,54 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp Number</label>
               <input
-                {...register('whatsapp_number')}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 placeholder="WhatsApp Contact Number"
+                onKeyDown={handlePhoneKeyDown}
+                onPaste={handlePhonePaste('whatsapp_number')}
+                {...register('whatsapp_number', {
+                  validate: (val) => {
+                    if (!val) return true;
+                    if (!/^\d{10}$/.test(val)) return 'WhatsApp Number must be exactly 10 digits';
+                    return true;
+                  },
+                  onChange: (e) => {
+                    const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    e.target.value = sanitized;
+                    setValue('whatsapp_number', sanitized, { shouldValidate: true, shouldDirty: true });
+                  }
+                })}
+                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
               />
+              {errors.whatsapp_number && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.whatsapp_number.message}</p>}
             </div>
 
             {/* Alternate Phone */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Alternate Contact Phone</label>
               <input
-                {...register('alternate_phone')}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 placeholder="Alternate Phone Number"
+                onKeyDown={handlePhoneKeyDown}
+                onPaste={handlePhonePaste('alternate_phone')}
+                {...register('alternate_phone', {
+                  validate: (val) => {
+                    if (!val) return true;
+                    if (!/^\d{10}$/.test(val)) return 'Alternate Contact Phone must be exactly 10 digits';
+                    return true;
+                  },
+                  onChange: (e) => {
+                    const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    e.target.value = sanitized;
+                    setValue('alternate_phone', sanitized, { shouldValidate: true, shouldDirty: true });
+                  }
+                })}
+                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
               />
+              {errors.alternate_phone && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.alternate_phone.message}</p>}
             </div>
           </div>
         </div>
@@ -982,11 +1327,16 @@ const StudentCreate = () => {
             {/* City */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">City <span className="text-red-500">*</span></label>
-              <input
-                {...register('city', { required: 'City is required' })}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-                placeholder="City Name"
+              <SearchableSelect
+                options={cityOptions}
+                value={watchCity || ''}
+                onChange={(val) => setValue('city', val, { shouldValidate: true, shouldDirty: true })}
+                placeholder="Select City"
+                searchPlaceholder="Search City..."
+                loading={loadingCities}
+                emptyMessage={cityApiError ? `Error: ${cityApiError}` : 'No cities found'}
               />
+              <input type="hidden" {...register('city', { required: 'City is required' })} />
               {errors.city && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.city.message}</p>}
             </div>
 
@@ -1003,11 +1353,16 @@ const StudentCreate = () => {
             {/* State */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">State <span className="text-red-500">*</span></label>
-              <input
-                {...register('state', { required: 'State is required' })}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-                placeholder="State Name"
+              <SearchableSelect
+                options={stateOptions}
+                value={watchState || ''}
+                onChange={(val) => setValue('state', val, { shouldValidate: true, shouldDirty: true })}
+                placeholder="Select State"
+                searchPlaceholder="Search State..."
+                loading={loadingStates}
+                emptyMessage={stateApiError ? `Error: ${stateApiError}` : 'No states found'}
               />
+              <input type="hidden" {...register('state', { required: 'State is required' })} />
               {errors.state && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.state.message}</p>}
             </div>
 

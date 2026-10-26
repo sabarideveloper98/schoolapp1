@@ -104,6 +104,20 @@ const StudentManagement = () => {
     if (user?.token) fetchData();
   }, [user]);
 
+  // Reactively apply classId from query parameters whenever searchParams or classes change
+  useEffect(() => {
+    const classIdFromUrl = searchParams.get('classId');
+    if (classIdFromUrl && classes.length > 0) {
+      const matchingClass = classes.find(c => String(c._id) === String(classIdFromUrl));
+      if (matchingClass) {
+        setClassFilter(matchingClass.class);
+        setSectionFilter(matchingClass._id);
+        setAppliedClassFilter(matchingClass.class);
+        setAppliedSectionFilter(matchingClass._id);
+      }
+    }
+  }, [searchParams, classes]);
+
   // Click outside to close dropdowns
   useEffect(() => {
     const handleOutsideClick = () => setActiveDropdownId(null);
@@ -267,8 +281,23 @@ const StudentManagement = () => {
 
   // Filter students array based on filters & global search
   const filteredStudents = students.filter(student => {
-    if (appliedClassFilter && student.class_id?.class !== appliedClassFilter && student.class !== appliedClassFilter) return false;
-    if (appliedSectionFilter && student.class_id?._id !== appliedSectionFilter) return false;
+    if (appliedClassFilter) {
+      const studentClass = student.class_id?.class || student.class || '';
+      if (String(studentClass).trim().toLowerCase() !== String(appliedClassFilter).trim().toLowerCase()) {
+        return false;
+      }
+    }
+
+    if (appliedSectionFilter) {
+      const studentClassId = String(student.class_id?._id || student.class_id || '');
+      const matchingClass = classes.find(c => String(c._id) === String(appliedSectionFilter));
+      const matchesId = studentClassId && studentClassId === String(appliedSectionFilter);
+      const matchesNameAndSection = matchingClass &&
+        String(student.class || student.class_id?.class || '').trim().toLowerCase() === String(matchingClass.class || '').trim().toLowerCase() &&
+        String(student.section || student.class_id?.section || '').trim().toUpperCase() === String(matchingClass.section || '').trim().toUpperCase();
+
+      if (!matchesId && !matchesNameAndSection) return false;
+    }
     if (statusFilter !== 'all') {
       const currentStatus = student.student_status || 'Active';
       if (currentStatus.toLowerCase() !== statusFilter.toLowerCase()) return false;
@@ -517,8 +546,8 @@ const StudentManagement = () => {
                       <button
                         onClick={() => toggleStatus(student)}
                         className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${isActive
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                           }`}
                         title="Click to toggle Active / Inactive"
                       >

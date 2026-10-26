@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar, 
-  Coins, Wallet, TrendingUp, User, CreditCard, Navigation, CalendarRange, Sun, 
-  TrendingDown, ArrowUpRight, Bus, Bell, Zap, UserPlus, ClipboardCheck, Receipt, 
+import {
+  LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar,
+  Coins, Wallet, TrendingUp, User, CreditCard, Navigation, CalendarRange, Sun,
+  TrendingDown, ArrowUpRight, Bus, Bell, Zap, UserPlus, ClipboardCheck, Receipt,
   UserCheck, Send, MapPin, Clock, Phone, ChevronRight, Sparkles, Search, ArrowRight, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import Layout from '../../components/Layout';
@@ -94,7 +94,6 @@ const DashboardOverview = () => {
         setLoading(false);
       }
     };
-
     if (user) {
       fetchStats();
     } else {
@@ -185,7 +184,7 @@ const DashboardOverview = () => {
 
   return (
     <div className="space-y-6 pb-12 font-sans bg-slate-50/60 min-h-screen">
-      
+
       {/* Top Banner & Date Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
         <div className="flex items-center gap-3">
@@ -215,7 +214,7 @@ const DashboardOverview = () => {
 
       {/* 4 Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        
+
         {/* Stat Card 1: Student Attendance */}
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] transition-all hover:shadow-md flex flex-col justify-between">
           <div>
@@ -227,7 +226,7 @@ const DashboardOverview = () => {
                 <span className="text-xs font-bold text-slate-700">Student Attendance</span>
               </div>
             </div>
-            
+
             <div className="flex items-baseline justify-between mt-3">
               <div>
                 <span className="text-3xl font-black text-slate-900 tracking-tight">92.4%</span>
@@ -239,7 +238,7 @@ const DashboardOverview = () => {
               <Sparkline color="#2563eb" />
             </div>
           </div>
-          
+
           <div className="pt-4 mt-4 border-t border-slate-100 text-xs font-bold text-slate-600">
             {stats?.totalStudents ? `${Math.round(stats.totalStudents * 0.924)} / ${stats.totalStudents} present` : '1,248 / 1,350 present'}
           </div>
@@ -256,7 +255,7 @@ const DashboardOverview = () => {
                 <span className="text-xs font-bold text-slate-700">Fee Collection</span>
               </div>
             </div>
-            
+
             <div className="flex items-baseline justify-between mt-3">
               <div>
                 <span className="text-3xl font-black text-slate-900 tracking-tight">78.6%</span>
@@ -268,7 +267,7 @@ const DashboardOverview = () => {
               <Sparkline color="#d97706" />
             </div>
           </div>
-          
+
           <div className="pt-4 mt-4 border-t border-slate-100 text-xs font-bold text-slate-600">
             ₹ 32,48,750 / ₹ 41,50,000
           </div>
@@ -285,7 +284,7 @@ const DashboardOverview = () => {
                 <span className="text-xs font-bold text-slate-700">Transport On-Time</span>
               </div>
             </div>
-            
+
             <div className="flex items-baseline justify-between mt-3">
               <div>
                 <span className="text-3xl font-black text-slate-900 tracking-tight">95.2%</span>
@@ -297,7 +296,7 @@ const DashboardOverview = () => {
               <Sparkline color="#059669" />
             </div>
           </div>
-          
+
           <div className="pt-4 mt-4 border-t border-slate-100 text-xs font-bold text-slate-600">
             48 / 50 buses on time
           </div>
@@ -314,7 +313,7 @@ const DashboardOverview = () => {
                 <span className="text-xs font-bold text-slate-700">Active Alerts</span>
               </div>
             </div>
-            
+
             <div className="flex items-baseline justify-between mt-3">
               <div>
                 <span className="text-3xl font-black text-slate-900 tracking-tight">3</span>
@@ -326,7 +325,7 @@ const DashboardOverview = () => {
               <Sparkline color="#e11d48" />
             </div>
           </div>
-          
+
           <div className="pt-4 mt-4 border-t border-slate-100 text-[11px] font-bold text-slate-500 flex items-center gap-2">
             <span>2 fee dues</span>
             <span>•</span>
@@ -340,7 +339,7 @@ const DashboardOverview = () => {
 
       {/* Main Grid: Class-wise Attendance (Left) + Fee Trend & Quick Actions (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Class-wise Attendance Chart Card (7 cols) */}
         <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
@@ -383,7 +382,7 @@ const DashboardOverview = () => {
                       {item.pct}%
                     </span>
                     <div className="w-full max-w-[22px] bg-blue-100 rounded-t-md h-full flex items-end overflow-hidden">
-                      <div 
+                      <div
                         className="w-full bg-blue-600 rounded-t-md group-hover:bg-blue-700 transition-all duration-500"
                         style={{ height: `${item.pct}%` }}
                       />
@@ -405,7 +404,7 @@ const DashboardOverview = () => {
 
           <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Overall Attendance Rate: <strong className="text-slate-800">92.4%</strong></span>
-            <button 
+            <button
               onClick={() => navigate('/school-admin/student-attendance')}
               className="text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline cursor-pointer"
             >
@@ -417,7 +416,7 @@ const DashboardOverview = () => {
 
         {/* Right Column: Fee Collection Trend & Quick Actions (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          
+
           {/* Fee Collection Trend Card */}
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
             <div className="flex items-center justify-between mb-4">
@@ -458,7 +457,7 @@ const DashboardOverview = () => {
                   stroke="#2563eb"
                   strokeWidth="3"
                 />
-                
+
                 {/* Pending Line (Amber) */}
                 <path
                   d="M 10 100 L 60 95 L 120 90 L 180 82 L 240 75 L 290 65"
@@ -507,8 +506,8 @@ const DashboardOverview = () => {
             </div>
 
             <div className="space-y-2.5">
-              
-              <button 
+
+              <button
                 onClick={() => navigate('/school-admin/students/create')}
                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/80 transition-all text-left group cursor-pointer"
               >
@@ -524,7 +523,7 @@ const DashboardOverview = () => {
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
               </button>
 
-              <button 
+              <button
                 onClick={() => navigate('/school-admin/student-attendance')}
                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/80 transition-all text-left group cursor-pointer"
               >
@@ -540,7 +539,7 @@ const DashboardOverview = () => {
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
               </button>
 
-              <button 
+              <button
                 onClick={() => navigate('/school-admin/fees/collect')}
                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/80 transition-all text-left group cursor-pointer"
               >
@@ -556,7 +555,7 @@ const DashboardOverview = () => {
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
               </button>
 
-              <button 
+              <button
                 onClick={() => navigate('/school-admin/teachers')}
                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/80 transition-all text-left group cursor-pointer"
               >
@@ -572,7 +571,7 @@ const DashboardOverview = () => {
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
               </button>
 
-              <button 
+              <button
                 onClick={() => navigate('/school-admin/dashboard')}
                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200/80 transition-all text-left group cursor-pointer"
               >
@@ -597,7 +596,7 @@ const DashboardOverview = () => {
 
       {/* Bottom Grid: Transport GPS Tracking (Left) & Substitute Teacher Tracker (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Transport GPS Tracking Card (7 cols) */}
         <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
           <div className="flex items-center justify-between mb-5">
@@ -613,7 +612,7 @@ const DashboardOverview = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            
+
             {/* Bus Selection List (3 cols) */}
             <div className="md:col-span-4 space-y-2">
               {Object.keys(busData).map((key) => {
@@ -624,17 +623,15 @@ const DashboardOverview = () => {
                   <button
                     key={key}
                     onClick={() => setSelectedBus(key)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${
-                      isSelected 
-                        ? 'bg-blue-50/70 border-blue-200 shadow-xs' 
+                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${isSelected
+                        ? 'bg-blue-50/70 border-blue-200 shadow-xs'
                         : 'bg-white border-slate-100 hover:border-slate-200'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-slate-800">Bus {bus.busNo}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        bus.statusColor === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bus.statusColor === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
                         • {bus.status}
                       </span>
                     </div>
@@ -646,10 +643,10 @@ const DashboardOverview = () => {
 
             {/* Center Map Graphic (5 cols) */}
             <div className="md:col-span-5 bg-slate-100/70 rounded-xl p-3 relative flex flex-col justify-between min-h-[220px] overflow-hidden border border-slate-200/60">
-              
+
               {/* Map Illustration Elements */}
               <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:12px_12px]" />
-              
+
               {/* Top Status */}
               <div className="relative z-10 flex items-center justify-between">
                 <div className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 text-[10px] font-bold text-slate-700 flex items-center gap-1 shadow-xs">
@@ -662,14 +659,14 @@ const DashboardOverview = () => {
               <div className="relative z-10 my-auto">
                 <svg className="w-full h-28 overflow-visible" viewBox="0 0 240 100">
                   {/* Route path */}
-                  <path 
-                    d="M 20 80 Q 70 20 120 70 T 220 30" 
-                    fill="none" 
-                    stroke="#2563eb" 
-                    strokeWidth="3.5" 
+                  <path
+                    d="M 20 80 Q 70 20 120 70 T 220 30"
+                    fill="none"
+                    stroke="#2563eb"
+                    strokeWidth="3.5"
                     strokeDasharray="1,0"
                   />
-                  
+
                   {/* Stops */}
                   <circle cx="20" cy="80" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
                   <circle cx="90" cy="45" r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
@@ -736,7 +733,7 @@ const DashboardOverview = () => {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => navigate('/school-admin/transport')}
                 className="w-full mt-4 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
@@ -762,7 +759,7 @@ const DashboardOverview = () => {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => navigate('/school-admin/teachers')}
                 className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-0.5 cursor-pointer"
               >
@@ -773,7 +770,7 @@ const DashboardOverview = () => {
 
             {/* List of Substitute Teachers */}
             <div className="space-y-3">
-              
+
               <div className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 font-black text-xs flex items-center justify-center shrink-0">
@@ -873,10 +870,10 @@ const SchoolAdminDashboard = () => {
         const token = user?.token || user?.accessToken || (typeof localStorage !== 'undefined' ? (JSON.parse(localStorage.getItem('user') || '{}')?.token || localStorage.getItem('token')) : '') || '';
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const { data } = await axios.get('/api/subscription/schooladmin/current', config);
-        
+
         const activeSub = data?.activeSubscription;
         const isCurrentlyActive = activeSub && activeSub.status === 'Active' && new Date(activeSub.subscription_end_date) > new Date();
-        
+
         setHasActiveSubscription(!!isCurrentlyActive);
       } catch (error) {
         setHasActiveSubscription(false);
@@ -1013,7 +1010,7 @@ const SchoolAdminDashboard = () => {
         <Route index element={<DashboardOverview />} />
         <Route path="/" element={<DashboardOverview />} />
         <Route path="/dashboard" element={<DashboardOverview />} />
-        
+
         {/* Timetable Sub-routes */}
         <Route path="/timetable/dashboard" element={<TimetableDashboard />} />
         <Route path="/timetable/create" element={<CreateTimetable />} />
@@ -1049,13 +1046,13 @@ const SchoolAdminDashboard = () => {
         <Route path="/students" element={<StudentManagement />} />
         <Route path="/students/create" element={<StudentCreate />} />
         <Route path="/students/edit/:id" element={<StudentCreate />} />
-        
+
         {/* Payroll routes */}
         <Route path="/salary/setup" element={hasActiveSubscription ? <SalarySetup /> : <Navigate to="/school-admin/subscription" replace />} />
         <Route path="/salary/process" element={hasActiveSubscription ? <PayrollProcess /> : <Navigate to="/school-admin/subscription" replace />} />
         <Route path="/salary/slips" element={hasActiveSubscription ? <SalarySlips /> : <Navigate to="/school-admin/subscription" replace />} />
         <Route path="/salary/reports" element={hasActiveSubscription ? <SalaryReports /> : <Navigate to="/school-admin/subscription" replace />} />
-        
+
         <Route path="/fees/categories" element={<FeeCategoryManagement />} />
         <Route path="/fees/structures" element={<FeeStructureManagement />} />
         <Route path="/fees/assignments" element={<StudentFeeAssignment />} />

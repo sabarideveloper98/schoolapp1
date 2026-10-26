@@ -447,7 +447,7 @@ const getDashboardStats = async (req, res) => {
         const totalClasses = await Class.countDocuments({ school_id });
         const totalTeachers = await Teacher.countDocuments({ school_id });
         const totalSubjects = await Subject.countDocuments({ school_id });
-        
+
         const assignments = await TeacherAssignment.find({ school_id, academic_year });
         const assignedSubjectsCount = new Set(assignments.map(a => a.subject_id.toString())).size;
         const activeTimetablesCount = await Timetable.countDocuments({ school_id, academic_year, status: 'Published' });
@@ -480,11 +480,12 @@ const getSettings = async (req, res) => {
             settings = await TimetableSettings.create({ school_id, academic_year });
         }
 
-        // If settings doesn't have generated_periods yet, sync from PeriodConfig if available
-        if ((!settings.generated_periods || settings.generated_periods.length === 0)) {
-            const periodConfigs = await PeriodConfig.find({ school_id }).sort({ order: 1 });
+        // Sync and ensure generated_periods have _id from PeriodConfig
+        const periodConfigs = await PeriodConfig.find({ school_id }).sort({ order: 1 });
+        if (!settings.generated_periods || settings.generated_periods.length === 0) {
             if (periodConfigs && periodConfigs.length > 0) {
                 settings.generated_periods = periodConfigs.map(p => ({
+                    _id: p._id,
                     period_name: p.period_name,
                     start_time: p.start_time,
                     end_time: p.end_time,
@@ -492,6 +493,26 @@ const getSettings = async (req, res) => {
                     is_lunch: !!p.is_lunch || p.type === 'Lunch',
                     is_break: !!p.is_break || p.type === 'Break'
                 }));
+                await settings.save();
+            }
+        } else if (periodConfigs && periodConfigs.length > 0) {
+            // Attach matching PeriodConfig _id if generated_periods are missing _id
+            let needsSave = false;
+            settings.generated_periods = settings.generated_periods.map((gp, idx) => {
+                const gpObj = gp.toObject ? gp.toObject() : gp;
+                if (!gpObj._id) {
+                    const matchedCfg = periodConfigs.find(pc => 
+                        pc.period_name.trim().toLowerCase() === (gpObj.period_name || '').trim().toLowerCase() ||
+                        pc.order === idx + 1
+                    );
+                    if (matchedCfg) {
+                        needsSave = true;
+                        return { ...gpObj, _id: matchedCfg._id };
+                    }
+                }
+                return gpObj;
+            });
+            if (needsSave) {
                 await settings.save();
             }
         }
@@ -511,6 +532,7 @@ const saveSettings = async (req, res) => {
             ? req.body.generated_periods.map(p => {
                 const derivedType = (p.is_lunch || p.type === 'Lunch') ? 'Lunch' : (p.is_break || p.type === 'Break') ? 'Break' : (p.type || 'Teaching Period');
                 return {
+                    ...(p._id ? { _id: p._id } : {}),
                     period_name: p.period_name,
                     start_time: p.start_time,
                     end_time: p.end_time,
@@ -520,6 +542,29 @@ const saveSettings = async (req, res) => {
                 };
             })
             : [];
+
+        // Validate that end_time is later than start_time for all periods
+        const parseTimeToMinutes = (timeStr) => {
+            if (!timeStr || typeof timeStr !== 'string') return null;
+            const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+            if (!match) return null;
+            let hrs = parseInt(match[1], 10);
+            const mins = parseInt(match[2], 10);
+            const ampm = match[3] ? match[3].toUpperCase() : null;
+            if (ampm === 'PM' && hrs < 12) hrs += 12;
+            if (ampm === 'AM' && hrs === 12) hrs = 0;
+            return hrs * 60 + mins;
+        };
+
+        for (const p of sanitizedPeriods) {
+            const startMins = parseTimeToMinutes(p.start_time);
+            const endMins = parseTimeToMinutes(p.end_time);
+            if (startMins !== null && endMins !== null && endMins <= startMins) {
+                return res.status(400).json({
+                    message: `Invalid timing for period "${p.period_name || 'Unnamed'}": End time (${p.end_time}) must be later than start time (${p.start_time}).`
+                });
+            }
+        }
 
         const updateData = {
             ...req.body,
@@ -535,18 +580,73 @@ const saveSettings = async (req, res) => {
         );
 
         if (sanitizedPeriods.length > 0) {
-            await PeriodConfig.deleteMany({ school_id });
-            const periodConfigs = sanitizedPeriods.map((p, idx) => ({
-                school_id,
-                period_name: p.period_name,
-                start_time: p.start_time,
-                end_time: p.end_time,
-                type: p.type,
-                is_lunch: p.is_lunch,
-                is_break: p.is_break,
-                order: idx + 1
-            }));
-            await PeriodConfig.insertMany(periodConfigs);
+            const existingConfigs = await PeriodConfig.find({ school_id }).sort({ order: 1 });
+            const existingById = new Map();
+            const existingByName = new Map();
+            const existingByOrder = new Map();
+
+            existingConfigs.forEach(ec => {
+                existingById.set(ec._id.toString(), ec);
+                existingByName.set(ec.period_name.trim().toLowerCase(), ec);
+                existingByOrder.set(ec.order, ec);
+            });
+
+            const processedIds = new Set();
+            for (let idx = 0; idx < sanitizedPeriods.length; idx++) {
+                const p = sanitizedPeriods[idx];
+                const pNameKey = (p.period_name || '').trim().toLowerCase();
+                const targetOrder = idx + 1;
+
+                let matched = null;
+                if (p._id && existingById.has(p._id.toString())) {
+                    matched = existingById.get(p._id.toString());
+                } else if (existingByName.has(pNameKey)) {
+                    matched = existingByName.get(pNameKey);
+                } else if (existingByOrder.has(targetOrder) && !processedIds.has(existingByOrder.get(targetOrder)._id.toString())) {
+                    matched = existingByOrder.get(targetOrder);
+                }
+
+                if (matched) {
+                    matched.period_name = p.period_name;
+                    matched.start_time = p.start_time;
+                    matched.end_time = p.end_time;
+                    matched.type = p.type;
+                    matched.is_lunch = p.is_lunch;
+                    matched.is_break = p.is_break;
+                    matched.order = targetOrder;
+                    await matched.save();
+                    processedIds.add(matched._id.toString());
+                    // Update the _id in settings if not present
+                    if (!p._id) {
+                        p._id = matched._id;
+                    }
+                } else {
+                    const newConfig = new PeriodConfig({
+                        school_id,
+                        period_name: p.period_name,
+                        start_time: p.start_time,
+                        end_time: p.end_time,
+                        type: p.type,
+                        is_lunch: p.is_lunch,
+                        is_break: p.is_break,
+                        order: targetOrder
+                    });
+                    await newConfig.save();
+                    processedIds.add(newConfig._id.toString());
+                    p._id = newConfig._id;
+                }
+            }
+
+            // Remove only orphaned periods that were explicitly removed
+            for (const ec of existingConfigs) {
+                if (!processedIds.has(ec._id.toString())) {
+                    await PeriodConfig.findByIdAndDelete(ec._id);
+                }
+            }
+
+            // Ensure settings has all _ids
+            settings.generated_periods = sanitizedPeriods;
+            await settings.save();
         }
 
         res.json({ message: 'Settings saved', settings });
@@ -737,6 +837,90 @@ const getStudentTimetable = async (req, res) => {
     }
 };
 
+const updatePeriodTiming = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const { id } = req.params;
+        const { period_name, start_time, end_time, is_lunch, is_break, type } = req.body;
+
+        if (!period_name || !start_time || !end_time) {
+            return res.status(400).json({ message: 'Period name, start time, and end time are required' });
+        }
+
+        // Validate time range: end_time > start_time
+        const parseTimeToMinutes = (timeStr) => {
+            if (!timeStr || typeof timeStr !== 'string') return null;
+            const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+            if (!match) return null;
+            let hrs = parseInt(match[1], 10);
+            const mins = parseInt(match[2], 10);
+            const ampm = match[3] ? match[3].toUpperCase() : null;
+            if (ampm === 'PM' && hrs < 12) hrs += 12;
+            if (ampm === 'AM' && hrs === 12) hrs = 0;
+            return hrs * 60 + mins;
+        };
+
+        const startMins = parseTimeToMinutes(start_time);
+        const endMins = parseTimeToMinutes(end_time);
+        if (startMins !== null && endMins !== null && endMins <= startMins) {
+            return res.status(400).json({
+                message: `Invalid timing: End time (${end_time}) must be later than start time (${start_time}).`
+            });
+        }
+
+        // Check if id is a PeriodConfig or update PeriodConfig
+        let periodConfig = null;
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            periodConfig = await PeriodConfig.findOne({ _id: id, school_id });
+        }
+        if (!periodConfig) {
+            periodConfig = await PeriodConfig.findOne({ school_id, period_name });
+        }
+
+        if (periodConfig) {
+            periodConfig.period_name = period_name;
+            periodConfig.start_time = start_time;
+            periodConfig.end_time = end_time;
+            if (typeof is_lunch === 'boolean') periodConfig.is_lunch = is_lunch;
+            if (typeof is_break === 'boolean') periodConfig.is_break = is_break;
+            if (type) periodConfig.type = type;
+            await periodConfig.save();
+        }
+
+        // Also update in TimetableSettings.generated_periods
+        const settings = await TimetableSettings.findOne({ school_id });
+        if (settings && settings.generated_periods) {
+            let matched = false;
+            settings.generated_periods = settings.generated_periods.map(p => {
+                const pObj = p.toObject ? p.toObject() : p;
+                if ((pObj._id && pObj._id.toString() === id.toString()) || pObj.period_name === period_name) {
+                    matched = true;
+                    return {
+                        ...pObj,
+                        period_name,
+                        start_time,
+                        end_time,
+                        is_lunch: typeof is_lunch === 'boolean' ? is_lunch : pObj.is_lunch,
+                        is_break: typeof is_break === 'boolean' ? is_break : pObj.is_break,
+                        type: type || pObj.type
+                    };
+                }
+                return pObj;
+            });
+            if (matched) {
+                await settings.save();
+            }
+        }
+
+        res.json({
+            message: 'Period timing updated successfully',
+            period: periodConfig || { period_name, start_time, end_time, is_lunch, is_break, type }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to update period timing', error: error.message });
+    }
+};
+
 module.exports = {
     getAllTimetables,
     getClassTimetableBySection,
@@ -760,5 +944,6 @@ module.exports = {
     deleteAssignment,
     getTeacherAvailability,
     saveTeacherAvailability,
-    getStudentTimetable
+    getStudentTimetable,
+    updatePeriodTiming
 };

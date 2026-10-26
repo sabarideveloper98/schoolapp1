@@ -85,12 +85,12 @@ const SearchableSelect = ({
           opt.sublabel !== undefined && opt.sublabel !== null
             ? opt.sublabel
             : (opt.code ??
-               opt.admission_no ??
-               opt.employee_id ??
-               opt.bus_number ??
-               opt.phone ??
-               opt.designation ??
-               (opt.roll_no ? `Roll: ${opt.roll_no}` : undefined));
+              opt.admission_no ??
+              opt.employee_id ??
+              opt.bus_number ??
+              opt.phone ??
+              opt.designation ??
+              (opt.roll_no ? `Roll: ${opt.roll_no}` : undefined));
 
         return {
           value: opt.value !== undefined ? opt.value : (opt._id ?? opt.id ?? opt),
@@ -167,8 +167,8 @@ const SearchableSelect = ({
         target: { name, id, value: optionValue },
         currentTarget: { name, id, value: optionValue },
         value: optionValue,
-        preventDefault: () => {},
-        stopPropagation: () => {}
+        preventDefault: () => { },
+        stopPropagation: () => { }
       };
       onChange(optionValue, syntheticEvent);
     }
@@ -214,7 +214,8 @@ const SearchableSelect = ({
           type="text"
           value={value ?? ''}
           required={required}
-          onChange={() => {}}
+          onChange={() => { }}
+          onInvalid={(e) => e.preventDefault()}
           className="sr-only"
           tabIndex={-1}
           aria-hidden="true"
@@ -231,9 +232,8 @@ const SearchableSelect = ({
         className={
           buttonClassName
             ? `${buttonClassName} ${isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`
-            : `w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white ${
-                isOpen ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'
-              } ${disabled ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'cursor-pointer'}`
+            : `w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between transition-all outline-none bg-white ${isOpen ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'
+            } ${disabled ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'cursor-pointer'}`
         }
       >
         <span className={`text-sm font-semibold truncate ${selectedOption ? 'text-slate-800' : 'text-slate-400'}`}>
@@ -242,9 +242,8 @@ const SearchableSelect = ({
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {loading && <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />}
           <ChevronDown
-            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-              isOpen ? 'rotate-180 text-indigo-600' : ''
-            }`}
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-600' : ''
+              }`}
           />
         </div>
       </button>
@@ -291,15 +290,14 @@ const SearchableSelect = ({
                     disabled={opt.disabled}
                     onClick={() => !opt.disabled && handleSelect(opt.value)}
                     onMouseEnter={() => setHighlightedIndex(index)}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                      opt.disabled
-                        ? 'opacity-40 cursor-not-allowed bg-slate-50 text-slate-400'
-                        : isSelected
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${opt.disabled
+                      ? 'opacity-40 cursor-not-allowed bg-slate-50 text-slate-400'
+                      : isSelected
                         ? 'bg-indigo-50 text-indigo-700 font-extrabold'
                         : isHighlighted
-                        ? 'bg-slate-100 text-slate-900'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
+                          ? 'bg-slate-100 text-slate-900'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
                   >
                     <div className="truncate pr-2">
                       <div className="truncate">{opt.label}</div>

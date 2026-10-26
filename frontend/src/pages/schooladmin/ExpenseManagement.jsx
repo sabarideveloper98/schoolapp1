@@ -13,6 +13,7 @@ export default function ExpenseManagement() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Filters & Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,9 +49,10 @@ export default function ExpenseManagement() {
         axios.get('/api/schooladmin/finance/categories', config)
       ]);
       setExpenses(resExp.data);
-      setCategories(resCat.data.filter(c => c.status === 'Active'));
-      if (resCat.data.length > 0 && !formData.category_id) {
-        setFormData(prev => ({ ...prev, category_id: resCat.data[0]._id }));
+      const activeCats = (resCat.data || []).filter(c => c.status === 'Active');
+      setCategories(activeCats);
+      if (activeCats.length > 0 && !formData.category_id) {
+        setFormData(prev => ({ ...prev, category_id: activeCats[0]._id }));
       }
     } catch (error) {
       toast.error('Failed to load expense registers');
@@ -87,14 +89,14 @@ export default function ExpenseManagement() {
   const handleOpenEdit = (exp) => {
     setFormData({
       expense_date: exp.expense_date ? new Date(exp.expense_date).toISOString().split('T')[0] : '',
-      category_id: exp.category_id?._id || exp.category_id,
-      title: exp.title,
-      amount: exp.amount,
-      payment_method: exp.payment_method,
+      category_id: exp.category_id?._id || exp.category_id || '',
+      title: exp.title || '',
+      amount: exp.amount !== undefined ? exp.amount : '',
+      payment_method: exp.payment_method || 'Cash',
       reference_number: exp.reference_number || '',
       description: exp.description || '',
       attachment_url: exp.attachment_url || '',
-      status: exp.status
+      status: exp.status || 'Paid'
     });
     setEditMode(true);
     setEditingId(exp._id);
@@ -103,25 +105,50 @@ export default function ExpenseManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.category_id || !formData.title || !formData.amount) {
-      toast.error('Category, Title, and Amount are required');
+    if (!formData.category_id) {
+      toast.error('Please select an Expense Category');
+      return;
+    }
+    if (!formData.title || !formData.title.trim()) {
+      toast.error('Expense title is required');
+      return;
+    }
+    if (formData.amount === '' || isNaN(Number(formData.amount)) || Number(formData.amount) < 0) {
+      toast.error('Please enter a valid amount (₹)');
       return;
     }
 
+    setSaving(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const payload = {
+        expense_date: formData.expense_date,
+        category_id: formData.category_id,
+        title: formData.title.trim(),
+        amount: Number(formData.amount),
+        payment_method: formData.payment_method,
+        reference_number: formData.reference_number ? formData.reference_number.trim() : '',
+        description: formData.description ? formData.description.trim() : '',
+        attachment_url: formData.attachment_url ? formData.attachment_url.trim() : '',
+        status: formData.status
+      };
+
       if (editMode) {
-        await axios.put(`/api/schooladmin/finance/expenses/${editingId}`, formData, config);
-        toast.success('Expense record updated');
+        await axios.put(`/api/schooladmin/finance/expenses/${editingId}`, payload, config);
+        toast.success('Expense record updated successfully');
       } else {
-        await axios.post('/api/schooladmin/finance/expenses', formData, config);
+        await axios.post('/api/schooladmin/finance/expenses', payload, config);
         toast.success('Expense record created successfully');
       }
       setIsModalOpen(false);
       resetForm();
       fetchData();
     } catch (error) {
-      toast.error('Action failed');
+      console.error('Failed to save expense record:', error);
+      const msg = error.response?.data?.message || error.response?.data?.error || 'Failed to save expense record';
+      toast.error(msg);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -220,45 +247,46 @@ export default function ExpenseManagement() {
 
           <div>
             <SearchableSelect
+              options={[
+                { value: '', label: '-- All Categories --' },
+                ...categories.map(cat => ({ value: cat._id, label: cat.name }))
+              ]}
               value={selectedCategory}
               onChange={(val) => setSelectedCategory(val)}
               className="w-full text-xs font-bold"
               placeholder="-- All Categories --"
-            >
-              <option value="">-- All Categories --</option>
-              {categories.map(cat => (
-                <option key={cat._id} value={cat._id}>{cat.name}</option>
-              ))}
-            </SearchableSelect>
+            />
           </div>
 
           <div>
             <SearchableSelect
+              options={[
+                { value: '', label: '-- All Payment Methods --' },
+                { value: 'Cash', label: 'Cash' },
+                { value: 'UPI', label: 'UPI' },
+                { value: 'Bank Transfer', label: 'Bank Transfer' },
+                { value: 'Cheque', label: 'Cheque' },
+                { value: 'Online Payment', label: 'Online Payment' }
+              ]}
               value={selectedPaymentMethod}
               onChange={(val) => setSelectedPaymentMethod(val)}
               className="w-full text-xs font-bold"
               placeholder="-- All Payment Methods --"
-            >
-              <option value="">-- All Payment Methods --</option>
-              <option value="Cash">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="Bank Transfer">Bank Transfer</option>
-              <option value="Cheque">Cheque</option>
-              <option value="Online Payment">Online Payment</option>
-            </SearchableSelect>
+            />
           </div>
 
           <div>
             <SearchableSelect
+              options={[
+                { value: '', label: '-- All Statuses --' },
+                { value: 'Paid', label: 'Paid' },
+                { value: 'Pending', label: 'Pending' }
+              ]}
               value={selectedStatus}
               onChange={(val) => setSelectedStatus(val)}
               className="w-full text-xs font-bold"
               placeholder="-- All Statuses --"
-            >
-              <option value="">-- All Statuses --</option>
-              <option value="Paid">Paid</option>
-              <option value="Pending">Pending</option>
-            </SearchableSelect>
+            />
           </div>
         </div>
       </div>
@@ -391,17 +419,15 @@ export default function ExpenseManagement() {
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Expense Category *</label>
                   <SearchableSelect
-                    required
+                    options={categories.map(cat => ({
+                      value: cat._id,
+                      label: `${cat.name} (${cat.code})`
+                    }))}
                     value={formData.category_id}
                     onChange={(val) => setFormData({ ...formData, category_id: val })}
                     className="w-full text-xs font-bold"
                     placeholder="-- Choose Category --"
-                  >
-                    <option value="">-- Choose Category --</option>
-                    {categories.map(cat => (
-                      <option key={cat._id} value={cat._id}>{cat.name} ({cat.code})</option>
-                    ))}
-                  </SearchableSelect>
+                  />
                 </div>
               </div>
 
@@ -434,17 +460,18 @@ export default function ExpenseManagement() {
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Payment Method *</label>
                   <SearchableSelect
+                    options={[
+                      { value: 'Cash', label: 'Cash' },
+                      { value: 'UPI', label: 'UPI' },
+                      { value: 'Bank Transfer', label: 'Bank Transfer' },
+                      { value: 'Cheque', label: 'Cheque' },
+                      { value: 'Online Payment', label: 'Online Payment' }
+                    ]}
                     value={formData.payment_method}
                     onChange={(val) => setFormData({ ...formData, payment_method: val })}
                     className="w-full text-xs font-bold"
                     placeholder="Select Payment Method"
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Online Payment">Online Payment</option>
-                  </SearchableSelect>
+                  />
                 </div>
               </div>
 
@@ -463,14 +490,15 @@ export default function ExpenseManagement() {
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1">Expense Status</label>
                   <SearchableSelect
+                    options={[
+                      { value: 'Paid', label: 'Paid' },
+                      { value: 'Pending', label: 'Pending' }
+                    ]}
                     value={formData.status}
                     onChange={(val) => setFormData({ ...formData, status: val })}
                     className="w-full text-xs font-bold"
                     placeholder="Select Status"
-                  >
-                    <option value="Paid">Paid</option>
-                    <option value="Pending">Pending</option>
-                  </SearchableSelect>
+                  />
                 </div>
               </div>
 
@@ -501,6 +529,7 @@ export default function ExpenseManagement() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
+                  disabled={saving}
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
@@ -508,9 +537,11 @@ export default function ExpenseManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black shadow-md transition-all cursor-pointer"
+                  disabled={saving}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black shadow-md transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  {editMode ? 'Update Expense' : 'Save Expense Record'}
+                  {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  {saving ? 'Saving...' : editMode ? 'Update Expense' : 'Save Expense Record'}
                 </button>
               </div>
             </form>
