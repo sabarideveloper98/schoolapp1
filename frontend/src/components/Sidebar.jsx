@@ -36,9 +36,9 @@ const Sidebar = ({ menuItems, onClose, isCollapsed, setIsCollapsed }) => {
     <div className={`bg-gradient-to-b from-[#041E42] via-[#062B63] to-[#0A3575] text-slate-200 shadow-2xl flex flex-col z-20 sticky top-0 h-screen overflow-y-auto transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
 
       {/* Brand Header */}
-      <div className="p-5 border-b border-white/10 flex justify-between items-center  bg-black/10 backdrop-blur-xs" style={{padding:20,height:60}}>
+      <div className="p-5 border-b border-white/10 flex justify-between items-center  bg-black/10 backdrop-blur-xs" style={{ padding: 20, height: 60 }}>
         <div className="flex items-center gap-3 overflow-hidden">
-          <img src="/NEW_WHITE_SCHOOL1.png" alt="School1 Logo" className="h-9 w-auto max-w-full object-contain" />
+          <img src="/NEW_WHITE_SCHOOL1.png" alt="School1 Logo" className=" w-auto max-w-full object-contain" />
 
           {/* </div> */}
           {/* <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-200 flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20 text-slate-950 font-black"> */}
