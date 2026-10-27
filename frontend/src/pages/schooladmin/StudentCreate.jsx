@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import SearchableSelect from '../../components/SearchableSelect';
 import BulkStudentImportModal from '../../components/BulkStudentImportModal';
+import statesAndDistrictsData from '../../data/statesAndDistricts.json';
 import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
@@ -524,6 +525,78 @@ const StudentCreate = () => {
     }
     return list.map(item => ({ value: item, label: item }));
   }, [statesList, watchState]);
+
+  // Match selected State to statesAndDistricts dataset by name or code
+  const selectedStateObj = useMemo(() => {
+    if (!watchState) return null;
+    const cleanState = String(watchState).trim().toLowerCase();
+    return (
+      statesAndDistrictsData.find(
+        (s) => s.name.toLowerCase() === cleanState || s.code.toLowerCase() === cleanState
+      ) || null
+    );
+  }, [watchState]);
+
+  // Formulate District dropdown options for selected State without duplicates
+  const districtOptions = useMemo(() => {
+    if (!selectedStateObj || !Array.isArray(selectedStateObj.districts)) {
+      return [];
+    }
+    const seen = new Set();
+    const options = [];
+    selectedStateObj.districts.forEach((d) => {
+      const name = d.name?.trim();
+      if (name && !seen.has(name.toLowerCase())) {
+        seen.add(name.toLowerCase());
+        options.push({ value: name, label: name });
+      }
+    });
+
+    // If watchDistrict is already set in edit mode and belongs to this state, ensure it matches an option
+    if (watchDistrict && typeof watchDistrict === 'string' && watchDistrict.trim()) {
+      const trimmed = watchDistrict.trim();
+      const lower = trimmed.toLowerCase();
+      if (!seen.has(lower)) {
+        const matchByCode = selectedStateObj.districts.find(
+          (d) => d.code && d.code.toLowerCase() === lower
+        );
+        if (matchByCode) {
+          if (!seen.has(matchByCode.name.toLowerCase())) {
+            seen.add(matchByCode.name.toLowerCase());
+            options.unshift({ value: matchByCode.name, label: matchByCode.name });
+          }
+        } else if (isEditMode) {
+          seen.add(lower);
+          options.unshift({ value: trimmed, label: trimmed });
+        }
+      }
+    }
+
+    return options;
+  }, [selectedStateObj, watchDistrict, isEditMode]);
+
+  // Track previous state to clear invalid district when state changes
+  const prevSelectedStateRef = useRef(watchState);
+  useEffect(() => {
+    if (prevSelectedStateRef.current !== undefined && prevSelectedStateRef.current !== watchState) {
+      if (prevSelectedStateRef.current) {
+        if (watchDistrict) {
+          if (!selectedStateObj || !Array.isArray(selectedStateObj.districts)) {
+            setValue('district', '', { shouldValidate: true, shouldDirty: true });
+          } else {
+            const distQuery = String(watchDistrict).trim().toLowerCase();
+            const belongs = selectedStateObj.districts.some(
+              (d) => d.name.toLowerCase() === distQuery || d.code.toLowerCase() === distQuery
+            );
+            if (!belongs) {
+              setValue('district', '', { shouldValidate: true, shouldDirty: true });
+            }
+          }
+        }
+      }
+    }
+    prevSelectedStateRef.current = watchState;
+  }, [watchState, selectedStateObj, watchDistrict, setValue]);
 
   // Fetch available cities using Country State City API for India
   useEffect(() => {
@@ -1324,32 +1397,6 @@ const StudentCreate = () => {
               {errors.address_line && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.address_line.message}</p>}
             </div>
 
-            {/* City */}
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">City <span className="text-red-500">*</span></label>
-              <SearchableSelect
-                options={cityOptions}
-                value={watchCity || ''}
-                onChange={(val) => setValue('city', val, { shouldValidate: true, shouldDirty: true })}
-                placeholder="Select City"
-                searchPlaceholder="Search City..."
-                loading={loadingCities}
-                emptyMessage={cityApiError ? `Error: ${cityApiError}` : 'No cities found'}
-              />
-              <input type="hidden" {...register('city', { required: 'City is required' })} />
-              {errors.city && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.city.message}</p>}
-            </div>
-
-            {/* District */}
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">District</label>
-              <input
-                {...register('district')}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-                placeholder="District Name"
-              />
-            </div>
-
             {/* State */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">State <span className="text-red-500">*</span></label>
@@ -1364,6 +1411,39 @@ const StudentCreate = () => {
               />
               <input type="hidden" {...register('state', { required: 'State is required' })} />
               {errors.state && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.state.message}</p>}
+            </div>
+
+            {/* District */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">District</label>
+              <SearchableSelect
+                options={districtOptions}
+                value={watchDistrict || ''}
+                onChange={(val) => setValue('district', val, { shouldValidate: true, shouldDirty: true })}
+                placeholder="Select District"
+                searchPlaceholder="Search District..."
+                disabled={!watchState || !selectedStateObj}
+                emptyMessage="No matching districts found"
+                noOptionsMessage={!watchState ? "Please select a State first" : "No districts available for this state"}
+              />
+              <input type="hidden" {...register('district')} />
+              {errors.district && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.district.message}</p>}
+            </div>
+
+            {/* City */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">City <span className="text-red-500">*</span></label>
+              <SearchableSelect
+                options={cityOptions}
+                value={watchCity || ''}
+                onChange={(val) => setValue('city', val, { shouldValidate: true, shouldDirty: true })}
+                placeholder="Select City"
+                searchPlaceholder="Search City..."
+                loading={loadingCities}
+                emptyMessage={cityApiError ? `Error: ${cityApiError}` : 'No cities found'}
+              />
+              <input type="hidden" {...register('city', { required: 'City is required' })} />
+              {errors.city && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.city.message}</p>}
             </div>
 
             {/* Pincode */}
