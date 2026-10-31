@@ -24,7 +24,7 @@ import { toast } from 'react-toastify';
 // Complete list of all supported student fields with display metadata
 export const ALL_STUDENT_FIELDS = [
   // Required fields
-  { key: 'admission_number', label: 'Admission Number', required: true, example: 'ADM2025001', note: 'Unique per school' },
+  { key: 'admission_number', label: 'Admission Number', required: false, example: 'ADM2025001', note: 'Auto-generated if left empty' },
   { key: 'student_name', label: 'Student Name', required: true, example: 'Alex Smith', note: 'Full student name' },
   { key: 'date_of_birth', label: 'Date of Birth', required: true, example: '2010-05-15', note: 'YYYY-MM-DD' },
   { key: 'gender', label: 'Gender', required: true, example: 'Male', note: 'Male / Female / Other' },
@@ -32,7 +32,7 @@ export const ALL_STUDENT_FIELDS = [
   { key: 'academic_year', label: 'Academic Year', required: true, example: '2025-2026', note: 'e.g. 2025-2026' },
   { key: 'class', label: 'Class / Standard', required: true, example: '10', note: 'e.g. 10 or L.K.G' },
   { key: 'section', label: 'Section', required: true, example: 'A', note: 'e.g. A, B, C' },
-  { key: 'roll_no', label: 'Roll Number', required: true, example: '101', note: 'Student roll number' },
+  { key: 'roll_no', label: 'Roll Number', required: false, example: '101', note: 'Auto-generated based on Class & Section if left empty' },
   { key: 'student_status', label: 'Student Status', required: true, example: 'Active', note: 'Active / Inactive / Suspended / Transferred / Graduated' },
   { key: 'guardian_name', label: 'Guardian / Parent Name', required: true, example: 'Robert Smith', note: 'Primary parent/guardian' },
   { key: 'guardian_relation', label: 'Guardian Relation', required: true, example: 'Father', note: 'Father / Mother / Guardian' },
@@ -303,6 +303,20 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
       }
     });
 
+    // 2. Group roll numbers by (year, class, section) to detect duplicates within the file
+    const rollCount = new Map();
+    rawRows.forEach((row) => {
+      const roll = String(row.roll_no || '').trim();
+      const cls = String(row.class || '').trim();
+      const sec = String(row.section || '').trim();
+      const yr = String(row.academic_year || '').trim();
+      if (roll && cls && sec) {
+        const key = `${yr}|${cls}|${sec}|${roll}`;
+        if (!rollCount.has(key)) rollCount.set(key, []);
+        rollCount.get(key).push(row.rowNumber);
+      }
+    });
+
     const validGenders = ['male', 'female', 'other'];
     const validStatuses = ['active', 'inactive', 'suspended', 'transferred', 'graduated'];
     const validTypes = ['day scholar', 'hosteler', 'day boarder'];
@@ -408,6 +422,22 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
         });
       }
 
+      // Duplicate roll number within the same class & section in the file
+      const roll = String(row.roll_no || '').trim();
+      const cls = String(row.class || '').trim();
+      const sec = String(row.section || '').trim();
+      const yr = String(row.academic_year || '').trim();
+      if (roll && cls && sec) {
+        const rollKey = `${yr}|${cls}|${sec}|${roll}`;
+        if (rollCount.has(rollKey) && rollCount.get(rollKey).length > 1) {
+          const duplicateRows = rollCount.get(rollKey);
+          errors.push({
+            field: 'roll_no',
+            message: `Duplicate roll number "${roll}" in Class ${cls} Section ${sec} found on rows ${duplicateRows.join(', ')}`
+          });
+        }
+      }
+
       return {
         ...row,
         isValid: errors.length === 0,
@@ -437,7 +467,7 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
     setImportResult(null);
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const text = evt.target.result;
         const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
@@ -496,7 +526,27 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
           );
           setParsedRows([]);
         } else {
-          const validated = validateStudentRows(extractedRows);
+          setLoading(true);
+          let processedRows = extractedRows;
+          try {
+            const token = user?.token || user?.accessToken || (typeof localStorage !== 'undefined' ? (JSON.parse(localStorage.getItem('user') || '{}')?.token || localStorage.getItem('token')) : '') || '';
+            const config = { headers: { Authorization: `Bearer ${token}` } };
+
+            // Automatically generate missing Admission Numbers and Roll Numbers before validation and preview
+            const { data } = await axios.post('/api/schooladmin/students/generate-numbers-batch', {
+              students: extractedRows
+            }, config);
+
+            if (data?.students && Array.isArray(data.students)) {
+              processedRows = data.students;
+            }
+          } catch (numErr) {
+            console.warn('Batch number generation warning:', numErr);
+          } finally {
+            setLoading(false);
+          }
+
+          const validated = validateStudentRows(processedRows);
           setParsedRows(validated);
           const validCount = validated.filter(r => r.isValid).length;
           const errorCount = validated.length - validCount;
@@ -508,6 +558,7 @@ const BulkStudentImportModal = ({ isOpen, onClose, onSuccess }) => {
           }
         }
       } catch (err) {
+        setLoading(false);
         console.error('CSV parse error:', err);
         toast.error('Failed to parse CSV file. Please verify file integrity.');
       }

@@ -571,8 +571,7 @@ const StudentManagement = () => {
                               <button
                                 onClick={() => {
                                   setActiveDropdownId(null);
-                                  setViewModalStudent(student);
-                                  setViewModalTab('basic');
+                                  navigate(`/school-admin/students/${student._id}`);
                                 }}
                                 className="w-full text-left px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2 cursor-pointer"
                               >

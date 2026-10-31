@@ -22,50 +22,125 @@ const getSchools = async (req, res) => {
 // @route   POST /api/superadmin/schools
 // @access  Private (SuperAdmin only)
 const createSchool = async (req, res) => {
+    let createdAdminUser = null;
+    let createdSchool = null;
+
     try {
         const {
             name, location, contact_number, email,
             founder_name, founder_phone, founder_email, logo,
+            code, address,
             adminPassword
         } = req.body;
 
+        if (!name || !email) {
+            return res.status(400).json({ message: 'School name and email are required' });
+        }
+
         // Check if school with email exists
-        const schoolExists = await School.findOne({ email });
+        const schoolExists = await School.findOne({ email: email.trim().toLowerCase() });
         if (schoolExists) {
             return res.status(400).json({ message: 'School with this email already exists' });
         }
 
-        // Use provided password or fallback
-        const rawPassword = adminPassword || `${name.replace(/\s+/g, '')}@123`;
-        
         // Check if user email exists
-        const userExists = await User.findOne({ email });
+        const userExists = await User.findOne({ email: email.trim().toLowerCase() });
         if (userExists) {
             return res.status(400).json({ message: 'User with this email already exists' });
         }
 
-        // Create the school admin user
-        const adminUser = await User.create({
-            email,
+        // Generate clean unique school code
+        let baseCode = (code || name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6) || 'SCH').toUpperCase();
+        let schoolCode = baseCode;
+        let codeCounter = 1;
+        while (await School.findOne({ code: schoolCode })) {
+            schoolCode = `${baseCode}${codeCounter++}`;
+        }
+
+        // Generate unique school_id
+        let uniqueSchoolId = `SCH_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`;
+        while (await School.findOne({ school_id: uniqueSchoolId })) {
+            uniqueSchoolId = `SCH_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`;
+        }
+
+        // Generate valid unique database name: school_<cleaned_unique_id>
+        const cleanDbSuffix = uniqueSchoolId.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        const dbName = `school_${cleanDbSuffix}`;
+
+        // Verify no duplicate db_name
+        const existingDbSchool = await School.findOne({ db_name: dbName });
+        if (existingDbSchool) {
+            return res.status(400).json({ message: 'Database mapping conflict. Please retry.' });
+        }
+
+        // Use provided password or fallback
+        const rawPassword = adminPassword || `${name.replace(/\s+/g, '')}@123`;
+
+        // 1. Create the school admin user in central DB
+        createdAdminUser = await User.create({
+            email: email.trim().toLowerCase(),
             password: rawPassword,
-            role: 'SchoolAdmin'
+            role: 'SchoolAdmin',
+            status: 'Active'
         });
 
-        // Create the school
-        const school = await School.create({
-            name, location, contact_number, email,
-            founder_name, founder_phone, founder_email, logo,
-            admin_id: adminUser._id
+        // 2. Create the school registry entry with status 'provisioning'
+        createdSchool = await School.create({
+            name: name.trim(),
+            code: schoolCode,
+            school_id: uniqueSchoolId,
+            db_name: dbName,
+            location: location || '',
+            address: address || location || '',
+            contact_number: contact_number || '',
+            email: email.trim().toLowerCase(),
+            founder_name: founder_name || '',
+            founder_phone: founder_phone || '',
+            founder_email: founder_email || '',
+            logo: logo || '',
+            admin_id: createdAdminUser._id,
+            status: 'Active',
+            provisioning_status: 'provisioning'
         });
+
+        // Link school_id to the created admin user
+        createdAdminUser.school_id = createdSchool._id;
+        await createdAdminUser.save();
+
+        // 3. Automatically provision the dedicated database: initialize collections & indexes
+        const { provisionTenantDatabase } = require('../services/tenantConnectionManager');
+        const provisionResult = await provisionTenantDatabase(dbName);
+
+        // 4. Update school provisioning status to 'ready'
+        createdSchool.provisioning_status = 'ready';
+        await createdSchool.save();
 
         res.status(201).json({
-            school,
-            message: 'School and Admin created successfully'
+            success: true,
+            school: createdSchool,
+            adminPassword: rawPassword,
+            provisioning: provisionResult,
+            message: `School created and dedicated database ${dbName} provisioned successfully`
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('createSchool error:', error);
+
+        // Failure handling / compensation
+        if (createdSchool) {
+            try {
+                createdSchool.provisioning_status = 'failed';
+                await createdSchool.save();
+            } catch (err) {
+                // Ignore rollback recording error
+            }
+        }
+
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to create school and provision database',
+            error: error.message
+        });
     }
 };
 

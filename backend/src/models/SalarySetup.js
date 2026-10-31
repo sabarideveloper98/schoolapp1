@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const allowanceSchema = new mongoose.Schema({
@@ -77,4 +78,4 @@ const salarySetupSchema = new mongoose.Schema({
     history: [salaryHistorySchema]
 }, { timestamps: true });
 
-module.exports = mongoose.model('SalarySetup', salarySetupSchema);
+module.exports = createTenantModelProxy('SalarySetup', salarySetupSchema);

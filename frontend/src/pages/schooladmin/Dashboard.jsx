@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Users, UserSquare2, BookOpen, GraduationCap, Users2, Calendar,
   Coins, Wallet, TrendingUp, User, CreditCard, Navigation, CalendarRange, Sun,
   TrendingDown, ArrowUpRight, Bus, Bell, Zap, UserPlus, ClipboardCheck, Receipt,
-  UserCheck, Send, MapPin, Clock, Phone, ChevronRight, Sparkles, Search, ArrowRight, CheckCircle2, AlertTriangle
+  UserCheck, Send, MapPin, Clock, Phone, ChevronRight, Sparkles, Search, ArrowRight, CheckCircle2, AlertTriangle,
+  CalendarClock
 } from 'lucide-react';
 import Layout from '../../components/Layout';
 import DashboardAnalyticsBar from '../../components/DashboardAnalyticsBar';
@@ -19,6 +20,7 @@ import SubjectManagement from './SubjectManagement';
 import ClassManagement from './ClassManagement';
 import StudentManagement from './StudentManagement';
 import StudentCreate from './StudentCreate';
+import StudentDetail from './StudentDetail';
 import TeacherCreate from './TeacherCreate';
 import StaffAttendance from './StaffAttendance';
 import StaffReport from './StaffReport';
@@ -46,6 +48,7 @@ import AccountProfile from '../AccountProfile';
 import SubscriptionManagement from './SubscriptionManagement';
 import TransportManagement from './TransportManagement';
 import HomeworkManagement from './HomeworkManagement';
+import LeaveManagement from './LeaveManagement';
 
 // Timetable Module Imports
 import TimetableDashboard from './timetable/TimetableDashboard';
@@ -933,7 +936,13 @@ const SchoolAdminDashboard = () => {
         { label: 'Staff Attendance Report', path: '/school-admin/staff-report' },
         { label: 'Teachers List', path: '/school-admin/teachers' },
         { label: 'Staff List', path: '/school-admin/staff' },
+        { label: 'New Leaves', path: '/school-admin/leaves' },
       ],
+    },
+    {
+      label: 'New Leaves',
+      icon: CalendarClock,
+      path: '/school-admin/leaves',
     },
     {
       label: 'Academic Configuration',
@@ -948,7 +957,7 @@ const SchoolAdminDashboard = () => {
         { label: 'Print Timetable', path: '/school-admin/academics/timetable/print' },
       ],
     },
-    ...(hasActiveSubscription ? [{
+    {
       label: 'Payroll & Salary',
       icon: Coins,
       subItems: [
@@ -957,7 +966,7 @@ const SchoolAdminDashboard = () => {
         { label: 'Salary Slips', path: '/school-admin/salary/slips' },
         { label: 'Salary Reports', path: '/school-admin/salary/reports' },
       ],
-    }] : []),
+    },
     {
       label: 'Fee Management',
       icon: Wallet,
@@ -1046,12 +1055,14 @@ const SchoolAdminDashboard = () => {
         <Route path="/students" element={<StudentManagement />} />
         <Route path="/students/create" element={<StudentCreate />} />
         <Route path="/students/edit/:id" element={<StudentCreate />} />
+        <Route path="/students/:id" element={<StudentDetail />} />
+        <Route path="/students/view/:id" element={<StudentDetail />} />
 
         {/* Payroll routes */}
-        <Route path="/salary/setup" element={hasActiveSubscription ? <SalarySetup /> : <Navigate to="/school-admin/subscription" replace />} />
-        <Route path="/salary/process" element={hasActiveSubscription ? <PayrollProcess /> : <Navigate to="/school-admin/subscription" replace />} />
-        <Route path="/salary/slips" element={hasActiveSubscription ? <SalarySlips /> : <Navigate to="/school-admin/subscription" replace />} />
-        <Route path="/salary/reports" element={hasActiveSubscription ? <SalaryReports /> : <Navigate to="/school-admin/subscription" replace />} />
+        <Route path="/salary/setup" element={<SalarySetup />} />
+        <Route path="/salary/process" element={<PayrollProcess />} />
+        <Route path="/salary/slips" element={<SalarySlips />} />
+        <Route path="/salary/reports" element={<SalaryReports />} />
 
         <Route path="/fees/categories" element={<FeeCategoryManagement />} />
         <Route path="/fees/structures" element={<FeeStructureManagement />} />
@@ -1069,6 +1080,8 @@ const SchoolAdminDashboard = () => {
         <Route path="/transport/*" element={<TransportManagement />} />
         <Route path="/homework" element={<HomeworkManagement />} />
         <Route path="/homework/*" element={<HomeworkManagement />} />
+        <Route path="/leaves" element={<LeaveManagement />} />
+        <Route path="/leaves/*" element={<LeaveManagement />} />
         <Route path="/subscription" element={<SubscriptionManagement />} />
         <Route path="/profile" element={<AccountProfile />} />
         <Route path="*" element={<Navigate to="/school-admin/dashboard" replace />} />

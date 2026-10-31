@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const parentMessageSchema = new mongoose.Schema({
@@ -66,5 +67,5 @@ const parentConversationSchema = new mongoose.Schema({
     messages: [parentMessageSchema]
 }, { timestamps: true });
 
-const ParentConversation = mongoose.model('ParentConversation', parentConversationSchema);
+const ParentConversation = createTenantModelProxy('ParentConversation', parentConversationSchema);
 module.exports = ParentConversation;

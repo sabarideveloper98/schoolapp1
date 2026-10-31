@@ -9,7 +9,9 @@ const {
     getSubjects, createSubject, deleteSubject, updateSubject,
     getClasses, createClass, deleteClass, updateClass,
     getClassSubjects, assignSubjectTeacher, removeSubjectTeacher, updateSubjectTeacher,
-    getStudents, getStudentById, createStudent, updateStudent, deleteStudent, bulkImportStudents
+    getStudents, getStudentById, createStudent, updateStudent, deleteStudent, bulkImportStudents,
+    getNextStudentNumbers, generateNumbersBatch,
+    getSchoolLeaves, updateLeaveStatus, createEmployeeLeave
 } = require('../controllers/schoolAdminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const {
@@ -70,6 +72,8 @@ router.route('/classes/:id').put(updateClass).delete(deleteClass);
 router.route('/assignments').get(getClassSubjects).post(assignSubjectTeacher);
 router.route('/assignments/:id').put(updateSubjectTeacher).delete(removeSubjectTeacher);
 
+router.get('/students/generate-numbers', getNextStudentNumbers);
+router.post('/students/generate-numbers-batch', generateNumbersBatch);
 router.route('/students').get(getStudents).post(createStudent);
 router.post('/students/bulk-import', bulkImportStudents);
 router.route('/students/:id').get(getStudentById).put(updateStudent).delete(deleteStudent);
@@ -83,6 +87,10 @@ router.route('/exams').get(getExams).post(createExam);
 router.route('/exam-marks').get(getExamStudentsMarks).post(saveExamMarks);
 router.post('/exam-marks/bulk-import', bulkImportExamMarks);
 router.route('/exam-report').get(getExamReport);
+
+// Leave Management
+router.route('/leaves').get(getSchoolLeaves).post(createEmployeeLeave);
+router.route('/leaves/:id/status').put(updateLeaveStatus);
 
 // Payroll & Salary Management
 router.route('/payroll/setup').get(getSalarySetupList).post(saveSalarySetup);

@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const staffAttendanceRecordSchema = new mongoose.Schema({
@@ -55,5 +56,5 @@ const staffAttendanceSchema = new mongoose.Schema({
 // Avoid duplicate attendance for same date, school, and role filter
 staffAttendanceSchema.index({ school_id: 1, date: 1, role_filter: 1 }, { unique: true });
 
-const StaffAttendance = mongoose.model('StaffAttendance', staffAttendanceSchema);
+const StaffAttendance = createTenantModelProxy('StaffAttendance', staffAttendanceSchema);
 module.exports = StaffAttendance;

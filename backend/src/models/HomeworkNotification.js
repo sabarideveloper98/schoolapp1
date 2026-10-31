@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const homeworkNotificationSchema = new mongoose.Schema({
@@ -35,4 +36,4 @@ const homeworkNotificationSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('HomeworkNotification', homeworkNotificationSchema);
+module.exports = createTenantModelProxy('HomeworkNotification', homeworkNotificationSchema);

@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const homeworkSubmissionSchema = new mongoose.Schema({
@@ -34,4 +35,4 @@ const homeworkSubmissionSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('HomeworkSubmission', homeworkSubmissionSchema);
+module.exports = createTenantModelProxy('HomeworkSubmission', homeworkSubmissionSchema);

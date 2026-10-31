@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const studentFeeItemSchema = new mongoose.Schema({
@@ -96,4 +97,4 @@ const studentFeeSchema = new mongoose.Schema({
 
 studentFeeSchema.index({ school_id: 1, student_id: 1, academic_year: 1 }, { unique: true });
 
-module.exports = mongoose.model('StudentFee', studentFeeSchema);
+module.exports = createTenantModelProxy('StudentFee', studentFeeSchema);

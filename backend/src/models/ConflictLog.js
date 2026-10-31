@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const conflictLogSchema = new mongoose.Schema({
@@ -45,5 +46,5 @@ const conflictLogSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const ConflictLog = mongoose.model('ConflictLog', conflictLogSchema);
+const ConflictLog = createTenantModelProxy('ConflictLog', conflictLogSchema);
 module.exports = ConflictLog;

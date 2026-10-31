@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const timetableMasterSchema = new mongoose.Schema({
@@ -34,5 +35,5 @@ const timetableMasterSchema = new mongoose.Schema({
 
 timetableMasterSchema.index({ school_id: 1, class_id: 1, section_id: 1, academic_year_id: 1 }, { unique: true });
 
-const TimetableMaster = mongoose.model('TimetableMaster', timetableMasterSchema);
+const TimetableMaster = createTenantModelProxy('TimetableMaster', timetableMasterSchema);
 module.exports = TimetableMaster;

@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const queryMessageSchema = new mongoose.Schema({
@@ -44,5 +45,5 @@ const querySchema = new mongoose.Schema({
     history: [queryMessageSchema]
 }, { timestamps: true });
 
-const Query = mongoose.model('Query', querySchema);
+const Query = createTenantModelProxy('Query', querySchema);
 module.exports = Query;

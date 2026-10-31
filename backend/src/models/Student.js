@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
@@ -431,6 +432,6 @@ studentSchema.pre('validate', function () {
 // Sparse index on admission_number per school to prevent duplicates while permitting empty/null values
 studentSchema.index({ school_id: 1, admission_number: 1 }, { unique: true, sparse: true });
 
-const Student = mongoose.model('Student', studentSchema);
+const Student = createTenantModelProxy('Student', studentSchema);
 module.exports = Student;
 

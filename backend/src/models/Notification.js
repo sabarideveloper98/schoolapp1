@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
@@ -29,5 +30,5 @@ const notificationSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const Notification = mongoose.model('Notification', notificationSchema);
+const Notification = createTenantModelProxy('Notification', notificationSchema);
 module.exports = Notification;

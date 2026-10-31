@@ -10,7 +10,7 @@ const FeeCategoryManagement = () => {
   const { user } = useAuthStore();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
   

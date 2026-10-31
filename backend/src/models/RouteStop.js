@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const routeStopSchema = new mongoose.Schema({
@@ -38,4 +39,4 @@ const routeStopSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('RouteStop', routeStopSchema);
+module.exports = createTenantModelProxy('RouteStop', routeStopSchema);

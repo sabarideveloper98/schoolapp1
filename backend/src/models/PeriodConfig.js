@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const periodConfigSchema = new mongoose.Schema({
@@ -37,5 +38,5 @@ const periodConfigSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const PeriodConfig = mongoose.model('PeriodConfig', periodConfigSchema);
+const PeriodConfig = createTenantModelProxy('PeriodConfig', periodConfigSchema);
 module.exports = PeriodConfig;

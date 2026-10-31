@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 const tripHistorySchema = new mongoose.Schema({
     school_id: {
@@ -79,4 +80,4 @@ const tripHistorySchema = new mongoose.Schema({
         timestamp: { type: Date, default: Date.now }
     }]
 }, { timestamps: true });
-module.exports = mongoose.model('TripHistory', tripHistorySchema);
+module.exports = createTenantModelProxy('TripHistory', tripHistorySchema);

@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const driverAssignmentSchema = new mongoose.Schema({
@@ -32,4 +33,4 @@ const driverAssignmentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('DriverAssignment', driverAssignmentSchema);
+module.exports = createTenantModelProxy('DriverAssignment', driverAssignmentSchema);

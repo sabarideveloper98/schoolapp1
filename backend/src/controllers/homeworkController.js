@@ -144,6 +144,11 @@ const getHomeworkList = async (req, res) => {
 
         const homeworks = await Homework.find(query)
             .populate('assigned_classes', 'class class_name section')
+            .populate({
+                path: 'assigned_students',
+                select: 'student_name roll_no admission_number class section class_id',
+                populate: { path: 'class_id', select: 'class section class_name' }
+            })
             .sort({ createdAt: -1 });
 
         // Enrich with submission counts

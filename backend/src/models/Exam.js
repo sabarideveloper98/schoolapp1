@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const examSchema = new mongoose.Schema({
@@ -19,5 +20,5 @@ const examSchema = new mongoose.Schema({
 // Avoid duplicate exam names in the same school
 examSchema.index({ school_id: 1, name: 1 }, { unique: true });
 
-const Exam = mongoose.model('Exam', examSchema);
+const Exam = createTenantModelProxy('Exam', examSchema);
 module.exports = Exam;

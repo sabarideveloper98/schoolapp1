@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const timetableHistorySchema = new mongoose.Schema({
@@ -31,5 +32,5 @@ const timetableHistorySchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const TimetableHistory = mongoose.model('TimetableHistory', timetableHistorySchema);
+const TimetableHistory = createTenantModelProxy('TimetableHistory', timetableHistorySchema);
 module.exports = TimetableHistory;

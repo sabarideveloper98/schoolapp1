@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const expenseCategorySchema = new mongoose.Schema({
@@ -29,4 +30,4 @@ const expenseCategorySchema = new mongoose.Schema({
 
 expenseCategorySchema.index({ school_id: 1, name: 1 }, { unique: true });
 
-module.exports = mongoose.model('ExpenseCategory', expenseCategorySchema);
+module.exports = createTenantModelProxy('ExpenseCategory', expenseCategorySchema);

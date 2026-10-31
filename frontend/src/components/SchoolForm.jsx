@@ -18,13 +18,29 @@ const SchoolForm = ({ onSubmit, defaultValues, isLoading, onCancel }) => {
           {errors.name && <span className="text-red-500 text-xs mt-1 block">{errors.name.message}</span>}
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Location</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Location / City</label>
           <input 
             {...register('location', { required: 'Location is required' })} 
             className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
             placeholder="e.g. New York, USA"
           />
           {errors.location && <span className="text-red-500 text-xs mt-1 block">{errors.location.message}</span>}
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">School Code <span className="text-slate-400 text-xs font-normal">(Optional, auto-generated if blank)</span></label>
+          <input 
+            {...register('code')} 
+            className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm uppercase"
+            placeholder="e.g. SCH01"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Address</label>
+          <input 
+            {...register('address')} 
+            className="mt-1 block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
+            placeholder="e.g. 123 Education Lane"
+          />
         </div>
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Number</label>

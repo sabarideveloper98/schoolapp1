@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const markEntrySchema = new mongoose.Schema({
@@ -45,5 +46,5 @@ const examMarkSchema = new mongoose.Schema({
 // Enforce unique compound index per student per exam
 examMarkSchema.index({ exam_id: 1, student_id: 1 }, { unique: true });
 
-const ExamMark = mongoose.model('ExamMark', examMarkSchema);
+const ExamMark = createTenantModelProxy('ExamMark', examMarkSchema);
 module.exports = ExamMark;

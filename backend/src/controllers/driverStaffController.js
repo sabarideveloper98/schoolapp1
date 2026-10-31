@@ -7,6 +7,8 @@ const TripHistory = require('../models/TripHistory');
 const TransportNotification = require('../models/TransportNotification');
 const StudentBoardingLog = require('../models/StudentBoardingLog');
 const Student = require('../models/Student');
+const Staff = require('../models/Staff');
+const StaffLeave = require('../models/StaffLeave');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -807,6 +809,79 @@ const resumeTrip = async (req, res) => {
     }
 };
 
+// --- DRIVER / STAFF LEAVE MANAGEMENT ---
+const getDriverLeaves = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        let staff = await Staff.findOne({ user_id: userId });
+        if (!staff) {
+            staff = await Staff.findOne({ email: req.user.email });
+        }
+        if (!staff) {
+            return res.json([]);
+        }
+        const leaves = await StaffLeave.find({ staff_id: staff._id }).sort({ createdAt: -1 });
+        res.json(leaves);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch leave records', error: error.message });
+    }
+};
+
+const applyDriverLeave = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        let staff = await Staff.findOne({ user_id: userId });
+        if (!staff) {
+            staff = await Staff.findOne({ email: req.user.email });
+        }
+        if (!staff) {
+            return res.status(404).json({ message: 'Staff profile not found' });
+        }
+
+        const { leave_type, start_date, end_date, from_date, to_date, reason } = req.body;
+        const resolvedStartDate = start_date || from_date;
+        const resolvedEndDate = end_date || to_date;
+
+        if (!leave_type || !resolvedStartDate || !resolvedEndDate || !reason) {
+            return res.status(400).json({ message: 'Leave type, dates, and reason are required' });
+        }
+
+        const leave = await StaffLeave.create({
+            staff_id: staff._id,
+            school_id: staff.school_id,
+            leave_type,
+            start_date: resolvedStartDate,
+            end_date: resolvedEndDate,
+            reason: reason.trim(),
+            status: 'Pending'
+        });
+
+        res.status(201).json({ message: 'Leave application submitted successfully', leave });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to apply leave', error: error.message });
+    }
+};
+
+const cancelDriverLeave = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        let staff = await Staff.findOne({ user_id: userId });
+        if (!staff) staff = await Staff.findOne({ email: req.user.email });
+        if (!staff) return res.status(404).json({ message: 'Staff profile not found' });
+
+        const leave = await StaffLeave.findOne({ _id: req.params.id, staff_id: staff._id, status: 'Pending' });
+        if (!leave) {
+            return res.status(404).json({ message: 'Pending leave request not found or already processed' });
+        }
+
+        leave.status = 'Cancelled';
+        await leave.save();
+        res.json({ message: 'Leave application cancelled successfully', leave });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to cancel leave', error: error.message });
+    }
+};
+
 module.exports = {
     driverLogin,
     getDriverProfile,
@@ -825,5 +900,8 @@ module.exports = {
     reportDelay,
     endTrip,
     getDriverNotifications,
-    getDriverTripHistory
+    getDriverTripHistory,
+    getDriverLeaves,
+    applyDriverLeave,
+    cancelDriverLeave
 };

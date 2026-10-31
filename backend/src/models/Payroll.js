@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const payrollSchema = new mongoose.Schema({
@@ -79,4 +80,4 @@ const payrollSchema = new mongoose.Schema({
 // Ensure unique payroll per employee, month, and year
 payrollSchema.index({ school_id: 1, user_id: 1, month: 1, year: 1 }, { unique: true });
 
-module.exports = mongoose.model('Payroll', payrollSchema);
+module.exports = createTenantModelProxy('Payroll', payrollSchema);

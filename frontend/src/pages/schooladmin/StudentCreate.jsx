@@ -163,6 +163,41 @@ const StudentCreate = () => {
     }
   }, [watchGuardianPhone, watchGuardianEmail, isEditMode, setValue]);
 
+  // Flags to prevent overwriting manually entered admission number or roll number
+  const isAdmissionManuallyEdited = useRef(false);
+  const isRollManuallyEdited = useRef(false);
+
+  // Automatically generate unique Admission Number and Roll Number based on school, academic year, class & section
+  const autoGenerateNumbers = async (overrideYear, overrideClass, overrideSection) => {
+    if (isEditMode) return;
+    try {
+      const year = overrideYear !== undefined ? overrideYear : (watch('academic_year') || '2025-2026');
+      const cls = overrideClass !== undefined ? overrideClass : watch('class');
+      const sec = overrideSection !== undefined ? overrideSection : watch('section');
+
+      const token = user?.token || user?.accessToken || (typeof localStorage !== 'undefined' ? (JSON.parse(localStorage.getItem('user') || '{}')?.token || localStorage.getItem('token')) : '') || '';
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      const params = {
+        academic_year: year,
+        class: cls || '',
+        section: sec || ''
+      };
+
+      const { data } = await axios.get('/api/schooladmin/students/generate-numbers', { params, ...config });
+      if (data?.success) {
+        if (!isAdmissionManuallyEdited.current && data.admission_number) {
+          setValue('admission_number', data.admission_number, { shouldValidate: true });
+        }
+        if (!isRollManuallyEdited.current && data.roll_no) {
+          setValue('roll_no', data.roll_no, { shouldValidate: true });
+        }
+      }
+    } catch (err) {
+      console.warn('Could not auto-generate student numbers:', err);
+    }
+  };
+
   // Load auxiliary data (classes, routes, fee categories)
   useEffect(() => {
     const fetchData = async () => {
@@ -316,6 +351,10 @@ const StudentCreate = () => {
           }
         }
 
+        if (!isEditMode) {
+          autoGenerateNumbers(watch('academic_year') || '2025-2026', '', '');
+        }
+
         setLoading(false);
       } catch (error) {
         console.error('Initialization error:', error);
@@ -366,6 +405,8 @@ const StudentCreate = () => {
 
       const sections = classes.filter(c => String(c.class) === String(matched.class));
       setAvailableSections(sections.length > 0 ? sections : [matched]);
+
+      autoGenerateNumbers(watch('academic_year'), matched.class, matched.section);
     } else {
       const matchedByStd = classes.find(c => String(c.class) === String(classId));
       if (matchedByStd) {
@@ -382,6 +423,8 @@ const StudentCreate = () => {
       setValue('class_id', realId);
       setValue('section', matched.section);
       setValue('class', matched.class);
+
+      autoGenerateNumbers(watch('academic_year'), matched.class, matched.section);
     }
   };
 
@@ -1004,7 +1047,12 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Admission Number <span className="text-red-500">*</span></label>
               <input
-                {...register('admission_number', { required: 'Admission Number is required' })}
+                {...register('admission_number', {
+                  required: 'Admission Number is required',
+                  onChange: () => {
+                    isAdmissionManuallyEdited.current = true;
+                  }
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 placeholder="e.g. ADM2026-001"
               />
@@ -1033,7 +1081,10 @@ const StudentCreate = () => {
                   { value: '2027-2028', label: '2027-2028' }
                 ]}
                 value={watch('academic_year') || '2025-2026'}
-                onChange={(val) => setValue('academic_year', val)}
+                onChange={(val) => {
+                  setValue('academic_year', val);
+                  autoGenerateNumbers(val, watch('class'), watch('section'));
+                }}
                 placeholder="Select Academic Year"
               />
               <input type="hidden" {...register('academic_year', { required: 'Academic Year is required' })} />
@@ -1080,7 +1131,12 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Roll No. <span className="text-red-500">*</span></label>
               <input
-                {...register('roll_no', { required: 'Roll No. is required' })}
+                {...register('roll_no', {
+                  required: 'Roll No. is required',
+                  onChange: () => {
+                    isRollManuallyEdited.current = true;
+                  }
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 placeholder="e.g. 101"
               />

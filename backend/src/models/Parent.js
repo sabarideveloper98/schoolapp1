@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const parentSchema = new mongoose.Schema({
@@ -55,5 +56,5 @@ const parentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const Parent = mongoose.model('Parent', parentSchema);
+const Parent = createTenantModelProxy('Parent', parentSchema);
 module.exports = Parent;

@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema({
         required: false,
         refPath: 'roleModel'
     },
+    school_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'School',
+        required: false,
+    },
     status: {
         type: String,
         enum: ['Active', 'Inactive', 'Blocked'],

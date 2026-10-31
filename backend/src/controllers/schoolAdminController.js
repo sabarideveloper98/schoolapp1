@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Teacher = require('../models/Teacher');
 const User = require('../models/User');
 const School = require('../models/School');
@@ -7,6 +8,13 @@ const Bus = require('../models/Bus');
 const Subject = require('../models/Subject');
 const Class = require('../models/Class');
 const Student = require('../models/Student');
+const TeacherLeave = require('../models/TeacherLeave');
+const StaffLeave = require('../models/StaffLeave');
+const {
+    generateAdmissionNumbers,
+    generateRollNumbers,
+    assignNumbersForStudents
+} = require('../utils/studentNumberGenerator');
 
 // Helper to get school_id from the logged-in SchoolAdmin
 const getSchoolId = async (adminId) => {
@@ -616,15 +624,69 @@ const getStudents = async (req, res) => {
 const getStudentById = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
+        if (!req.params.id || !mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid student ID' });
+        }
         const student = await Student.findOne({ _id: req.params.id, school_id })
             .populate('class_id', 'class section')
             .populate('parent_user_id', 'email phone');
         if (!student) {
             return res.status(404).json({ message: 'Student not found' });
         }
-        res.json(student);
+        const studentObj = student.toObject ? student.toObject() : { ...student };
+        if (studentObj.photo) {
+            studentObj.photo = formatPhotoUrl(studentObj.photo, req);
+        }
+        res.json(studentObj);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Get next available admission number and roll number
+// @route   GET /api/schooladmin/students/generate-numbers
+const getNextStudentNumbers = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { academic_year, class: className, section: sectionName } = req.query;
+
+        const [admission_number] = await generateAdmissionNumbers(school_id, academic_year, 1);
+
+        let roll_no = '';
+        if (className && sectionName) {
+            const [generatedRoll] = await generateRollNumbers(school_id, academic_year, className, sectionName, 1);
+            roll_no = generatedRoll;
+        }
+
+        res.status(200).json({
+            success: true,
+            admission_number,
+            roll_no
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error generating student numbers', error: error.message });
+    }
+};
+
+// @desc    Generate missing admission numbers and roll numbers for a batch of students
+// @route   POST /api/schooladmin/students/generate-numbers-batch
+const generateNumbersBatch = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { students } = req.body;
+
+        if (!Array.isArray(students)) {
+            return res.status(400).json({ message: 'Students array is required' });
+        }
+
+        const updatedStudents = await assignNumbersForStudents(school_id, students);
+
+        res.status(200).json({
+            success: true,
+            students: updatedStudents
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error generating batch student numbers', error: error.message });
     }
 };
 
@@ -669,20 +731,7 @@ const createStudent = async (req, res) => {
             return res.status(400).json({ message: 'Guardian phone is required' });
         }
 
-        // Validate admission_number uniqueness if provided
-        if (admission_number && admission_number.trim()) {
-            const existingStudent = await Student.findOne({
-                school_id,
-                admission_number: admission_number.trim()
-            });
-            if (existingStudent) {
-                return res.status(400).json({
-                    message: `Student with admission number "${admission_number.trim()}" already exists`
-                });
-            }
-        }
-
-        // Resolve Class & Section
+        // Resolve Class & Section first so resolvedClass and resolvedSection are available for roll_no generation
         let resolvedClassId = class_id;
         let resolvedClass = className;
         let resolvedSection = sectionName;
@@ -703,6 +752,43 @@ const createStudent = async (req, res) => {
 
         if (!resolvedClassId) {
             return res.status(400).json({ message: 'Class and section are required' });
+        }
+
+        // Validate or auto-generate admission_number
+        let final_admission_number = admission_number ? String(admission_number).trim() : '';
+        if (!final_admission_number) {
+            const [genAdm] = await generateAdmissionNumbers(school_id, academic_year, 1);
+            final_admission_number = genAdm;
+        } else {
+            const existingStudent = await Student.findOne({
+                school_id,
+                admission_number: final_admission_number
+            });
+            if (existingStudent) {
+                return res.status(400).json({
+                    message: `Student with admission number "${final_admission_number}" already exists`
+                });
+            }
+        }
+
+        // Validate or auto-generate roll_no
+        let final_roll_no = roll_no !== undefined && roll_no !== null && String(roll_no).trim() !== '' ? String(roll_no).trim() : '';
+        if (!final_roll_no) {
+            const [genRoll] = await generateRollNumbers(school_id, academic_year, resolvedClass, resolvedSection, 1);
+            final_roll_no = genRoll;
+        } else {
+            const existingRoll = await Student.findOne({
+                school_id,
+                academic_year: academic_year || '2025-2026',
+                class: resolvedClass,
+                section: resolvedSection,
+                roll_no: final_roll_no
+            });
+            if (existingRoll) {
+                return res.status(400).json({
+                    message: `Student with Roll Number "${final_roll_no}" already exists in Class ${resolvedClass} Section ${resolvedSection}`
+                });
+            }
         }
 
         let parentUser = await User.findOne({ phone: final_login_phone });
@@ -747,12 +833,12 @@ const createStudent = async (req, res) => {
             age: age || 0,
 
             // 2. Admission & Academic Info
-            admission_number: admission_number ? admission_number.trim() : undefined,
+            admission_number: final_admission_number,
             admission_date: final_admission_date,
             academic_year: academic_year || '2025-2026',
             class: resolvedClass,
             section: resolvedSection,
-            roll_no: roll_no || '',
+            roll_no: final_roll_no,
             admission_type: admission_type || 'Regular',
             stream_group: stream_group || group || 'Science',
             group: stream_group || group || 'Science',
@@ -1011,8 +1097,13 @@ const bulkImportStudents = async (req, res) => {
             return res.status(400).json({ message: 'No student data provided for import' });
         }
 
+        // Automatically generate missing admission numbers and roll numbers before importing
+        await assignNumbersForStudents(school_id, students);
+
         const createdStudents = [];
         const errors = [];
+        const seenAdmissionsInBatch = new Set();
+        const seenRollsInBatch = new Set();
 
         for (let i = 0; i < students.length; i++) {
             const item = students[i];
@@ -1034,7 +1125,7 @@ const bulkImportStudents = async (req, res) => {
 
                 const parent_name = item.guardian_name || item.parent_name || `Parent of ${final_student_name}`;
                 const parent_phone = item.guardian_phone || item.parent_phone || item.phone || `9876${Math.floor(100000 + Math.random() * 900000)}`;
-                const parent_email = item.guardian_email || item.parent_email || '';
+                const parent_email = (item.guardian_email || item.parent_email || '').trim() || undefined;
 
                 let parentUser = await User.findOne({ phone: parent_phone });
                 let parentPassword = null;
@@ -1051,11 +1142,37 @@ const bulkImportStudents = async (req, res) => {
 
                 const admNum = (item.admission_number || item.admission_no || '').trim();
                 if (admNum) {
+                    if (seenAdmissionsInBatch.has(admNum)) {
+                        errors.push({ row: i + 1, message: `Duplicate admission number "${admNum}" within import batch` });
+                        continue;
+                    }
                     const existing = await Student.findOne({ school_id, admission_number: admNum });
                     if (existing) {
                         errors.push({ row: i + 1, message: `Admission number "${admNum}" already exists` });
                         continue;
                     }
+                    seenAdmissionsInBatch.add(admNum);
+                }
+
+                const rollNum = String(item.roll_no || '').trim();
+                if (rollNum) {
+                    const rollBatchKey = `${item.academic_year || '2025-2026'}|${className}|${sectionName}|${rollNum}`;
+                    if (seenRollsInBatch.has(rollBatchKey)) {
+                        errors.push({ row: i + 1, message: `Duplicate roll number "${rollNum}" in Class ${className} Section ${sectionName} within import batch` });
+                        continue;
+                    }
+                    const existingRoll = await Student.findOne({
+                        school_id,
+                        academic_year: item.academic_year || '2025-2026',
+                        class: className,
+                        section: sectionName,
+                        roll_no: rollNum
+                    });
+                    if (existingRoll) {
+                        errors.push({ row: i + 1, message: `Roll number "${rollNum}" already exists in Class ${className} Section ${sectionName}` });
+                        continue;
+                    }
+                    seenRollsInBatch.add(rollBatchKey);
                 }
 
                 const student = await Student.create({
@@ -1348,15 +1465,22 @@ const loginSchoolAdmin = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        let schoolId = null;
+        try {
+            schoolId = await getSchoolId(user._id);
+        } catch (e) {
+            schoolId = null;
+        }
+
         const jwt = require('jsonwebtoken');
         const token = jwt.sign(
-            { id: user._id, role: 'SchoolAdmin' },
+            { id: user._id, role: 'SchoolAdmin', school_id: schoolId },
             process.env.JWT_SECRET || 'secret123',
             { expiresIn: '30d' }
         );
 
         const refreshToken = jwt.sign(
-            { id: user._id, role: 'SchoolAdmin', type: 'refresh' },
+            { id: user._id, role: 'SchoolAdmin', school_id: schoolId, type: 'refresh' },
             process.env.JWT_SECRET || 'secret123',
             { expiresIn: '90d' }
         );
@@ -1366,13 +1490,6 @@ const loginSchoolAdmin = async (req, res) => {
         user.refresh_tokens.push(refreshToken);
         if (user.refresh_tokens.length > 5) user.refresh_tokens.shift();
         await user.save();
-
-        let schoolId = null;
-        try {
-            schoolId = await getSchoolId(user._id);
-        } catch (e) {
-            schoolId = null;
-        }
 
         res.json({
             success: true,
@@ -1450,6 +1567,242 @@ const getSchoolAdminProfile = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to fetch School Admin profile', error: error.message });
     }
 };
+
+// --- LEAVE MANAGEMENT ---
+const getSchoolLeaves = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { status, employee_type, search } = req.query;
+
+        // Fetch teachers and staff belonging to this school
+        const [teachers, staffMembers] = await Promise.all([
+            Teacher.find({ school_id }).select('_id name email phone'),
+            Staff.find({ school_id }).select('_id name email phone role')
+        ]);
+
+        const teacherIds = teachers.map(t => t._id);
+        const staffIds = staffMembers.map(s => s._id);
+
+        const teacherMap = new Map(teachers.map(t => [String(t._id), t]));
+        const staffMap = new Map(staffMembers.map(s => [String(s._id), s]));
+
+        // Fetch Teacher Leaves for this school
+        const teacherLeaveQuery = {
+            $or: [
+                { school_id },
+                { teacher_id: { $in: teacherIds } }
+            ]
+        };
+        if (status && status !== 'all') {
+            teacherLeaveQuery.status = status;
+        }
+
+        // Fetch Staff Leaves for this school
+        const staffLeaveQuery = {
+            $or: [
+                { school_id },
+                { staff_id: { $in: staffIds } }
+            ]
+        };
+        if (status && status !== 'all') {
+            staffLeaveQuery.status = status;
+        }
+
+        const [teacherLeaves, staffLeaves] = await Promise.all([
+            TeacherLeave.find(teacherLeaveQuery).populate('teacher_id', 'name email phone').sort({ createdAt: -1 }),
+            StaffLeave.find(staffLeaveQuery).populate('staff_id', 'name email phone role').sort({ createdAt: -1 })
+        ]);
+
+        const calculateDays = (start, end) => {
+            if (!start || !end) return 1;
+            const s = new Date(start);
+            const e = new Date(end);
+            if (isNaN(s.getTime()) || isNaN(e.getTime())) return 1;
+            const diffTime = Math.abs(e - s);
+            const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return days > 0 ? days : 1;
+        };
+
+        const formattedTeacherLeaves = teacherLeaves.map(l => {
+            const t = l.teacher_id || teacherMap.get(String(l.teacher_id)) || {};
+            const empId = t._id ? `TCH-${String(t._id).slice(-4).toUpperCase()}` : '-';
+            return {
+                _id: l._id,
+                leave_id: l._id,
+                leave_source: 'Teacher',
+                employee_id: empId,
+                raw_employee_id: t._id || l.teacher_id,
+                employee_name: t.name || 'Teacher',
+                employee_type: 'Teacher',
+                employee_email: t.email || '-',
+                employee_phone: t.phone || '-',
+                leave_type: l.leave_type,
+                start_date: l.start_date,
+                end_date: l.end_date,
+                from_date: l.start_date,
+                to_date: l.end_date,
+                total_days: calculateDays(l.start_date, l.end_date),
+                reason: l.reason,
+                status: l.status || 'Pending',
+                admin_remarks: l.admin_remarks || '',
+                applied_date: l.createdAt,
+                createdAt: l.createdAt
+            };
+        });
+
+        const formattedStaffLeaves = staffLeaves.map(l => {
+            const s = l.staff_id || staffMap.get(String(l.staff_id)) || {};
+            const role = s.role || 'Staff';
+            const empId = s._id ? `STF-${String(s._id).slice(-4).toUpperCase()}` : '-';
+            return {
+                _id: l._id,
+                leave_id: l._id,
+                leave_source: 'Staff',
+                employee_id: empId,
+                raw_employee_id: s._id || l.staff_id,
+                employee_name: s.name || 'Staff Member',
+                employee_type: role === 'Staff' ? 'Staff' : `Staff (${role})`,
+                raw_role: role,
+                employee_email: s.email || '-',
+                employee_phone: s.phone || '-',
+                leave_type: l.leave_type,
+                start_date: l.start_date,
+                end_date: l.end_date,
+                from_date: l.start_date,
+                to_date: l.end_date,
+                total_days: calculateDays(l.start_date, l.end_date),
+                reason: l.reason,
+                status: l.status || 'Pending',
+                admin_remarks: l.admin_remarks || '',
+                applied_date: l.createdAt,
+                createdAt: l.createdAt
+            };
+        });
+
+        let combined = [...formattedTeacherLeaves, ...formattedStaffLeaves];
+
+        // Filter by employee_type if provided ('Teacher', 'Staff', or 'all')
+        if (employee_type && employee_type !== 'all') {
+            combined = combined.filter(l => l.leave_source.toLowerCase() === employee_type.toLowerCase());
+        }
+
+        // Filter by search query if provided
+        if (search && search.trim()) {
+            const q = search.trim().toLowerCase();
+            combined = combined.filter(l =>
+                l.employee_name.toLowerCase().includes(q) ||
+                l.employee_id.toLowerCase().includes(q) ||
+                l.leave_type.toLowerCase().includes(q) ||
+                l.reason.toLowerCase().includes(q)
+            );
+        }
+
+        // Sort latest first
+        combined.sort((a, b) => new Date(b.applied_date) - new Date(a.applied_date));
+
+        res.json({
+            success: true,
+            total: combined.length,
+            leaves: combined
+        });
+    } catch (error) {
+        console.error('getSchoolLeaves error:', error);
+        res.status(500).json({ message: 'Server error while fetching leaves', error: error.message });
+    }
+};
+
+const updateLeaveStatus = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { id } = req.params;
+        const { status, admin_remarks, leave_source } = req.body;
+
+        if (!['Approved', 'Rejected', 'Pending'].includes(status)) {
+            return res.status(400).json({ message: 'Status must be Approved, Rejected, or Pending' });
+        }
+
+        // Try TeacherLeave first, then StaffLeave (or check leave_source)
+        let updatedLeave = null;
+        let sourceFound = null;
+
+        if (leave_source === 'Teacher' || !leave_source) {
+            updatedLeave = await TeacherLeave.findOne({ _id: id });
+            if (updatedLeave) sourceFound = 'Teacher';
+        }
+
+        if (!updatedLeave && (leave_source === 'Staff' || !leave_source)) {
+            updatedLeave = await StaffLeave.findOne({ _id: id });
+            if (updatedLeave) sourceFound = 'Staff';
+        }
+
+        if (!updatedLeave) {
+            return res.status(404).json({ message: 'Leave application not found' });
+        }
+
+        updatedLeave.status = status;
+        if (admin_remarks !== undefined) {
+            updatedLeave.admin_remarks = admin_remarks;
+        }
+        await updatedLeave.save();
+
+        res.json({
+            success: true,
+            message: `Leave application ${status.toLowerCase()} successfully`,
+            leave: updatedLeave,
+            source: sourceFound
+        });
+    } catch (error) {
+        console.error('updateLeaveStatus error:', error);
+        res.status(500).json({ message: 'Server error updating leave status', error: error.message });
+    }
+};
+
+const createEmployeeLeave = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user._id);
+        const { employee_id, employee_type, leave_type, from_date, to_date, start_date, end_date, reason, status } = req.body;
+
+        const resolvedStartDate = start_date || from_date;
+        const resolvedEndDate = end_date || to_date;
+
+        if (!employee_id || !leave_type || !resolvedStartDate || !resolvedEndDate || !reason) {
+            return res.status(400).json({ message: 'Employee ID, leave type, dates, and reason are required' });
+        }
+
+        let newLeave;
+        if (employee_type === 'Staff') {
+            newLeave = await StaffLeave.create({
+                staff_id: employee_id,
+                school_id,
+                leave_type,
+                start_date: resolvedStartDate,
+                end_date: resolvedEndDate,
+                reason: reason.trim(),
+                status: status || 'Pending'
+            });
+        } else {
+            newLeave = await TeacherLeave.create({
+                teacher_id: employee_id,
+                school_id,
+                leave_type,
+                start_date: resolvedStartDate,
+                end_date: resolvedEndDate,
+                reason: reason.trim(),
+                status: status || 'Pending'
+            });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Leave application submitted successfully',
+            leave: newLeave
+        });
+    } catch (error) {
+        console.error('createEmployeeLeave error:', error);
+        res.status(500).json({ message: 'Server error creating leave', error: error.message });
+    }
+};
+
 module.exports = {
     loginSchoolAdmin,
     getSchoolAdminProfile,
@@ -1460,5 +1813,7 @@ module.exports = {
     getClasses, createClass, deleteClass, updateClass,
     getClassSubjects, assignSubjectTeacher, removeSubjectTeacher, updateSubjectTeacher,
     getStudents, getStudentById, createStudent, updateStudent, deleteStudent,
-    bulkImportStudents
+    bulkImportStudents,
+    getNextStudentNumbers, generateNumbersBatch,
+    getSchoolLeaves, updateLeaveStatus, createEmployeeLeave
 };

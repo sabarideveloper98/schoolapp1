@@ -2,14 +2,20 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-const generateToken = (id, role) => {
-    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'secret123', {
+const School = require('../models/School');
+
+const generateToken = (id, role, school_id = null) => {
+    const payload = { id, role };
+    if (school_id) payload.school_id = school_id;
+    return jwt.sign(payload, process.env.JWT_SECRET || 'secret123', {
         expiresIn: '30d',
     });
 };
 
-const generateRefreshToken = (id, role) => {
-    return jwt.sign({ id, role, type: 'refresh' }, process.env.JWT_SECRET || 'secret123', {
+const generateRefreshToken = (id, role, school_id = null) => {
+    const payload = { id, role, type: 'refresh' };
+    if (school_id) payload.school_id = school_id;
+    return jwt.sign(payload, process.env.JWT_SECRET || 'secret123', {
         expiresIn: '90d',
     });
 };
@@ -169,8 +175,18 @@ const loginUser = async (req, res) => {
         }
 
         user.last_login_at = new Date();
-        const token = generateToken(user._id, user.role);
-        const refreshToken = generateRefreshToken(user._id, user.role);
+
+        let resolvedSchoolId = user.school_id || null;
+        if (!resolvedSchoolId && user.role === 'SchoolAdmin') {
+            const schoolDoc = await School.findOne({ admin_id: user._id });
+            if (schoolDoc) {
+                resolvedSchoolId = schoolDoc._id;
+                user.school_id = schoolDoc._id;
+            }
+        }
+
+        const token = generateToken(user._id, user.role, resolvedSchoolId);
+        const refreshToken = generateRefreshToken(user._id, user.role, resolvedSchoolId);
 
         if (!user.refresh_tokens) user.refresh_tokens = [];
         user.refresh_tokens.push(refreshToken);
@@ -184,6 +200,7 @@ const loginUser = async (req, res) => {
             phone: user.phone,
             role: user.role,
             status: user.status,
+            school_id: resolvedSchoolId,
             reference_id: user.reference_id,
             last_login_at: user.last_login_at
         };

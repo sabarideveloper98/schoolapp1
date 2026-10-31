@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const feeCategorySchema = new mongoose.Schema({
@@ -34,4 +35,4 @@ const feeCategorySchema = new mongoose.Schema({
 // Avoid duplicate category name per school and academic year
 feeCategorySchema.index({ school_id: 1, name: 1, academic_year: 1 }, { unique: true });
 
-module.exports = mongoose.model('FeeCategory', feeCategorySchema);
+module.exports = createTenantModelProxy('FeeCategory', feeCategorySchema);

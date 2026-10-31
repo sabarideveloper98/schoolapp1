@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -73,4 +74,4 @@ driverSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('Driver', driverSchema);
+module.exports = createTenantModelProxy('Driver', driverSchema);

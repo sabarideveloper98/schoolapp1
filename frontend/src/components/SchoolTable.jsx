@@ -7,6 +7,8 @@ const SchoolTable = ({ schools, onEdit, onDelete }) => {
         <thead className="bg-slate-50">
           <tr>
             <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">School Name</th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Code</th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Database</th>
             <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
             <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
             <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Founder</th>
@@ -17,6 +19,14 @@ const SchoolTable = ({ schools, onEdit, onDelete }) => {
           {schools.map((school) => (
             <tr key={school._id} className="hover:bg-slate-50 transition-colors duration-150">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-800">{school.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-xs font-mono font-bold text-blue-600 bg-blue-50/50 px-2.5 py-1 rounded-md inline-block my-3">
+                {school.code || 'N/A'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-slate-600">
+                <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px]">
+                  {school.db_name || 'school_management'}
+                </span>
+              </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{school.email}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{school.location}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{school.founder_name}</td>

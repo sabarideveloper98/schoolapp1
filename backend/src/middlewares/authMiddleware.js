@@ -16,6 +16,7 @@ const protect = async (req, res, next) => {
             
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+            req.decodedToken = decoded;
             
             if (decoded.role === 'Driver') {
                 const driverDoc = await Driver.findById(decoded.id).select('-password');
@@ -62,7 +63,16 @@ const protect = async (req, res, next) => {
                 req.user.role = decoded.role;
             }
 
-            return next();
+            // Check if user account is active
+            if (req.user.status && req.user.status !== 'Active') {
+                return res.status(403).json({
+                    success: false,
+                    message: `Account is ${req.user.status.toLowerCase()}. Please contact administration.`
+                });
+            }
+
+            const { tenantMiddleware } = require('./tenantMiddleware');
+            return tenantMiddleware(req, res, next);
         } catch (error) {
             console.error(error);
             return res.status(401).json({ message: 'Not authorized, token failed' });

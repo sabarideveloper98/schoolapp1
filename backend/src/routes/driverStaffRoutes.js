@@ -19,7 +19,10 @@ const {
     reportDelay,
     endTrip,
     getDriverNotifications,
-    getDriverTripHistory
+    getDriverTripHistory,
+    getDriverLeaves,
+    applyDriverLeave,
+    cancelDriverLeave
 } = require('../controllers/driverStaffController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -58,5 +61,10 @@ router.post('/trip/delay', reportDelay);
 router.post('/trip/end', endTrip);
 router.get('/notifications', getDriverNotifications);
 router.get('/trip-history', getDriverTripHistory);
+
+// Driver / Staff Leave Management
+router.get('/leaves', getDriverLeaves);
+router.post('/leaves', applyDriverLeave);
+router.put('/leaves/:id/cancel', cancelDriverLeave);
 
 module.exports = router;

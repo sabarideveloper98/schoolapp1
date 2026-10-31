@@ -164,8 +164,152 @@ const HomeworkManagement = () => {
     }
   };
 
+  const getHomeworkClasses = (hw) => {
+    if (!hw) return [];
+
+    const formatClassSec = (className, sectionName) => {
+      const cls = className ? String(className).trim() : '';
+      const sec = sectionName ? String(sectionName).trim() : '';
+      if (cls && sec && sec !== '-') return `${cls} (${sec})`;
+      if (cls) return cls;
+      if (sec && sec !== '-') return `Sec ${sec}`;
+      return null;
+    };
+
+    // 1. If assigned to Student(s), resolve their class and section
+    if (hw.assignment_type === 'Student' && Array.isArray(hw.assigned_students) && hw.assigned_students.length > 0) {
+      const list = hw.assigned_students.map(s => {
+        const studentId = typeof s === 'object' && s !== null ? s._id : s;
+        const studentObj = (typeof s === 'object' && s !== null && (s.class || s.class_id))
+          ? s
+          : studentsList.find(st => String(st._id) === String(studentId));
+
+        if (!studentObj) return null;
+
+        let clsName = '';
+        let secName = '';
+
+        if (studentObj.class_id && typeof studentObj.class_id === 'object') {
+          clsName = studentObj.class_id.class || studentObj.class_id.class_name || '';
+          secName = studentObj.class_id.section || '';
+        } else if (studentObj.class_id) {
+          const matchedClass = classesList.find(c => String(c._id) === String(studentObj.class_id));
+          if (matchedClass) {
+            clsName = matchedClass.class || matchedClass.class_name || '';
+            secName = matchedClass.section || '';
+          }
+        }
+
+        if (!clsName && studentObj.class) clsName = studentObj.class;
+        if (!secName && studentObj.section) secName = studentObj.section;
+
+        return formatClassSec(clsName, secName);
+      }).filter(Boolean);
+
+      const unique = Array.from(new Set(list));
+      if (unique.length > 0) return unique;
+    }
+
+    // 2. If assigned to Class, Section, or MultipleClasses (or hw.assigned_classes present)
+    if (Array.isArray(hw.assigned_classes) && hw.assigned_classes.length > 0) {
+      const list = hw.assigned_classes.map(c => {
+        const classId = typeof c === 'object' && c !== null ? c._id : c;
+        const classObj = (typeof c === 'object' && c !== null && (c.class || c.class_name))
+          ? c
+          : classesList.find(cls => String(cls._id) === String(classId));
+
+        const clsName = classObj?.class || classObj?.class_name || '';
+        const secName = hw.assignment_type === 'Section' && hw.assigned_section
+          ? hw.assigned_section
+          : (classObj?.section || '');
+
+        return formatClassSec(clsName, secName);
+      }).filter(Boolean);
+
+      const unique = Array.from(new Set(list));
+      if (unique.length > 0) return unique;
+    }
+
+    // 3. Fallback: Check assigned_students even if assignment_type was not explicitly 'Student'
+    if (Array.isArray(hw.assigned_students) && hw.assigned_students.length > 0) {
+      const list = hw.assigned_students.map(s => {
+        const studentId = typeof s === 'object' && s !== null ? s._id : s;
+        const studentObj = (typeof s === 'object' && s !== null && (s.class || s.class_id))
+          ? s
+          : studentsList.find(st => String(st._id) === String(studentId));
+
+        if (!studentObj) return null;
+        const clsName = studentObj.class_id?.class || studentObj.class_id?.class_name || studentObj.class || '';
+        const secName = studentObj.class_id?.section || studentObj.section || '';
+        return formatClassSec(clsName, secName);
+      }).filter(Boolean);
+
+      const unique = Array.from(new Set(list));
+      if (unique.length > 0) return unique;
+    }
+
+    return [];
+  };
+
+  const renderClassSectionCell = (hw) => {
+    const classes = getHomeworkClasses(hw);
+    if (!classes || classes.length === 0) {
+      return <span className="text-slate-400 font-semibold">-</span>;
+    }
+
+    if (classes.length === 1) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200/80">
+          {classes[0]}
+        </span>
+      );
+    }
+
+    if (classes.length <= 2) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {classes.map((cls, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-200/80"
+            >
+              {cls}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap items-center gap-1" title={classes.join(', ')}>
+        {classes.slice(0, 2).map((cls, idx) => (
+          <span
+            key={idx}
+            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-200/80"
+          >
+            {cls}
+          </span>
+        ))}
+        <span className="text-[10px] font-black text-slate-600 bg-slate-200 px-1.5 py-0.5 rounded-md cursor-default">
+          +{classes.length - 2}
+        </span>
+      </div>
+    );
+  };
+
   const filteredList = homeworkList.filter(hw => {
-    if (filterClass && !hw.assigned_classes?.some(c => c._id === filterClass || c === filterClass)) return false;
+    if (filterClass) {
+      const assignedClassMatches = hw.assigned_classes?.some(c => (c._id || c) === filterClass);
+      const studentClassMatches = hw.assigned_students?.some(s => {
+        const studentId = typeof s === 'object' && s !== null ? s._id : s;
+        const studentObj = (typeof s === 'object' && s !== null && (s.class || s.class_id))
+          ? s
+          : studentsList.find(st => String(st._id) === String(studentId));
+        const sClassId = studentObj?.class_id?._id || studentObj?.class_id;
+        return String(sClassId) === String(filterClass);
+      });
+      if (!assignedClassMatches && !studentClassMatches) return false;
+    }
     if (filterSubject && hw.subject_name.toLowerCase() !== filterSubject.toLowerCase()) return false;
     if (filterCategory && hw.category !== filterCategory) return false;
     return true;
@@ -328,6 +472,7 @@ const HomeworkManagement = () => {
               <thead>
                 <tr className="bg-slate-50 text-[11px] font-black uppercase text-slate-400 tracking-wider">
                   <th className="py-3.5 px-4 rounded-l-xl">Homework Title</th>
+                  <th className="py-3.5 px-4">Class</th>
                   <th className="py-3.5 px-4">Subject</th>
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4">Target / Scope</th>
@@ -339,7 +484,7 @@ const HomeworkManagement = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
                 {filteredList.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="py-8 text-center text-slate-400 font-semibold">
+                    <td colSpan="8" className="py-8 text-center text-slate-400 font-semibold">
                       No homework items found matching filters.
                     </td>
                   </tr>
@@ -349,6 +494,9 @@ const HomeworkManagement = () => {
                       <td className="py-4 px-4 font-black text-slate-800 max-w-xs">
                         <p className="line-clamp-1">{hw.title}</p>
                         <p className="text-[10px] text-slate-400 font-bold">By {hw.creator_name}</p>
+                      </td>
+                      <td className="py-4 px-4 font-bold text-slate-700 whitespace-nowrap">
+                        {renderClassSectionCell(hw)}
                       </td>
                       <td className="py-4 px-4 font-bold text-blue-600">{hw.subject_name}</td>
                       <td className="py-4 px-4">

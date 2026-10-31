@@ -1,3 +1,4 @@
+const { createTenantModelProxy } = require('../services/tenantConnectionManager');
 const mongoose = require('mongoose');
 
 const teacherAssignmentSchema = new mongoose.Schema({
@@ -51,5 +52,5 @@ const teacherAssignmentSchema = new mongoose.Schema({
 
 teacherAssignmentSchema.index({ school_id: 1, class_id: 1, subject_id: 1, academic_year: 1 }, { unique: true });
 
-const TeacherAssignment = mongoose.model('TeacherAssignment', teacherAssignmentSchema);
+const TeacherAssignment = createTenantModelProxy('TeacherAssignment', teacherAssignmentSchema);
 module.exports = TeacherAssignment;
