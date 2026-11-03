@@ -4,7 +4,7 @@ import axios from 'axios';
 import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
-import { Plus, Search, Users, GraduationCap, Award, Phone, Mail, UserCheck, Calendar, X } from 'lucide-react';
+import { Plus, Search, Users, GraduationCap, Award, Phone, Mail, UserCheck, Calendar, X, BookOpen } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 const TeacherStudents = () => {
@@ -322,6 +322,7 @@ const TeacherStudents = () => {
             const cid = c._id.toString();
             const count = classWiseCounts[cid] || 0;
             const isSelected = selectedClassFilter === cid;
+            const subjCount = c.subjects?.length || 0;
 
             return (
               <button
@@ -334,6 +335,13 @@ const TeacherStudents = () => {
                 }`}
               >
                 <span>{c.class} - {c.section}</span>
+                {subjCount > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                    isSelected ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600 border border-blue-200'
+                  }`}>
+                    {subjCount} {subjCount === 1 ? 'subject' : 'subjects'}
+                  </span>
+                )}
                 {c.isIncharge && (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
                     isSelected ? 'bg-purple-300 text-purple-950' : 'bg-purple-100 text-purple-700'
@@ -566,33 +574,77 @@ const TeacherStudents = () => {
             return (
               <div key={classId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all">
                 {/* Class Card Header */}
-                <div className="bg-slate-50/80 px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm">
-                      {group.classInfo?.class ? group.classInfo.class.replace('Class ', '') : 'C'}
-                    </div>
-                    <div>
-                      <h3 className="font-black text-base text-slate-800">
-                        {formatClassName(group.classInfo?.class, group.classInfo?.section)}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {group.classInfo?.isIncharge ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
-                            ⭐ Class In-charge
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                            📖 Subject Teacher
-                          </span>
-                        )}
+                <div className="bg-slate-50/80 px-6 py-4 border-b border-slate-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-black text-sm">
+                        {group.classInfo?.class ? group.classInfo.class.replace('Class ', '') : 'C'}
                       </div>
+                      <div>
+                        <h3 className="font-black text-base text-slate-800">
+                          {formatClassName(group.classInfo?.class, group.classInfo?.section)}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {group.classInfo?.isIncharge ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                              ⭐ Class In-charge
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                              📖 Subject Teacher
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black px-3 py-1 rounded-full">
+                        {studentsList.length} {studentsList.length === 1 ? 'Student' : 'Students'}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black px-3 py-1 rounded-full">
-                      {studentsList.length} {studentsList.length === 1 ? 'Student' : 'Students'}
-                    </span>
+                  {/* Class-Wise Assigned Subjects */}
+                  <div className="mt-3 pt-3 border-t border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+                        <BookOpen className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        Assigned Subjects:
+                      </span>
+                      {group.classInfo?.subjects && group.classInfo.subjects.length > 0 ? (
+                        group.classInfo.subjects.map((subj, sIdx) => (
+                          <span
+                            key={subj._id || sIdx}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-blue-700 border border-blue-200/90 shadow-2xs hover:border-blue-300 transition-all"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                            <span>{subj.name}</span>
+                            {subj.code && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-600 font-mono font-semibold">
+                                {subj.code}
+                              </span>
+                            )}
+                            {subj.weekly_periods_required ? (
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                ({subj.weekly_periods_required} periods/wk)
+                              </span>
+                            ) : null}
+                            {subj.role && subj.role !== 'Subject Teacher' && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-50 text-purple-600 font-medium">
+                                {subj.role}
+                              </span>
+                            )}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium italic">
+                          {group.classInfo?.isIncharge
+                            ? 'Class In-charge (No teaching subjects assigned)'
+                            : 'No subjects assigned for this class'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

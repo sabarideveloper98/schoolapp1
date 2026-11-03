@@ -627,8 +627,8 @@ const DashboardOverview = () => {
                     key={key}
                     onClick={() => setSelectedBus(key)}
                     className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${isSelected
-                        ? 'bg-blue-50/70 border-blue-200 shadow-xs'
-                        : 'bg-white border-slate-100 hover:border-slate-200'
+                      ? 'bg-blue-50/70 border-blue-200 shadow-xs'
+                      : 'bg-white border-slate-100 hover:border-slate-200'
                       }`}
                   >
                     <div className="flex items-center justify-between">
@@ -899,7 +899,7 @@ const SchoolAdminDashboard = () => {
       path: '/school-admin/dashboard',
     },
     {
-      label: '📅 Timetable Management',
+      label: 'Timetable Management',
       icon: CalendarRange,
       subItems: [
         { label: 'Timetable Dashboard', path: '/school-admin/timetable/dashboard' },

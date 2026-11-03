@@ -985,7 +985,17 @@ const getActiveTrips = async (req, res) => {
 const getParentChildBusTracking = async (req, res) => {
     try {
         const parent_user_id = req.user._id;
-        const student = await Student.findOne({ parent_user_id });
+        const targetStudentId = req.query.student_id || req.query.child_id;
+        let student;
+        if (targetStudentId) {
+            student = await Student.findOne({ _id: targetStudentId, parent_user_id });
+            if (!student) {
+                return res.status(403).json({ message: 'Unauthorized access to student bus tracking or student not found' });
+            }
+        } else {
+            student = await Student.findOne({ parent_user_id });
+        }
+
         if (!student) {
             return res.status(404).json({ message: 'No student associated with this parent account' });
         }
@@ -997,7 +1007,7 @@ const getParentChildBusTracking = async (req, res) => {
             .populate('drop_stop_id');
 
         if (!transport) {
-            return res.json({ assigned: false, message: 'No transport allocation found for student' });
+            return res.json({ assigned: false, student, message: 'No transport allocation found for student' });
         }
 
         const driver = await Driver.findOne({ assigned_bus_id: transport.bus_id._id, status: 'Active' });

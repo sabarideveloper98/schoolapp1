@@ -690,6 +690,128 @@ const generateNumbersBatch = async (req, res) => {
     }
 };
 
+const validateStudentData = (data) => {
+    const {
+        student_name,
+        first_name,
+        last_name,
+        father_name,
+        mother_name,
+        guardian_name,
+        emergency_contact_name,
+        date_of_birth,
+        guardian_phone,
+        login_phone,
+        whatsapp_number,
+        alternate_phone,
+        emergency_contact_phone,
+        guardian_email,
+        login_email,
+        apaar_id,
+        aadhaar_last4,
+        pincode,
+        age
+    } = data;
+
+    // Names: letters, spaces, and standard punctuation (. - ')
+    const nameRegex = /^[a-zA-Z\s.'-]+$/;
+    if (student_name && !nameRegex.test(String(student_name).trim())) {
+        return 'Student name must contain only letters and permitted spaces';
+    }
+    if (first_name && !nameRegex.test(String(first_name).trim())) {
+        return 'First name must contain only letters and permitted spaces';
+    }
+    if (last_name && String(last_name).trim() !== '' && !nameRegex.test(String(last_name).trim())) {
+        return 'Last name must contain only letters and permitted spaces';
+    }
+    if (father_name && String(father_name).trim() !== '' && !nameRegex.test(String(father_name).trim())) {
+        return "Father's name must contain only letters and permitted spaces";
+    }
+    if (mother_name && String(mother_name).trim() !== '' && !nameRegex.test(String(mother_name).trim())) {
+        return "Mother's name must contain only letters and permitted spaces";
+    }
+    if (guardian_name && String(guardian_name).trim() !== '' && !nameRegex.test(String(guardian_name).trim())) {
+        return 'Guardian name must contain only letters and permitted spaces';
+    }
+    if (emergency_contact_name && String(emergency_contact_name).trim() !== '' && !nameRegex.test(String(emergency_contact_name).trim())) {
+        return 'Emergency contact name must contain only letters and permitted spaces';
+    }
+
+    // Date of Birth: valid date and cannot be in future
+    if (date_of_birth) {
+        const dob = new Date(date_of_birth);
+        if (isNaN(dob.getTime())) {
+            return 'Please enter a valid Date of Birth';
+        }
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (dob > today) {
+            return 'Date of Birth cannot be a future date';
+        }
+    }
+
+    // Age
+    if (age !== undefined && age !== null && String(age).trim() !== '') {
+        const numAge = Number(age);
+        if (isNaN(numAge) || numAge <= 0) {
+            return 'Age must be a valid positive numeric value';
+        }
+    }
+
+    // Phone numbers: exactly 10 digits if entered
+    const phoneRegex = /^\d{10}$/;
+    if (guardian_phone && String(guardian_phone).trim() !== '' && !phoneRegex.test(String(guardian_phone).trim())) {
+        return 'Guardian Phone must be exactly 10 digits';
+    }
+    if (login_phone && String(login_phone).trim() !== '' && !phoneRegex.test(String(login_phone).trim())) {
+        return 'Login Phone must be exactly 10 digits';
+    }
+    if (whatsapp_number && String(whatsapp_number).trim() !== '' && !phoneRegex.test(String(whatsapp_number).trim())) {
+        return 'WhatsApp Number must be exactly 10 digits';
+    }
+    if (alternate_phone && String(alternate_phone).trim() !== '' && !phoneRegex.test(String(alternate_phone).trim())) {
+        return 'Alternate Phone must be exactly 10 digits';
+    }
+    if (emergency_contact_phone && String(emergency_contact_phone).trim() !== '' && !phoneRegex.test(String(emergency_contact_phone).trim())) {
+        return 'Emergency Contact Phone must be exactly 10 digits';
+    }
+
+    // Emails: valid format if entered
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (guardian_email && String(guardian_email).trim() !== '' && !emailRegex.test(String(guardian_email).trim())) {
+        return 'Please enter a valid Guardian Email address';
+    }
+    if (login_email && String(login_email).trim() !== '' && !emailRegex.test(String(login_email).trim())) {
+        return 'Please enter a valid Login Email address';
+    }
+
+    // APAAR ID: exactly 12 numeric digits if entered
+    if (apaar_id && String(apaar_id).trim() !== '') {
+        const cleanApaar = String(apaar_id).trim();
+        if (!/^\d{12}$/.test(cleanApaar)) {
+            return 'APAAR ID must be exactly 12 digits.';
+        }
+    }
+
+    // Aadhaar: exactly 12 numeric digits (or 4 for legacy) if entered
+    if (aadhaar_last4 && String(aadhaar_last4).trim() !== '') {
+        const cleanAadhaar = String(aadhaar_last4).trim();
+        if (!/^\d{12}$/.test(cleanAadhaar) && !/^\d{4}$/.test(cleanAadhaar)) {
+            return 'Aadhaar Number must be exactly 12 numeric digits';
+        }
+    }
+
+    // Pincode: exactly 6 numeric digits if entered
+    if (pincode && String(pincode).trim() !== '') {
+        const cleanPin = String(pincode).trim();
+        if (!/^\d{6}$/.test(cleanPin)) {
+            return 'Pincode must be exactly 6 numeric digits';
+        }
+    }
+
+    return null;
+};
+
 const createStudent = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
@@ -729,6 +851,18 @@ const createStudent = async (req, res) => {
         }
         if (!final_parent_phone) {
             return res.status(400).json({ message: 'Guardian phone is required' });
+        }
+
+        const validationErr = validateStudentData({
+            ...req.body,
+            student_name: final_student_name,
+            guardian_phone: final_parent_phone,
+            guardian_email: final_parent_email,
+            login_email: final_login_email,
+            login_phone: final_login_phone
+        });
+        if (validationErr) {
+            return res.status(400).json({ message: validationErr });
         }
 
         // Resolve Class & Section first so resolvedClass and resolvedSection are available for roll_no generation
@@ -923,6 +1057,11 @@ const updateStudent = async (req, res) => {
         const school_id = await getSchoolId(req.user._id);
         const student = await Student.findOne({ _id: req.params.id, school_id });
         if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        const validationErr = validateStudentData(req.body);
+        if (validationErr) {
+            return res.status(400).json({ message: validationErr });
+        }
 
         // Validate admission number uniqueness if changed
         if (req.body.admission_number && req.body.admission_number.trim() && req.body.admission_number.trim() !== student.admission_number) {

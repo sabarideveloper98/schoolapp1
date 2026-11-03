@@ -35,7 +35,7 @@ const subscriptionSchema = new mongoose.Schema({
     },
     payment_method: {
         type: String,
-        enum: ['Razorpay', 'Cash', 'Cheque'],
+        enum: ['Razorpay', 'Cash', 'Cheque', 'Bank Transfer'],
         default: 'Razorpay'
     },
     cheque_details: {
@@ -43,6 +43,14 @@ const subscriptionSchema = new mongoose.Schema({
         cheque_date: { type: Date },
         bank_name: { type: String, default: '' },
         branch_name: { type: String, default: '' }
+    },
+    bank_transfer_details: {
+        transaction_number: { type: String, default: '' },
+        transaction_date: { type: Date },
+        bank_name: { type: String, default: '' },
+        receipt_url: { type: String, default: '' },
+        receipt_name: { type: String, default: '' },
+        notes: { type: String, default: '' }
     },
     payment_notes: {
         type: String,

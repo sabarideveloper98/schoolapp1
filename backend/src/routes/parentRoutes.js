@@ -27,6 +27,12 @@ const {
     getNotifications,
     markNotificationRead
 } = require('../controllers/parentModuleController');
+const {
+    getParentFees,
+    createRazorpayOrder,
+    verifyRazorpayPayment,
+    requestRefund
+} = require('../controllers/feeController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { logParentActivity } = require('../middlewares/auditMiddleware');
 
@@ -69,9 +75,12 @@ router.get('/results', getResults);
 router.get('/results/:studentId', getResults);
 router.get('/report-card/:studentId/:examId', getReportCard);
 
-// Fee APIs (Read-only)
-router.get('/fees', getFees);
-router.get('/fees/:studentId', getFees);
+// Fee APIs
+router.get('/fees', getParentFees);
+router.get('/fees/:studentId', getParentFees);
+router.post('/fees/pay-order', createRazorpayOrder);
+router.post('/fees/pay-verify', verifyRazorpayPayment);
+router.post('/fees/refund', requestRefund);
 
 // Announcement APIs
 router.get('/announcements', getAnnouncements);

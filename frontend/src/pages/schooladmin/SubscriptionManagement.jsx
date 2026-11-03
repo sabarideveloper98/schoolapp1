@@ -18,7 +18,11 @@ import {
   Building2,
   Clock,
   Banknote,
-  Landmark
+  Landmark,
+  Upload,
+  Eye,
+  FileCheck,
+  Trash2
 } from 'lucide-react';
 
 const SubscriptionManagement = () => {
@@ -56,6 +60,16 @@ const SubscriptionManagement = () => {
     cheque_date: new Date().toISOString().split('T')[0],
     bank_name: '',
     branch_name: ''
+  });
+
+  // Bank Transfer Specific Form State
+  const [bankTransferForm, setBankTransferForm] = useState({
+    transaction_number: '',
+    transaction_date: new Date().toISOString().split('T')[0],
+    bank_name: '',
+    receipt_url: '',
+    receipt_name: '',
+    notes: ''
   });
 
   // Additional Payment Notes
@@ -128,8 +142,48 @@ const SubscriptionManagement = () => {
       bank_name: '',
       branch_name: ''
     });
+    setBankTransferForm({
+      transaction_number: '',
+      transaction_date: new Date().toISOString().split('T')[0],
+      bank_name: '',
+      receipt_url: '',
+      receipt_name: '',
+      notes: ''
+    });
     setPaymentNotes('');
     setIsCheckoutOpen(true);
+  };
+
+  const handleReceiptFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Receipt file size must be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBankTransferForm(prev => ({
+        ...prev,
+        receipt_url: reader.result,
+        receipt_name: file.name
+      }));
+      toast.success(`Attached receipt: ${file.name}`);
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read receipt file');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveReceipt = () => {
+    setBankTransferForm(prev => ({
+      ...prev,
+      receipt_url: '',
+      receipt_name: ''
+    }));
   };
 
   // Helper to load Razorpay Checkout Script dynamically
@@ -159,21 +213,35 @@ const SubscriptionManagement = () => {
       }
     }
 
+    if (selectedPaymentMethod === 'Bank Transfer') {
+      if (!bankTransferForm.transaction_number.trim()) {
+        toast.error('Please enter the transaction / reference number');
+        return;
+      }
+      if (!bankTransferForm.transaction_date) {
+        toast.error('Please select the transaction date');
+        return;
+      }
+    }
+
     setProcessingPayment(true);
     const config = { headers: { Authorization: `Bearer ${user.token}` } };
 
     try {
-      if (selectedPaymentMethod === 'Cash' || selectedPaymentMethod === 'Cheque') {
+      if (selectedPaymentMethod === 'Cash' || selectedPaymentMethod === 'Cheque' || selectedPaymentMethod === 'Bank Transfer') {
         const verifyRes = await axios.post('/api/subscription/schooladmin/verify-payment', {
           student_count: parsedStudentCount,
           duration: selectedDuration,
           payment_method: selectedPaymentMethod,
           cheque_details: selectedPaymentMethod === 'Cheque' ? chequeForm : undefined,
-          payment_notes: paymentNotes
+          bank_transfer_details: selectedPaymentMethod === 'Bank Transfer' ? bankTransferForm : undefined,
+          payment_notes: selectedPaymentMethod === 'Bank Transfer' ? bankTransferForm.notes : paymentNotes
         }, config);
 
         if (selectedPaymentMethod === 'Cheque') {
           toast.success('📄 Cheque Payment Recorded! Subscription is pending cheque clearance.');
+        } else if (selectedPaymentMethod === 'Bank Transfer') {
+          toast.success('🏦 Bank Transfer Payment Recorded Successfully! Subscription Activated.');
         } else {
           toast.success('💵 Cash Payment Recorded! Subscription Activated.');
         }
@@ -580,6 +648,8 @@ const SubscriptionManagement = () => {
                         <span className="text-amber-600 flex items-center gap-1 font-extrabold"><Banknote className="w-3.5 h-3.5" /> Cash</span>
                       ) : sub.payment_method === 'Cheque' ? (
                         <span className="text-indigo-600 flex items-center gap-1 font-extrabold"><Landmark className="w-3.5 h-3.5" /> Cheque</span>
+                      ) : sub.payment_method === 'Bank Transfer' ? (
+                        <span className="text-cyan-600 flex items-center gap-1 font-extrabold"><Building2 className="w-3.5 h-3.5" /> Bank Transfer</span>
                       ) : (
                         <span className="text-blue-600 flex items-center gap-1 font-extrabold"><CreditCard className="w-3.5 h-3.5" /> Online</span>
                       )}
@@ -592,7 +662,12 @@ const SubscriptionManagement = () => {
                     ₹{sub.total_amount?.toLocaleString()}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500">
-                    {sub.payment_id}
+                    <div>{sub.payment_id}</div>
+                    {sub.payment_method === 'Bank Transfer' && sub.bank_transfer_details?.transaction_number && (
+                      <div className="text-[10px] text-cyan-700 font-semibold font-sans">
+                        Ref: {sub.bank_transfer_details.transaction_number}
+                      </div>
+                    )}
                   </td>
                   <td className="py-3.5 px-4">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -671,12 +746,12 @@ const SubscriptionManagement = () => {
                 </div>
               </div>
 
-              {/* Payment Method Selector (Razorpay, Cash, Cheque) */}
+              {/* Payment Method Selector (Razorpay, Cash, Cheque, Bank Transfer) */}
               <div className="space-y-3">
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
                   Select Payment Method
                 </label>
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {/* Razorpay Option */}
                   <button
                     type="button"
@@ -717,6 +792,20 @@ const SubscriptionManagement = () => {
                   >
                     <Landmark className="w-5 h-5" />
                     <span className="text-xs font-black">Cheque</span>
+                  </button>
+
+                  {/* Bank Transfer Option */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod('Bank Transfer')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      selectedPaymentMethod === 'Bank Transfer'
+                        ? 'bg-cyan-50/80 border-cyan-500 text-cyan-700 shadow-sm ring-1 ring-cyan-500'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Building2 className="w-5 h-5" />
+                    <span className="text-xs font-black">Bank Transfer</span>
                   </button>
                 </div>
               </div>
@@ -785,6 +874,115 @@ const SubscriptionManagement = () => {
                 </div>
               )}
 
+              {/* Conditional Bank Transfer Details Form */}
+              {selectedPaymentMethod === 'Bank Transfer' && (
+                <div className="p-4 bg-cyan-50/60 rounded-2xl border border-cyan-100 space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2 text-cyan-950 font-black text-xs uppercase tracking-wide">
+                    <Building2 className="w-4 h-4 text-cyan-600" /> Bank Transfer / NEFT / RTGS / IMPS
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Transaction / Reference Number <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. UTR / Ref No: 4029182390"
+                        value={bankTransferForm.transaction_number}
+                        onChange={(e) => setBankTransferForm({ ...bankTransferForm, transaction_number: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-cyan-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Transaction Date <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={bankTransferForm.transaction_date}
+                        onChange={(e) => setBankTransferForm({ ...bankTransferForm, transaction_date: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-cyan-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Sender Bank Name <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. HDFC Bank, SBI, ICICI"
+                        value={bankTransferForm.bank_name}
+                        onChange={(e) => setBankTransferForm({ ...bankTransferForm, bank_name: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Reference Notes <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Paid from School Account"
+                        value={bankTransferForm.notes}
+                        onChange={(e) => setBankTransferForm({ ...bankTransferForm, notes: e.target.value })}
+                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Payment Receipt / Proof Upload */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      Bank Transfer Receipt / Payment Proof <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    {bankTransferForm.receipt_url ? (
+                      <div className="flex items-center justify-between p-2.5 bg-white border border-cyan-200 rounded-xl text-xs font-bold text-cyan-900">
+                        <div className="flex items-center gap-2 truncate">
+                          <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="truncate">{bankTransferForm.receipt_name || 'Receipt attached'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {bankTransferForm.receipt_url.startsWith('data:image') && (
+                            <img
+                              src={bankTransferForm.receipt_url}
+                              alt="Receipt preview"
+                              className="w-7 h-7 object-cover rounded-lg border border-slate-200"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleRemoveReceipt}
+                            className="p-1 hover:bg-rose-50 text-rose-500 rounded-lg cursor-pointer transition-colors"
+                            title="Remove Receipt"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 p-3 bg-white border border-dashed border-cyan-300 hover:border-cyan-500 rounded-xl text-xs font-bold text-cyan-700 hover:bg-cyan-50/50 cursor-pointer transition-all">
+                        <Upload className="w-4 h-4 text-cyan-600" />
+                        <span>Upload Transfer Slip or Screenshot (Max 5MB)</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={handleReceiptFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] font-semibold text-cyan-800 pt-1">
+                    Your reference details and proof will be attached directly to the generated subscription record.
+                  </p>
+                </div>
+              )}
+
               {/* Conditional Cash Details Form */}
               {selectedPaymentMethod === 'Cash' && (
                 <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-100 space-y-2 animate-in fade-in duration-150">
@@ -836,6 +1034,8 @@ const SubscriptionManagement = () => {
                     ? 'Processing...' 
                     : selectedPaymentMethod === 'Cheque'
                     ? 'Submit Cheque Order'
+                    : selectedPaymentMethod === 'Bank Transfer'
+                    ? 'Record Bank Transfer'
                     : selectedPaymentMethod === 'Cash'
                     ? 'Record Cash Payment'
                     : 'Pay & Activate Now'}
@@ -903,6 +1103,39 @@ const SubscriptionManagement = () => {
                 <div>
                   <span className="text-[10px] uppercase font-bold text-indigo-500 block">Cheque Date</span>
                   <strong>{activeInvoice.cheque_details.cheque_date ? new Date(activeInvoice.cheque_details.cheque_date).toLocaleDateString() : '-'}</strong>
+                </div>
+              </div>
+            )}
+
+            {/* Bank Transfer Info if paid via Bank Transfer */}
+            {activeInvoice.payment_method === 'Bank Transfer' && activeInvoice.bank_transfer_details?.transaction_number && (
+              <div className="p-3.5 bg-cyan-50/70 rounded-2xl border border-cyan-100 text-xs font-semibold text-cyan-950 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-cyan-700 block">Transaction / Ref No.</span>
+                  <strong className="font-mono">{activeInvoice.bank_transfer_details.transaction_number}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-cyan-700 block">Bank Name</span>
+                  <strong>{activeInvoice.bank_transfer_details.bank_name || '-'}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-cyan-700 block">Transfer Date</span>
+                  <strong>{activeInvoice.bank_transfer_details.transaction_date ? new Date(activeInvoice.bank_transfer_details.transaction_date).toLocaleDateString() : '-'}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-cyan-700 block">Payment Proof</span>
+                  {activeInvoice.bank_transfer_details.receipt_url ? (
+                    <a
+                      href={activeInvoice.bank_transfer_details.receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-800 underline font-bold"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View Receipt
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 font-normal">None attached</span>
+                  )}
                 </div>
               </div>
             )}

@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { CreditCard, Printer, CheckCircle, AlertTriangle, Clock, ShieldCheck, Tag, DollarSign, Download } from 'lucide-react';
+import { CreditCard, Printer, CheckCircle, AlertTriangle, Clock, ShieldCheck, Tag, DollarSign, Download, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import useParentChildStore from '../../store/useParentChildStore';
+import ChildSelector from '../../components/ChildSelector';
 
 const ParentFees = () => {
   const { user } = useAuthStore();
+  const { selectedChildId, getSelectedChild } = useParentChildStore();
   const [childrenFees, setChildrenFees] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Active Selected Child
-  const [activeChildIndex, setActiveChildIndex] = useState(0);
 
   // Razorpay simulator state
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
@@ -31,24 +31,37 @@ const ParentFees = () => {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
 
+  const selectedChild = getSelectedChild();
+
   const fetchParentFees = async () => {
-    try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('/api/parent/fees', config);
-      setChildrenFees(res.data.fees);
-      setPayments(res.data.payments);
+    if (!selectedChildId) {
       setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const res = await axios.get(`/api/parent/fees?student_id=${selectedChildId}`, config);
+      setChildrenFees(res.data?.fees || []);
+      setPayments(res.data?.payments || []);
     } catch (error) {
       toast.error('Failed to load parent fees ledger');
+      setChildrenFees([]);
+      setPayments([]);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.token) fetchParentFees();
-  }, [user]);
+    if (user?.token && selectedChildId) {
+      fetchParentFees();
+    }
+  }, [user, selectedChildId]);
 
-  const activeChildFee = childrenFees[activeChildIndex];
+  const activeChildFee = childrenFees.find(
+    f => String(f.student_id?._id || f.student_id) === String(selectedChildId)
+  ) || childrenFees[0];
 
   const handleOpenSimulator = (item) => {
     const outstanding = item.amount - item.discount_amount - item.paid_amount + (item.fine_calculated || 0);
@@ -78,14 +91,15 @@ const ParentFees = () => {
           amount: payoutAmount
         }, config);
 
-        const orderId = resOrder.data.id;
+        const orderId = resOrder.data?.id || `order_${Date.now()}`;
         const paymentId = `pay_${Math.random().toString(36).substring(2, 15)}`;
         const signature = `sig_${Math.random().toString(36).substring(2, 15)}`;
 
         // Verify payload mapping
+        const targetStudentId = activeChildFee?.student_id?._id || selectedChildId;
         const payPayload = {
-          student_id: activeChildFee.student_id?._id,
-          academic_year: activeChildFee.academic_year,
+          student_id: targetStudentId,
+          academic_year: activeChildFee?.academic_year || '2024-2025',
           payment_method: 'Razorpay',
           notes: 'Self-checkout online parent payment',
           razorpay_order_id: orderId,
@@ -101,39 +115,43 @@ const ParentFees = () => {
         };
 
         const resVerify = await axios.post('/api/parent/fees/pay-verify', payPayload, config);
-        toast.success('Online checkout payment processed successfully!');
-        
-        // Display Receipt
-        setReceiptData({
-          ...resVerify.data.payment,
-          student: activeChildFee.student_id,
-          class: activeChildFee.class_id
-        });
 
+        toast.success('Fee Payment processed & verified successfully!');
         setIsSimulatorOpen(false);
-        setIsReceiptModalOpen(true);
-        fetchParentFees();
+        setCheckoutItem(null);
         setProcessing(false);
-      } catch (error) {
-        toast.error('Payment checkout failed');
+
+        // Auto show generated receipt
+        if (resVerify.data?.payment) {
+          setReceiptData({
+            ...resVerify.data.payment,
+            student: resVerify.data.payment.student_id || selectedChild,
+            class: selectedChild?.class_id
+          });
+          setIsReceiptModalOpen(true);
+        }
+
+        fetchParentFees();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Payment processing failed');
         setProcessing(false);
       }
-    }, 1500);
+    }, 1200);
   };
 
   const handleRequestRefund = async (e) => {
     e.preventDefault();
     if (!refundAmount || !refundReason) {
-      toast.error('Please enter refund amount and reason');
+      toast.error('Please enter amount and reason');
       return;
     }
-
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const targetStudentId = activeChildFee?.student_id?._id || selectedChildId;
       await axios.post('/api/parent/fees/refund', {
-        student_id: activeChildFee.student_id?._id,
-        academic_year: activeChildFee.academic_year,
-        amount: Number(refundAmount),
+        student_id: targetStudentId,
+        academic_year: activeChildFee?.academic_year || '2024-2025',
+        amount: parseFloat(refundAmount),
         reason: refundReason
       }, config);
 
@@ -143,51 +161,32 @@ const ParentFees = () => {
       setRefundReason('');
       fetchParentFees();
     } catch (error) {
-      toast.error('Failed to submit refund request');
+      toast.error(error.response?.data?.message || 'Failed to submit refund request');
     }
   };
 
   const showPastReceipt = (pay) => {
     setReceiptData({
       ...pay,
-      student: pay.student_id,
-      class: pay.student_id?.class_id
+      student: pay.student_id || selectedChild,
+      class: pay.student_id?.class_id || selectedChild?.class_id
     });
     setIsReceiptModalOpen(true);
   };
 
-  if (loading) return <div className="flex justify-center py-12 text-slate-550 font-semibold">Loading child billing profiles...</div>;
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)]">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800">Child Fees & Payouts</h2>
-          <p className="text-xs font-bold text-slate-400 mt-1">Review student bills, trigger secure online checkout payments, and access transaction receipts</p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-12">
+      {/* Child Selector */}
+      <ChildSelector
+        title="💳 Child Fees & Payment Details"
+        subtitle={selectedChild ? `Viewing fee ledger and payments for ${selectedChild.student_name}` : 'Select child to view fees and payments'}
+      />
 
-      {/* Children Selection Tabs */}
-      {childrenFees.length > 1 && (
-        <div className="flex gap-2">
-          {childrenFees.map((fee, idx) => (
-            <button
-              key={fee._id}
-              onClick={() => setActiveChildIndex(idx)}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                activeChildIndex === idx
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
-              }`}
-            >
-              {fee.student_id?.student_name}
-            </button>
-          ))}
+      {loading ? (
+        <div className="flex justify-center py-12 text-slate-500 font-bold bg-white rounded-2xl border border-slate-100 shadow-sm">
+          Loading child billing profile...
         </div>
-      )}
-
-      {activeChildFee ? (
+      ) : activeChildFee ? (
         <div className="space-y-6">
           
           {/* Summary Cards */}
@@ -196,7 +195,7 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Total Bill</span>
                 <h3 className="text-xl font-black text-slate-800 mt-1">
-                  ₹{activeChildFee.items.reduce((s, i) => s + i.amount, 0)}
+                  ₹{activeChildFee.items?.reduce((s, i) => s + (i.amount || 0), 0) || 0}
                 </h3>
               </div>
               <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
@@ -208,7 +207,7 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Concessions</span>
                 <h3 className="text-xl font-black text-emerald-600 mt-1">
-                  ₹{activeChildFee.items.reduce((s, i) => s + i.discount_amount, 0)}
+                  ₹{activeChildFee.items?.reduce((s, i) => s + (i.discount_amount || 0), 0) || 0}
                 </h3>
               </div>
               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -220,7 +219,7 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Total Paid</span>
                 <h3 className="text-xl font-black text-blue-600 mt-1">
-                  ₹{activeChildFee.items.reduce((s, i) => s + i.paid_amount, 0)}
+                  ₹{activeChildFee.items?.reduce((s, i) => s + (i.paid_amount || 0), 0) || 0}
                 </h3>
               </div>
               <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
@@ -232,10 +231,10 @@ const ParentFees = () => {
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase">Outstanding Balance</span>
                 <h3 className="text-xl font-black text-red-500 mt-1">
-                  ₹{activeChildFee.items.reduce((s, i) => {
-                    const o = i.amount - i.discount_amount - i.paid_amount;
+                  ₹{activeChildFee.items?.reduce((s, i) => {
+                    const o = (i.amount || 0) - (i.discount_amount || 0) - (i.paid_amount || 0);
                     return s + (o > 0 ? o : 0);
-                  }, 0)}
+                  }, 0) || 0}
                 </h3>
               </div>
               <div className="p-3 bg-red-50 text-red-500 rounded-xl">
@@ -247,7 +246,12 @@ const ParentFees = () => {
           {/* Active Bills Table */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Assigned Fee Schedule</h3>
+              <div>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  Assigned Fee Schedule – {selectedChild ? selectedChild.student_name : ''}
+                </h3>
+                <span className="text-[11px] text-slate-400 font-semibold">Academic Year: {activeChildFee.academic_year || 'Current'}</span>
+              </div>
               <button
                 onClick={() => setIsRefundModalOpen(true)}
                 className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
@@ -269,20 +273,19 @@ const ParentFees = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {activeChildFee.items.map((item, idx) => {
-                    const remaining = item.amount - item.discount_amount - item.paid_amount;
+                  {(activeChildFee.items || []).map((item, idx) => {
                     return (
                       <tr key={idx} className="hover:bg-slate-50/30">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-850">
-                          {item.category_id?.name || 'Category'}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">
+                          {item.category_id?.name || 'Fee Category'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-700">₹{item.amount}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-emerald-600">₹{item.discount_amount}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-emerald-600">₹{item.discount_amount || 0}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-amber-600">
                           ₹{item.fine_calculated || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500">
-                          {new Date(item.due_date).toLocaleDateString()}
+                          {item.due_date ? new Date(item.due_date).toLocaleDateString() : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -307,6 +310,13 @@ const ParentFees = () => {
                       </tr>
                     );
                   })}
+                  {(!activeChildFee.items || activeChildFee.items.length === 0) && (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-8 text-center text-slate-400 font-semibold">
+                        No fee line items assigned.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -351,7 +361,14 @@ const ParentFees = () => {
 
           {/* Past Payments History */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.015)] p-5 space-y-4">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Payment History Receipts</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                Payment History Receipts {selectedChild ? `– ${selectedChild.student_name}` : ''}
+              </h3>
+              <span className="text-xs font-bold text-slate-400">
+                {payments.length} {payments.length === 1 ? 'record' : 'records'}
+              </span>
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50">
@@ -383,7 +400,7 @@ const ParentFees = () => {
                   {payments.length === 0 && (
                     <tr>
                       <td colSpan="5" className="px-4 py-6 text-center text-slate-400 font-bold">
-                        No transactions captured.
+                        No transactions captured for {selectedChild ? selectedChild.student_name : 'this child'}.
                       </td>
                     </tr>
                   )}
@@ -394,8 +411,14 @@ const ParentFees = () => {
 
         </div>
       ) : (
-        <div className="bg-white p-12 text-center text-slate-400 font-bold rounded-2xl border border-slate-100">
-          No children billing records linked to your parent user ID.
+        <div className="bg-white p-12 text-center space-y-3 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-black text-slate-700">No Fee Records Found</h3>
+          <p className="text-xs font-semibold text-slate-400 max-w-sm mx-auto">
+            No fee structure or invoices have been assigned to {selectedChild ? selectedChild.student_name : 'this child'} yet.
+          </p>
         </div>
       )}
 

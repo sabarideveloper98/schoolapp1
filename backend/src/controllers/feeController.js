@@ -488,11 +488,17 @@ const verifyRazorpayPayment = async (req, res) => {
 };
 
 
-// --- REFUND MANAGEMENT ---
 const requestRefund = async (req, res) => {
     try {
-        const school_id = await getSchoolId(req.user._id);
         const { student_id, academic_year, amount, reason } = req.body;
+        let school_id;
+        if (req.user.role === 'School Admin') {
+            school_id = await getSchoolId(req.user._id);
+        } else {
+            const student = await Student.findOne({ _id: student_id, parent_user_id: req.user._id });
+            if (!student) return res.status(404).json({ message: 'Student record not found for this parent' });
+            school_id = student.school_id;
+        }
 
         const fee = await StudentFee.findOne({ school_id, student_id, academic_year });
         if (!fee) return res.status(404).json({ message: 'Student Fee record not found' });
@@ -649,7 +655,16 @@ const getFeeDashboardStats = async (req, res) => {
 
 const getParentFees = async (req, res) => {
     try {
-        const students = await Student.find({ parent_user_id: req.user._id });
+        const targetStudentId = req.params.studentId || req.query.student_id || req.query.studentId || req.query.child_id;
+        let students = [];
+        if (targetStudentId) {
+            students = await Student.find({ _id: targetStudentId, parent_user_id: req.user._id });
+            if (!students.length) {
+                return res.status(403).json({ message: 'Unauthorized access to student fee records' });
+            }
+        } else {
+            students = await Student.find({ parent_user_id: req.user._id });
+        }
         const studentIds = students.map(s => s._id);
 
         const fees = await StudentFee.find({ student_id: { $in: studentIds } })
@@ -693,7 +708,25 @@ const getParentFees = async (req, res) => {
             .populate('student_id', 'student_name admission_number')
             .sort({ payment_date: -1 });
 
-        res.json({ fees: result, payments });
+        let totalFees = 0;
+        let paidAmount = 0;
+        result.forEach(f => {
+            (f.items || []).forEach(it => {
+                totalFees += (it.amount || 0);
+                paidAmount += (it.paid_amount || 0);
+            });
+        });
+        const pendingAmount = Math.max(0, totalFees - paidAmount);
+
+        res.json({
+            fees: result,
+            payments,
+            totalFees,
+            paidAmount,
+            pendingAmount,
+            feeAssignments: result,
+            paymentHistory: payments
+        });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }

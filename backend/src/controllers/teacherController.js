@@ -44,14 +44,21 @@ const getTeacherProfileHelper = async (userId) => {
 };
 
 // Helper to get all class IDs assigned to teacher (either incharge or subject teacher)
-const getTeacherClassIdsHelper = async (teacherId, schoolId) => {
-    const inchargeClasses = await Class.find({ school_id: schoolId, class_incharge_id: teacherId });
+const getTeacherClassIdsHelper = async (teacherId, schoolId, userId) => {
+    const teacherIds = [teacherId, userId].filter(Boolean);
+    const inchargeQuery = { class_incharge_id: { $in: teacherIds } };
+    if (schoolId) inchargeQuery.school_id = schoolId;
+    const inchargeClasses = await Class.find(inchargeQuery);
     const inchargeIds = inchargeClasses.map(c => c._id ? c._id.toString() : null).filter(Boolean);
 
-    const assignments = await TeacherAssignment.find({ school_id: schoolId, teacher_id: teacherId });
+    const taQuery = { teacher_id: { $in: teacherIds } };
+    if (schoolId) taQuery.school_id = schoolId;
+    const assignments = await TeacherAssignment.find(taQuery);
     const assignmentIds = assignments.map(a => a.class_id ? a.class_id.toString() : null).filter(Boolean);
 
-    const classSubjects = await ClassSubject.find({ teacher_id: teacherId });
+    const csQuery = { teacher_id: { $in: teacherIds } };
+    if (schoolId) csQuery.school_id = schoolId;
+    const classSubjects = await ClassSubject.find(csQuery);
     const csIds = classSubjects.map(cs => cs.class_id ? cs.class_id.toString() : null).filter(Boolean);
 
     return [...new Set([...inchargeIds, ...assignmentIds, ...csIds])];
@@ -66,7 +73,7 @@ const getDashboardStats = async (req, res) => {
         const schoolId = teacher.school_id;
         const teacherId = teacher._id;
 
-        const classIds = await getTeacherClassIdsHelper(teacherId, schoolId);
+        const classIds = await getTeacherClassIdsHelper(teacherId, schoolId, teacher.user_id || req.user?._id);
 
         const totalStudents = await Student.countDocuments({ class_id: { $in: classIds } });
         const assignedClassesCount = classIds.length;
@@ -245,7 +252,7 @@ const changePassword = async (req, res) => {
 const getStudents = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
-        const classIds = await getTeacherClassIdsHelper(teacher._id, teacher.school_id);
+        const classIds = await getTeacherClassIdsHelper(teacher._id, teacher.school_id, teacher.user_id || req.user?._id);
 
         let filter = { class_id: { $in: classIds } };
         const requestedClassId = req.query.class_id || req.query.classId;
@@ -388,15 +395,62 @@ const updateStudentDetails = async (req, res) => {
 const getClasses = async (req, res) => {
     try {
         const teacher = await getTeacherProfileHelper(req.user._id);
+        const teacherIds = [teacher._id, teacher.user_id, req.user?._id].filter(Boolean);
+        const schoolId = teacher.school_id || req.user?.school_id;
 
-        const inchargeClasses = await Class.find({ class_incharge_id: teacher._id }).lean();
-        const assignments = await TeacherAssignment.find({ teacher_id: teacher._id }).populate('subject_id').populate('class_id').lean();
-        const classSubjects = await ClassSubject.find({ teacher_id: teacher._id }).populate('subject_id').populate('class_id').lean();
+        const classQuery = { class_incharge_id: { $in: teacherIds } };
+        if (schoolId) classQuery.school_id = schoolId;
+        const inchargeClasses = await Class.find(classQuery).lean();
+
+        const taQuery = { teacher_id: { $in: teacherIds } };
+        if (schoolId) taQuery.school_id = schoolId;
+        const assignments = await TeacherAssignment.find(taQuery).populate('subject_id').populate('class_id').lean();
+
+        const csQuery = { teacher_id: { $in: teacherIds } };
+        if (schoolId) csQuery.school_id = schoolId;
+        const classSubjects = await ClassSubject.find(csQuery).populate('subject_id').populate('class_id').lean();
+
+        // In case some assignments had unpopulated class_id or subject_id
+        const missingClassIds = [];
+        const missingSubjectIds = [];
+        [...assignments, ...classSubjects].forEach(item => {
+            const cid = item.class_id?._id || item.class_id;
+            if (cid && (!item.class_id || !item.class_id.class)) {
+                missingClassIds.push(cid);
+            }
+            const sid = item.subject_id?._id || item.subject_id;
+            if (sid && (!item.subject_id || !item.subject_id.name)) {
+                missingSubjectIds.push(sid);
+            }
+        });
+
+        if (missingClassIds.length > 0) {
+            const fetchedClasses = await Class.find({ _id: { $in: missingClassIds } }).lean();
+            const classLookup = new Map(fetchedClasses.map(c => [c._id.toString(), c]));
+            [...assignments, ...classSubjects].forEach(item => {
+                const cid = (item.class_id?._id || item.class_id)?.toString();
+                if (cid && classLookup.has(cid)) {
+                    item.class_id = classLookup.get(cid);
+                }
+            });
+        }
+
+        if (missingSubjectIds.length > 0) {
+            const fetchedSubjects = await Subject.find({ _id: { $in: missingSubjectIds } }).lean();
+            const subjLookup = new Map(fetchedSubjects.map(s => [s._id.toString(), s]));
+            [...assignments, ...classSubjects].forEach(item => {
+                const sid = (item.subject_id?._id || item.subject_id)?.toString();
+                if (sid && subjLookup.has(sid)) {
+                    item.subject_id = subjLookup.get(sid);
+                }
+            });
+        }
 
         const classMap = {};
 
         inchargeClasses.forEach(c => {
-            classMap[c._id] = {
+            const cid = c._id.toString();
+            classMap[cid] = {
                 _id: c._id,
                 class: c.class,
                 section: c.section,
@@ -406,30 +460,40 @@ const getClasses = async (req, res) => {
             };
         });
 
-        const processSubjectSlot = (clsObj, subjObj) => {
+        const processSubjectSlot = (clsObj, subjObj, extra = {}) => {
             if (!clsObj) return;
-            const classId = clsObj._id.toString();
+            const classId = (clsObj._id || clsObj).toString();
             if (!classMap[classId]) {
                 classMap[classId] = {
-                    _id: clsObj._id,
-                    class: clsObj.class,
-                    section: clsObj.section,
+                    _id: clsObj._id || classId,
+                    class: clsObj.class || 'Class',
+                    section: clsObj.section || '',
                     no_student: clsObj.no_student || 0,
                     isIncharge: false,
                     subjects: []
                 };
             }
-            if (subjObj && !classMap[classId].subjects.some(s => s._id.toString() === subjObj._id.toString())) {
-                classMap[classId].subjects.push({
-                    _id: subjObj._id,
-                    name: subjObj.name,
-                    code: subjObj.code
-                });
+            if (subjObj) {
+                const subjId = (subjObj._id || subjObj).toString();
+                if (!classMap[classId].subjects.some(s => s._id.toString() === subjId)) {
+                    classMap[classId].subjects.push({
+                        _id: subjObj._id || subjId,
+                        name: subjObj.name || 'Subject',
+                        code: subjObj.code || '',
+                        weekly_periods_required: extra.weekly_periods_required,
+                        role: extra.role || 'Subject Teacher'
+                    });
+                }
             }
         };
 
-        assignments.forEach(a => processSubjectSlot(a.class_id, a.subject_id));
-        classSubjects.forEach(cs => processSubjectSlot(cs.class_id, cs.subject_id));
+        assignments.forEach(a => processSubjectSlot(a.class_id, a.subject_id, {
+            weekly_periods_required: a.weekly_periods_required,
+            role: a.is_class_teacher ? 'Class & Subject Teacher' : 'Subject Teacher'
+        }));
+        classSubjects.forEach(cs => processSubjectSlot(cs.class_id, cs.subject_id, {
+            role: 'Subject Teacher'
+        }));
 
         // Get actual student counts
         for (const cid in classMap) {

@@ -57,6 +57,96 @@ const calculateAge = (dobString) => {
   return computedAge >= 0 ? computedAge : '';
 };
 
+// Conditional Validation Helpers
+// - If optional & empty: return true (skip)
+// - If entered: validate format strictly
+const validateLettersAndSpaces = (fieldName) => (val) => {
+  if (!val || !String(val).trim()) return true;
+  if (!/^[a-zA-Z\s.'-]+$/.test(String(val).trim())) {
+    return `${fieldName} must contain only letters and permitted spaces`;
+  }
+  return true;
+};
+
+const validatePhoneOptional = (fieldName) => (val) => {
+  if (!val || !String(val).trim()) return true;
+  if (!/^\d{10}$/.test(String(val).trim())) {
+    return `${fieldName} must be exactly 10 digits`;
+  }
+  return true;
+};
+
+const validateEmailOptional = (fieldName = 'Email') => (val) => {
+  if (!val || !String(val).trim()) return true;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val).trim())) {
+    return `Please enter a valid ${fieldName} address`;
+  }
+  return true;
+};
+
+const validateApaarId = (val) => {
+  if (!val || !String(val).trim()) return true;
+  const clean = String(val).trim();
+  if (!/^\d{12}$/.test(clean)) {
+    return 'APAAR ID must be exactly 12 digits.';
+  }
+  return true;
+};
+
+const validateAadhaar = (val) => {
+  if (!val || !String(val).trim()) return true;
+  const clean = String(val).trim();
+  if (!/^\d{12}$/.test(clean) && !/^\d{4}$/.test(clean)) {
+    return 'Aadhaar Number must be exactly 12 numeric digits';
+  }
+  return true;
+};
+
+const validatePincode = (val) => {
+  if (!val || !String(val).trim()) return 'Pincode is required';
+  const clean = String(val).trim();
+  if (!/^\d{6}$/.test(clean)) {
+    return 'Pincode must be exactly 6 numeric digits';
+  }
+  return true;
+};
+
+const validatePositiveAge = (val) => {
+  if (val === undefined || val === null || String(val).trim() === '') return true;
+  const num = Number(val);
+  if (isNaN(num) || num <= 0) {
+    return 'Age must be a valid positive numeric value';
+  }
+  return true;
+};
+
+const validateDateOfBirth = (val) => {
+  if (!val) return 'Date of Birth is required';
+  const dob = new Date(val);
+  if (isNaN(dob.getTime())) return 'Please enter a valid Date of Birth';
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  if (dob > today) {
+    return 'Date of Birth cannot be a future date';
+  }
+  return true;
+};
+
+const validateAdmissionDate = (val) => {
+  if (!val) return 'Admission Date is required';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return 'Please enter a valid Admission Date';
+  return true;
+};
+
+const validateIdentifierOptional = (fieldName) => (val) => {
+  if (!val || !String(val).trim()) return true;
+  if (!/^[a-zA-Z0-9\-_/]+$/.test(String(val).trim())) {
+    return `${fieldName} contains invalid format`;
+  }
+  return true;
+};
+
 const StudentCreate = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
@@ -96,6 +186,8 @@ const StudentCreate = () => {
     reset,
     formState: { errors }
   } = useForm({
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       student_status: 'Active',
       admission_type: 'Regular',
@@ -399,8 +491,8 @@ const StudentCreate = () => {
     if (matched) {
       const realId = String(matched._id).startsWith('fallback-') ? '' : matched._id;
       setValue('class_id', realId);
-      setValue('class', matched.class);
-      setValue('section', matched.section);
+      setValue('class', matched.class, { shouldValidate: true, shouldDirty: true });
+      setValue('section', matched.section, { shouldValidate: true, shouldDirty: true });
       setSelectedClass(matched.class);
 
       const sections = classes.filter(c => String(c.class) === String(matched.class));
@@ -421,8 +513,8 @@ const StudentCreate = () => {
     if (matched) {
       const realId = String(matched._id).startsWith('fallback-') ? '' : matched._id;
       setValue('class_id', realId);
-      setValue('section', matched.section);
-      setValue('class', matched.class);
+      setValue('section', matched.section, { shouldValidate: true, shouldDirty: true });
+      setValue('class', matched.class, { shouldValidate: true, shouldDirty: true });
 
       autoGenerateNumbers(watch('academic_year'), matched.class, matched.section);
     }
@@ -893,7 +985,10 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">First Name <span className="text-red-500">*</span></label>
               <input
-                {...register('first_name', { required: 'First Name is required' })}
+                {...register('first_name', {
+                  required: 'First Name is required',
+                  validate: validateLettersAndSpaces('First Name')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="First Name"
               />
@@ -904,17 +999,23 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Last Name <span className="text-slate-400 font-normal">(optional)</span></label>
               <input
-                {...register('last_name')}
+                {...register('last_name', {
+                  validate: validateLettersAndSpaces('Last Name')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Last Name"
               />
+              {errors.last_name && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.last_name.message}</p>}
             </div>
 
             {/* Student Full Name */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Full Student Name <span className="text-red-500">*</span></label>
               <input
-                {...register('student_name', { required: 'Full Student Name is required' })}
+                {...register('student_name', {
+                  required: 'Full Student Name is required',
+                  validate: validateLettersAndSpaces('Full Student Name')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Full Student Name"
               />
@@ -929,6 +1030,7 @@ const StudentCreate = () => {
                 max={new Date().toISOString().split('T')[0]}
                 {...register('date_of_birth', {
                   required: 'Date of Birth is required',
+                  validate: validateDateOfBirth,
                   onChange: (e) => {
                     const val = e.target.value;
                     const calculatedAge = calculateAge(val);
@@ -953,10 +1055,14 @@ const StudentCreate = () => {
                   { value: 'Other', label: 'Other' }
                 ]}
                 value={watch('gender') || 'Male'}
-                onChange={(val) => setValue('gender', val)}
+                onChange={(val) => setValue('gender', val, { shouldValidate: true, shouldDirty: true })}
                 placeholder="Select Gender"
               />
-              <input type="hidden" {...register('gender', { required: 'Gender is required' })} />
+              <input type="hidden" {...register('gender', {
+                required: 'Gender is required',
+                validate: (val) => ['Male', 'Female', 'Other'].includes(val) || 'Please select a valid gender'
+              })} />
+              {errors.gender && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.gender.message}</p>}
             </div>
 
             {/* Blood Group */}
@@ -975,30 +1081,39 @@ const StudentCreate = () => {
                   { value: 'O-', label: 'O-' }
                 ]}
                 value={watch('blood_group') || 'N/A'}
-                onChange={(val) => setValue('blood_group', val)}
+                onChange={(val) => setValue('blood_group', val, { shouldValidate: true, shouldDirty: true })}
                 placeholder="Select Blood Group"
               />
-              <input type="hidden" {...register('blood_group')} />
+              <input type="hidden" {...register('blood_group', {
+                validate: (val) => !val || val === 'N/A' || ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].includes(val) || 'Please select a valid blood group'
+              })} />
+              {errors.blood_group && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.blood_group.message}</p>}
             </div>
 
             {/* Nationality */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Nationality</label>
               <input
-                {...register('nationality')}
+                {...register('nationality', {
+                  validate: validateLettersAndSpaces('Nationality')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="e.g. Indian"
               />
+              {errors.nationality && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.nationality.message}</p>}
             </div>
 
             {/* Mother Tongue */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Mother Tongue</label>
               <input
-                {...register('mother_tongue')}
+                {...register('mother_tongue', {
+                  validate: validateLettersAndSpaces('Mother Tongue')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="e.g. Tamil, Hindi, English"
               />
+              {errors.mother_tongue && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.mother_tongue.message}</p>}
             </div>
 
             {/* Student Status */}
@@ -1013,10 +1128,11 @@ const StudentCreate = () => {
                   { value: 'Graduated', label: 'Graduated' }
                 ]}
                 value={watch('student_status') || 'Active'}
-                onChange={(val) => setValue('student_status', val)}
+                onChange={(val) => setValue('student_status', val, { shouldValidate: true, shouldDirty: true })}
                 placeholder="Select Status"
               />
               <input type="hidden" {...register('student_status', { required: 'Status is required' })} />
+              {errors.student_status && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.student_status.message}</p>}
             </div>
 
             {/* Age (Optional / Computed) */}
@@ -1025,10 +1141,13 @@ const StudentCreate = () => {
               <input
                 type="number"
                 readOnly={Boolean(watchDateOfBirth)}
-                {...register('age')}
+                {...register('age', {
+                  validate: validatePositiveAge
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm read-only:bg-slate-50 read-only:cursor-not-allowed"
                 placeholder="e.g. 14"
               />
+              {errors.age && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.age.message}</p>}
             </div>
           </div>
         </div>
@@ -1049,6 +1168,7 @@ const StudentCreate = () => {
               <input
                 {...register('admission_number', {
                   required: 'Admission Number is required',
+                  validate: validateIdentifierOptional('Admission Number'),
                   onChange: () => {
                     isAdmissionManuallyEdited.current = true;
                   }
@@ -1064,7 +1184,10 @@ const StudentCreate = () => {
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Admission Date <span className="text-red-500">*</span></label>
               <input
                 type="date"
-                {...register('admission_date', { required: 'Admission Date is required' })}
+                {...register('admission_date', {
+                  required: 'Admission Date is required',
+                  validate: validateAdmissionDate
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
               />
               {errors.admission_date && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.admission_date.message}</p>}
@@ -1082,12 +1205,13 @@ const StudentCreate = () => {
                 ]}
                 value={watch('academic_year') || '2025-2026'}
                 onChange={(val) => {
-                  setValue('academic_year', val);
+                  setValue('academic_year', val, { shouldValidate: true, shouldDirty: true });
                   autoGenerateNumbers(val, watch('class'), watch('section'));
                 }}
                 placeholder="Select Academic Year"
               />
               <input type="hidden" {...register('academic_year', { required: 'Academic Year is required' })} />
+              {errors.academic_year && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.academic_year.message}</p>}
             </div>
 
             {/* Class */}
@@ -1133,6 +1257,7 @@ const StudentCreate = () => {
               <input
                 {...register('roll_no', {
                   required: 'Roll No. is required',
+                  validate: validateIdentifierOptional('Roll Number'),
                   onChange: () => {
                     isRollManuallyEdited.current = true;
                   }
@@ -1211,20 +1336,26 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Second Language</label>
               <input
-                {...register('second_language')}
+                {...register('second_language', {
+                  validate: validateLettersAndSpaces('Second Language')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="e.g. Hindi, Sanskrit, French, Tamil"
               />
+              {errors.second_language && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.second_language.message}</p>}
             </div>
 
             {/* Registration No */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Registration No. <span className="text-slate-400 font-normal">(optional)</span></label>
               <input
-                {...register('registration_no')}
+                {...register('registration_no', {
+                  validate: validateIdentifierOptional('Registration Number')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Registration Number"
               />
+              {errors.registration_no && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.registration_no.message}</p>}
             </div>
 
             {/* House */}
@@ -1280,27 +1411,36 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Father's Name</label>
               <input
-                {...register('father_name')}
+                {...register('father_name', {
+                  validate: validateLettersAndSpaces("Father's Name")
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Father's Full Name"
               />
+              {errors.father_name && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.father_name.message}</p>}
             </div>
 
             {/* Mother Name */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Mother's Name</label>
               <input
-                {...register('mother_name')}
+                {...register('mother_name', {
+                  validate: validateLettersAndSpaces("Mother's Name")
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Mother's Full Name"
               />
+              {errors.mother_name && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.mother_name.message}</p>}
             </div>
 
             {/* Primary Guardian Name */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Primary Guardian Name <span className="text-red-500">*</span></label>
               <input
-                {...register('guardian_name', { required: 'Guardian Name is required' })}
+                {...register('guardian_name', {
+                  required: 'Guardian Name is required',
+                  validate: validateLettersAndSpaces('Guardian Name')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 placeholder="Guardian Full Name"
               />
@@ -1322,10 +1462,11 @@ const StudentCreate = () => {
                   { value: 'Other', label: 'Other' }
                 ]}
                 value={watch('guardian_relation') || 'Father'}
-                onChange={(val) => setValue('guardian_relation', val)}
+                onChange={(val) => setValue('guardian_relation', val, { shouldValidate: true, shouldDirty: true })}
                 placeholder="Select Relationship"
               />
               <input type="hidden" {...register('guardian_relation', { required: 'Guardian Relationship is required' })} />
+              {errors.guardian_relation && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.guardian_relation.message}</p>}
             </div>
 
             {/* Guardian Phone */}
@@ -1361,10 +1502,13 @@ const StudentCreate = () => {
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Guardian Email Address</label>
               <input
                 type="email"
-                {...register('guardian_email')}
+                {...register('guardian_email', {
+                  validate: validateEmailOptional('Guardian Email')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="guardian@example.com"
               />
+              {errors.guardian_email && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.guardian_email.message}</p>}
             </div>
 
             {/* WhatsApp Number */}
@@ -1506,7 +1650,11 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Pincode / Postal Code <span className="text-red-500">*</span></label>
               <input
-                {...register('pincode', { required: 'Pincode is required' })}
+                maxLength={6}
+                {...register('pincode', {
+                  required: 'Pincode is required',
+                  validate: validatePincode
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 placeholder="6-digit Pincode"
               />
@@ -1540,41 +1688,54 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">APAAR ID <span className="text-slate-400 font-normal">(12-digit)</span></label>
               <input
-                {...register('apaar_id')}
+                maxLength={12}
+                {...register('apaar_id', {
+                  validate: validateApaarId
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 placeholder="Automated Permanent Academic ID"
               />
+              {errors.apaar_id && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.apaar_id.message}</p>}
             </div>
 
             {/* PEN Number */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">PEN Number <span className="text-slate-400 font-normal">(UDISE+)</span></label>
               <input
-                {...register('pen_number')}
+                {...register('pen_number', {
+                  validate: validateIdentifierOptional('PEN Number')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 placeholder="Permanent Education Number"
               />
+              {errors.pen_number && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.pen_number.message}</p>}
             </div>
 
             {/* EMIS ID */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">EMIS ID</label>
               <input
-                {...register('emis_id')}
+                {...register('emis_id', {
+                  validate: validateIdentifierOptional('EMIS ID')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 placeholder="State EMIS Registration ID"
               />
+              {errors.emis_id && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.emis_id.message}</p>}
             </div>
 
             {/* Aadhaar (Last 4 Digits) */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Aadhaar (Last 4 Digits Only)</label>
               <input
-                maxLength={4}
-                {...register('aadhaar_last4')}
+                maxLength={12}
+                {...register('aadhaar_last4', {
+                  validate: validateAadhaar
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold tracking-widest"
                 placeholder="XXXX"
               />
+              {errors.aadhaar_last4 && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.aadhaar_last4.message}</p>}
               <p className="text-[10px] text-slate-400 mt-1 font-semibold">Security policy: Store only the last 4 digits.</p>
             </div>
 
@@ -1624,10 +1785,13 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Caste</label>
               <input
-                {...register('caste')}
+                {...register('caste', {
+                  validate: validateLettersAndSpaces('Caste')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Caste / Sub-caste"
               />
+              {errors.caste && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.caste.message}</p>}
             </div>
 
             {/* Economic Category */}
@@ -1651,10 +1815,13 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Sibling Admission No.</label>
               <input
-                {...register('sibling_admission_no')}
+                {...register('sibling_admission_no', {
+                  validate: validateIdentifierOptional('Sibling Admission Number')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Admission No. of Sibling in this school"
               />
+              {errors.sibling_admission_no && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.sibling_admission_no.message}</p>}
             </div>
 
             {/* CWSN Checkbox & Disability Type */}
@@ -1715,10 +1882,13 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Previous TC Number</label>
               <input
-                {...register('previous_tc_number')}
+                {...register('previous_tc_number', {
+                  validate: validateIdentifierOptional('Previous TC Number')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Transfer Certificate (TC) Number"
               />
+              {errors.previous_tc_number && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.previous_tc_number.message}</p>}
             </div>
           </div>
         </div>
@@ -1812,20 +1982,36 @@ const StudentCreate = () => {
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Emergency Contact Person</label>
               <input
-                {...register('emergency_contact_name')}
+                {...register('emergency_contact_name', {
+                  validate: validateLettersAndSpaces('Emergency Contact Person')
+                })}
                 className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                 placeholder="Name of person to contact in emergency"
               />
+              {errors.emergency_contact_name && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.emergency_contact_name.message}</p>}
             </div>
 
             {/* Emergency Contact Phone */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Emergency Contact Phone</label>
               <input
-                {...register('emergency_contact_phone')}
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 placeholder="Emergency Phone Number"
+                onKeyDown={handlePhoneKeyDown}
+                onPaste={handlePhonePaste('emergency_contact_phone')}
+                {...register('emergency_contact_phone', {
+                  validate: validatePhoneOptional('Emergency Contact Phone'),
+                  onChange: (e) => {
+                    const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    e.target.value = sanitized;
+                    setValue('emergency_contact_phone', sanitized, { shouldValidate: true, shouldDirty: true });
+                  }
+                })}
+                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
               />
+              {errors.emergency_contact_phone && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.emergency_contact_phone.message}</p>}
             </div>
 
             {/* Allergies */}
@@ -1904,7 +2090,10 @@ const StudentCreate = () => {
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Login Email <span className="text-red-500">*</span></label>
                 <input
                   type="email"
-                  {...register('login_email', { required: 'Login Email is required' })}
+                  {...register('login_email', {
+                    required: 'Login Email is required',
+                    validate: (val) => !val ? 'Login Email is required' : (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val).trim()) || 'Please enter a valid Login Email address')
+                  })}
                   className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
                   placeholder="parent@example.com"
                 />
@@ -1915,9 +2104,22 @@ const StudentCreate = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1.5">Login Phone <span className="text-red-500">*</span></label>
                 <input
-                  {...register('login_phone', { required: 'Login Phone is required' })}
-                  className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   placeholder="Phone Number"
+                  onKeyDown={handlePhoneKeyDown}
+                  onPaste={handlePhonePaste('login_phone')}
+                  {...register('login_phone', {
+                    required: 'Login Phone is required',
+                    validate: (val) => !val ? 'Login Phone is required' : (/^\d{10}$/.test(String(val).trim()) || 'Login Phone must be exactly 10 digits'),
+                    onChange: (e) => {
+                      const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      e.target.value = sanitized;
+                      setValue('login_phone', sanitized, { shouldValidate: true, shouldDirty: true });
+                    }
+                  })}
+                  className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm font-semibold"
                 />
                 {errors.login_phone && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.login_phone.message}</p>}
               </div>

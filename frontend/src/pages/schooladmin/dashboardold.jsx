@@ -159,7 +159,7 @@ const SchoolAdminDashboard = () => {
             path: '/school-admin/dashboard',
         },
         {
-            label: '📅 Timetable Management',
+            label: 'Timetable Management',
             icon: CalendarRange,
             subItems: [
                 { label: 'Timetable Dashboard', path: '/school-admin/timetable/dashboard' },

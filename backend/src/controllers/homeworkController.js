@@ -244,25 +244,69 @@ const deleteHomework = async (req, res) => {
 const getStudentHomework = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user);
-        let studentId = req.query.student_id;
+        let studentId = req.query.student_id || req.query.child_id;
+        let studentDoc = null;
 
-        if (!studentId && req.user.role === 'Student') {
-            const studentDoc = await Student.findOne({ user_id: req.user._id });
+        if (req.user.role === 'Parent') {
+            if (studentId) {
+                studentDoc = await Student.findOne({ _id: studentId, parent_user_id: req.user._id });
+                if (!studentDoc) {
+                    return res.status(403).json({ message: 'Unauthorized access to student homework data' });
+                }
+            } else {
+                studentDoc = await Student.findOne({ parent_user_id: req.user._id });
+                if (studentDoc) studentId = studentDoc._id;
+            }
+        } else if (req.user.role === 'Student') {
+            studentDoc = await Student.findOne({ user_id: req.user._id });
+            if (studentDoc) studentId = studentDoc._id;
+        } else if (studentId) {
+            studentDoc = await Student.findById(studentId);
+        } else {
+            studentDoc = await Student.findOne({ school_id });
             if (studentDoc) studentId = studentDoc._id;
         }
 
-        if (!studentId) {
-            // Find student by email or user
-            const studentDoc = await Student.findOne({ school_id });
-            if (studentDoc) studentId = studentDoc._id;
+        if (!studentDoc || !studentId) {
+            return res.json([]);
         }
 
-        const assignments = await HomeworkAssignment.find({ student_id: studentId })
+        // Fetch existing assignments for this student
+        let assignments = await HomeworkAssignment.find({ student_id: studentId })
             .populate({
                 path: 'homework_id',
                 populate: { path: 'assigned_classes', select: 'class class_name section' }
             })
             .sort({ createdAt: -1 });
+
+        // Also check if any active homework exists for student's class that hasn't been assigned yet
+        if (studentDoc.class_id) {
+            const classHomeworks = await Homework.find({
+                assigned_classes: studentDoc.class_id,
+                status: 'Active'
+            });
+
+            const existingHwIds = new Set(assignments.map(a => a.homework_id?._id?.toString()).filter(Boolean));
+            for (const chw of classHomeworks) {
+                if (!existingHwIds.has(chw._id.toString())) {
+                    if (chw.assigned_section && studentDoc.section && chw.assigned_section !== studentDoc.section) {
+                        continue;
+                    }
+                    const newAssign = await HomeworkAssignment.create({
+                        homework_id: chw._id,
+                        school_id: studentDoc.school_id,
+                        student_id: studentDoc._id,
+                        class_id: studentDoc.class_id,
+                        status: 'Pending'
+                    });
+                    const populated = await HomeworkAssignment.findById(newAssign._id).populate({
+                        path: 'homework_id',
+                        populate: { path: 'assigned_classes', select: 'class class_name section' }
+                    });
+                    assignments.unshift(populated);
+                }
+            }
+        }
 
         const studentHomeworkFeed = await Promise.all(assignments.map(async (assign) => {
             if (!assign.homework_id) return null;

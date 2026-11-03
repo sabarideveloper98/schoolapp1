@@ -2,22 +2,25 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
+import useParentChildStore from '../../store/useParentChildStore';
 import { getSubjectColor } from '../../utils/timetableColors';
-import SearchableSelect from '../../components/SearchableSelect';
+import ChildSelector from '../../components/ChildSelector';
 
-const ParentTimetable = ({ childrenList }) => {
+const ParentTimetable = ({ childrenList: propChildrenList }) => {
     const { user } = useAuthStore();
-    const [selectedChildId, setSelectedChildId] = useState('');
+    const { childrenList: storeChildren, selectedChildId, getSelectedChild, setChildrenList } = useParentChildStore();
+    const childrenList = (propChildrenList && propChildrenList.length > 0) ? propChildrenList : storeChildren;
+
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (childrenList && childrenList.length > 0 && !selectedChildId) {
-            setSelectedChildId(childrenList[0]._id);
+        if (propChildrenList && propChildrenList.length > 0 && storeChildren.length === 0) {
+            setChildrenList(propChildrenList);
         }
-    }, [childrenList, selectedChildId]);
+    }, [propChildrenList, storeChildren.length, setChildrenList]);
 
-    const selectedChild = childrenList?.find(c => c._id === selectedChildId);
+    const selectedChild = getSelectedChild() || childrenList?.find(c => String(c._id) === String(selectedChildId)) || childrenList?.[0];
 
     useEffect(() => {
         if (!selectedChild?.class_id?._id && !selectedChild?.class_id) return;
@@ -67,27 +70,10 @@ const ParentTimetable = ({ childrenList }) => {
     return (
         <div className="space-y-6">
             {/* Child Selector */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight">📅 Child Class Timetable</h2>
-                    <p className="text-xs font-bold text-slate-400 mt-0.5">View weekly subject schedule and assigned teachers for your child</p>
-                </div>
-
-                <div className="w-full sm:w-64">
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Select Child</label>
-                    <SearchableSelect
-                        options={childrenList.map(c => ({
-                            value: c._id,
-                            label: `${c.student_name} (Class ${c.class_id?.class}-${c.class_id?.section})`
-                        }))}
-                        value={selectedChildId}
-                        onChange={(val) => setSelectedChildId(val)}
-                        placeholder="Select Child..."
-                        searchPlaceholder="Search child..."
-                        buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
-                    />
-                </div>
-            </div>
+            <ChildSelector
+                title="📅 Child Class Timetable"
+                subtitle="View weekly subject schedule and assigned teachers for your child"
+            />
 
             {/* Grid */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

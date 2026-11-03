@@ -218,7 +218,7 @@ const getStudentDetails = async (req, res) => {
 // ==========================================
 const getAttendance = async (req, res) => {
     try {
-        const { studentId } = req.params;
+        const studentId = req.params.studentId || req.query.student_id || req.query.studentId || req.query.child_id;
         const { filter, month, year, startDate, endDate } = req.query;
 
         let studentIds = [];
@@ -282,7 +282,7 @@ const getAttendance = async (req, res) => {
 // ==========================================
 const getHomework = async (req, res) => {
     try {
-        const { studentId } = req.params;
+        const studentId = req.params.studentId || req.query.student_id || req.query.studentId || req.query.child_id;
         const { subjectId, startDate, endDate } = req.query;
 
         let students = [];
@@ -339,7 +339,7 @@ const getHomework = async (req, res) => {
 // ==========================================
 const getTimetable = async (req, res) => {
     try {
-        const { studentId } = req.params;
+        const studentId = req.params.studentId || req.query.student_id || req.query.studentId || req.query.child_id;
         let students = [];
         if (studentId) {
             const s = await verifyParentStudentOwnership(req.user._id, studentId);
@@ -377,7 +377,7 @@ const getTimetable = async (req, res) => {
 // ==========================================
 const getExams = async (req, res) => {
     try {
-        const { studentId } = req.params;
+        const studentId = req.params.studentId || req.query.student_id || req.query.studentId || req.query.child_id;
         let students = [];
         if (studentId) {
             const s = await verifyParentStudentOwnership(req.user._id, studentId);
@@ -412,7 +412,7 @@ const getExams = async (req, res) => {
 // ==========================================
 const getResults = async (req, res) => {
     try {
-        const { studentId } = req.params;
+        const studentId = req.params.studentId || req.query.student_id || req.query.studentId || req.query.child_id;
         let students = [];
         if (studentId) {
             const s = await verifyParentStudentOwnership(req.user._id, studentId);
@@ -792,7 +792,7 @@ const submitLeaveRequest = async (req, res) => {
 
 const getLeaveRequests = async (req, res) => {
     try {
-        const { studentId } = req.query;
+        const studentId = req.params.studentId || req.query.studentId || req.query.student_id || req.query.child_id;
         let studentIds = [];
 
         if (studentId) {
@@ -835,18 +835,26 @@ const getLeaveRequestById = async (req, res) => {
 // ==========================================
 const getTransportDetails = async (req, res) => {
     try {
-        const students = await Student.find({ parent_user_id: req.user._id });
+        const studentId = req.params.studentId || req.query.student_id || req.query.studentId || req.query.child_id;
+        let students = [];
+        if (studentId) {
+            const s = await verifyParentStudentOwnership(req.user._id, studentId);
+            students = [s];
+        } else {
+            students = await Student.find({ parent_user_id: req.user._id });
+        }
         const studentIds = students.map(s => s._id);
 
         const transports = await StudentTransport.find({ student_id: { $in: studentIds } })
             .populate('bus_id')
             .populate('route_id')
-            .populate('stop_id')
+            .populate('pickup_stop_id')
+            .populate('drop_stop_id')
             .populate('student_id', 'student_name roll_no');
 
         res.json(transports);
     } catch (error) {
-        res.status(500).json({ message: 'Failed to fetch transport details', error: error.message });
+        res.status(error.statusCode || 500).json({ message: 'Failed to fetch transport details', error: error.message });
     }
 };
 

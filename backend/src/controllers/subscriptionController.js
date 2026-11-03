@@ -198,6 +198,7 @@ const verifyAndActivateSubscription = async (req, res) => {
             duration,
             payment_method = 'Razorpay',
             cheque_details,
+            bank_transfer_details,
             payment_notes,
             razorpay_order_id,
             razorpay_payment_id,
@@ -214,7 +215,7 @@ const verifyAndActivateSubscription = async (req, res) => {
             return res.status(400).json({ message: 'Valid student count is required' });
         }
 
-        const validMethods = ['Razorpay', 'Cash', 'Cheque'];
+        const validMethods = ['Razorpay', 'Cash', 'Cheque', 'Bank Transfer'];
         if (!validMethods.includes(payment_method)) {
             return res.status(400).json({ message: 'Invalid payment method selected' });
         }
@@ -251,6 +252,27 @@ const verifyAndActivateSubscription = async (req, res) => {
             }
             payment_id = `CHQ_${cheque_details.cheque_number.trim()}_${Date.now()}`;
             subStatus = 'Pending';
+        } else if (payment_method === 'Bank Transfer') {
+            const txNum = bank_transfer_details?.transaction_number?.trim();
+            if (!txNum) {
+                return res.status(400).json({ message: 'Transaction / Reference number is required for Bank Transfer' });
+            }
+            if (!bank_transfer_details?.transaction_date) {
+                return res.status(400).json({ message: 'Transaction date is required for Bank Transfer' });
+            }
+
+            // Check for duplicate transaction number
+            const escapedTx = txNum.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const existingTx = await Subscription.findOne({
+                'bank_transfer_details.transaction_number': { $regex: new RegExp(`^${escapedTx}$`, 'i') },
+                status: { $ne: 'Cancelled' }
+            });
+            if (existingTx) {
+                return res.status(400).json({ message: 'A subscription with this transaction / reference number has already been recorded.' });
+            }
+
+            payment_id = `BT_${txNum}_${Date.now()}`;
+            subStatus = 'Active';
         }
 
         let years = 1;
@@ -300,7 +322,15 @@ const verifyAndActivateSubscription = async (req, res) => {
                 bank_name: cheque_details?.bank_name?.trim() || '',
                 branch_name: cheque_details?.branch_name?.trim() || ''
             } : undefined,
-            payment_notes: payment_notes?.trim() || '',
+            bank_transfer_details: payment_method === 'Bank Transfer' ? {
+                transaction_number: bank_transfer_details?.transaction_number?.trim() || '',
+                transaction_date: bank_transfer_details?.transaction_date ? new Date(bank_transfer_details.transaction_date) : new Date(),
+                bank_name: bank_transfer_details?.bank_name?.trim() || '',
+                receipt_url: bank_transfer_details?.receipt_url || '',
+                receipt_name: bank_transfer_details?.receipt_name || '',
+                notes: bank_transfer_details?.notes?.trim() || ''
+            } : undefined,
+            payment_notes: payment_notes?.trim() || bank_transfer_details?.notes?.trim() || '',
             razorpay_order_id: razorpay_order_id || (payment_method === 'Razorpay' ? `order_sub_${Date.now()}` : undefined),
             razorpay_payment_id: payment_method === 'Razorpay' ? payment_id : undefined,
             razorpay_signature: razorpay_signature || (payment_method === 'Razorpay' ? 'sig_verified_mock' : undefined),
@@ -316,7 +346,9 @@ const verifyAndActivateSubscription = async (req, res) => {
             ? 'Cheque payment submitted successfully! Subscription is pending cheque clearance.'
             : payment_method === 'Cash'
                 ? 'Cash payment recorded successfully! Subscription activated.'
-                : 'Subscription activated successfully!';
+                : payment_method === 'Bank Transfer'
+                    ? 'Bank Transfer payment recorded successfully! Subscription activated.'
+                    : 'Subscription activated successfully!';
 
         res.status(201).json({
             message: successMessage,
