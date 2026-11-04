@@ -13,6 +13,12 @@ const {
     getNextStudentNumbers, generateNumbersBatch,
     getSchoolLeaves, updateLeaveStatus, createEmployeeLeave
 } = require('../controllers/schoolAdminController');
+const {
+    getStaffRoles, createStaffRole, updateStaffRole, deleteStaffRole, toggleStaffRoleStatus
+} = require('../controllers/staffRoleController');
+const {
+    getCommonSubjects, createCommonSubject, updateCommonSubject, deleteCommonSubject, toggleCommonSubjectStatus
+} = require('../controllers/commonSubjectController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const {
     getStaffAttendance, saveStaffAttendance, getStaffAttendanceReport,
@@ -62,6 +68,14 @@ router.route('/teachers/:id').put(updateTeacher).delete(deleteTeacher);
 router.route('/staff').get(getStaff).post(createStaff);
 router.post('/staff/bulk-import', bulkImportStaff);
 router.route('/staff/:id').put(updateStaff).delete(deleteStaff);
+
+router.route('/staff-roles').get(getStaffRoles).post(createStaffRole);
+router.route('/staff-roles/:id').put(updateStaffRole).delete(deleteStaffRole);
+router.patch('/staff-roles/:id/toggle-status', toggleStaffRoleStatus);
+
+router.route('/common-subjects').get(getCommonSubjects).post(createCommonSubject);
+router.route('/common-subjects/:id').put(updateCommonSubject).delete(deleteCommonSubject);
+router.patch('/common-subjects/:id/toggle-status', toggleCommonSubjectStatus);
 
 router.route('/subjects').get(getSubjects).post(createSubject);
 router.route('/subjects/:id').put(updateSubject).delete(deleteSubject);

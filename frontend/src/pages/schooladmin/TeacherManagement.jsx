@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff, FileSpreadsheet, Copy, Key, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Image as ImageIcon, ChevronDown, Eye, EyeOff, FileSpreadsheet, Copy, Key, Download, BookOpen, Phone, Mail, MapPin, GraduationCap, Clock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/useAuthStore';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import BulkTeacherImportModal, { downloadTeacherSampleCSV } from '../../components/BulkTeacherImportModal';
 import SearchableSelect from '../../components/SearchableSelect';
+import SubjectSelectDropdown from '../../components/SubjectSelectDropdown';
 
 const TeacherManagement = () => {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ const TeacherManagement = () => {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [editSelectedSubjects, setEditSelectedSubjects] = useState([]);
+  const [viewingTeacher, setViewingTeacher] = useState(null);
 
   // Table search & limit
   const [pageSize, setPageSize] = useState(50);
@@ -75,8 +78,12 @@ const TeacherManagement = () => {
   const onSubmit = async (data) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const payload = {
+        ...data,
+        domains: editSelectedSubjects
+      };
       if (editMode) {
-        await axios.put(`/api/schooladmin/teachers/${editingId}`, data, config);
+        await axios.put(`/api/schooladmin/teachers/${editingId}`, payload, config);
         toast.success('Teacher updated successfully!');
       }
       closeForm();
@@ -89,6 +96,7 @@ const TeacherManagement = () => {
   const handleEdit = (teacher) => {
     setEditMode(true);
     setEditingId(teacher._id);
+    setEditSelectedSubjects(teacher.domains || []);
     setIsFormOpen(true);
     setValue('name', teacher.name);
     setValue('email', teacher.email);
@@ -96,7 +104,6 @@ const TeacherManagement = () => {
     setValue('address', teacher.address);
     setValue('qualification', teacher.qualification);
     setValue('experience', teacher.experience);
-    setValue('domains', teacher.domains?.join(', ') || '');
     setValue('password', teacher.password || '123456');
   };
 
@@ -130,6 +137,7 @@ const TeacherManagement = () => {
     setIsFormOpen(false);
     setEditMode(false);
     setEditingId(null);
+    setEditSelectedSubjects([]);
     reset();
   };
 
@@ -255,6 +263,7 @@ const TeacherManagement = () => {
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">PASSWORD</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">QUALIFICATION</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">EXPERIENCE</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">SUBJECTS</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">STATUS</th>
                 <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">ACTION</th>
               </tr>
@@ -347,6 +356,25 @@ const TeacherManagement = () => {
                       {teacher.experience !== undefined ? `${teacher.experience} yrs` : '-'}
                     </td>
 
+                    {/* Assigned Subjects */}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {teacher.domains && teacher.domains.length > 0 ? (
+                          teacher.domains.map((subName) => (
+                            <span
+                              key={subName}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100"
+                            >
+                              <BookOpen className="w-2.5 h-2.5 text-blue-500" />
+                              {subName}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">None</span>
+                        )}
+                      </div>
+                    </td>
+
                     {/* Status Badge */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
@@ -371,14 +399,25 @@ const TeacherManagement = () => {
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                         {activeDropdownId === teacher._id && (
-                          <div className="absolute right-6 mt-1 w-28 bg-white border border-slate-150 rounded-xl shadow-lg py-1.5 z-20">
+                          <div className="absolute right-6 mt-1 w-32 bg-white border border-slate-150 rounded-xl shadow-lg py-1.5 z-20">
+                            <button
+                              onClick={() => {
+                                setActiveDropdownId(null);
+                                setViewingTeacher(teacher);
+                              }}
+                              className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-slate-400" />
+                              View Details
+                            </button>
                             <button
                               onClick={() => {
                                 setActiveDropdownId(null);
                                 handleEdit(teacher);
                               }}
-                              className="w-full text-left px-4 py-2 text-xs font-bold text-slate-750 hover:bg-slate-50 transition-colors cursor-pointer"
+                              className="w-full text-left px-4 py-2 text-xs font-bold text-slate-750 hover:bg-slate-50 transition-colors cursor-pointer flex items-center gap-1.5"
                             >
+                              <Edit className="w-3.5 h-3.5 text-blue-500" />
                               Edit
                             </button>
                             <button
@@ -386,8 +425,9 @@ const TeacherManagement = () => {
                                 setActiveDropdownId(null);
                                 handleDelete(teacher._id);
                               }}
-                              className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                              className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-slate-50 transition-colors cursor-pointer flex items-center gap-1.5"
                             >
+                              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                               Delete
                             </button>
                           </div>
@@ -476,6 +516,16 @@ const TeacherManagement = () => {
                 </div>
               </div>
 
+              {/* Dynamic Assigned Subjects Dropdown */}
+              <div>
+                <SubjectSelectDropdown
+                  selected={editSelectedSubjects}
+                  onChange={setEditSelectedSubjects}
+                  label="Assigned Subjects"
+                  placeholder="Select subjects..."
+                />
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
@@ -492,6 +542,150 @@ const TeacherManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Teacher View Details Modal */}
+      {viewingTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                {viewingTeacher.photo ? (
+                  <img
+                    src={viewingTeacher.photo}
+                    alt={viewingTeacher.name}
+                    className="w-12 h-12 rounded-2xl object-cover border-2 border-blue-500 shadow-md"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-black text-lg flex items-center justify-center shadow-md">
+                    {viewingTeacher.name?.charAt(0)?.toUpperCase() || 'T'}
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">{viewingTeacher.name}</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      Teacher
+                    </span>
+                    <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      Active
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingTeacher(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-5 space-y-4 text-sm">
+              {/* Assigned Subjects Card */}
+              <div className="bg-gradient-to-br from-blue-50/60 to-indigo-50/40 p-4 rounded-2xl border border-blue-100">
+                <div className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  Assigned Subjects (Common Subject Module)
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {viewingTeacher.domains && viewingTeacher.domains.length > 0 ? (
+                    viewingTeacher.domains.map((subName) => (
+                      <span
+                        key={subName}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-blue-800 border border-blue-200 rounded-xl text-xs font-bold shadow-xs"
+                      >
+                        <BookOpen className="w-3 h-3 text-blue-600" />
+                        {subName}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-500 italic">No subjects assigned yet</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-blue-600" /> Qualification
+                  </div>
+                  <div className="font-bold text-slate-800 text-sm">{viewingTeacher.qualification || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-indigo-600" /> Experience
+                  </div>
+                  <div className="font-semibold text-slate-700 text-sm">
+                    {viewingTeacher.experience !== undefined ? `${viewingTeacher.experience} Years` : '0 Years'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact and Details List */}
+              <div className="space-y-3 px-1">
+                <div className="flex items-start gap-3">
+                  <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-400">Phone Number</div>
+                    <div className="font-semibold text-slate-800">{viewingTeacher.phone || 'N/A'}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-400">Email Address</div>
+                    <div className="font-semibold text-slate-800">{viewingTeacher.email || 'N/A'}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Key className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-400">Login Password</div>
+                    <div className="font-mono font-bold text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block mt-0.5">
+                      {viewingTeacher.password || '123456'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-400">Residential Address</div>
+                    <div className="font-semibold text-slate-800">{viewingTeacher.address || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const toEdit = viewingTeacher;
+                  setViewingTeacher(null);
+                  handleEdit(toEdit);
+                }}
+                className="px-4 py-2.5 rounded-xl border border-blue-200 text-blue-600 hover:bg-blue-50 text-xs font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                Edit Teacher
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewingTeacher(null)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

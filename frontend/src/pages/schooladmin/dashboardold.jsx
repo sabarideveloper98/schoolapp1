@@ -10,7 +10,9 @@ import useAuthStore from '../../store/useAuthStore';
 // Existing module imports
 import TeacherManagement from './TeacherManagement';
 import StaffManagement from './StaffManagement';
+import StaffRoleManagement from './StaffRoleManagement';
 import SubjectManagement from './SubjectManagement';
+import CommonSubjectManagement from './CommonSubjectManagement';
 import ClassManagement from './ClassManagement';
 import StudentManagement from './StudentManagement';
 import StudentCreate from './StudentCreate';
@@ -189,13 +191,15 @@ const SchoolAdminDashboard = () => {
             ],
         },
         {
-            label: 'Staffs Information',
+            label: 'Staff Information',
             icon: Users2,
             subItems: [
                 { label: 'Staff Attendance', path: '/school-admin/staff-attendance' },
                 { label: 'Staff Attendance Report', path: '/school-admin/staff-report' },
                 { label: 'Teachers List', path: '/school-admin/teachers' },
                 { label: 'Staff List', path: '/school-admin/staff' },
+                { label: 'Staff Role', path: '/school-admin/staff-roles' },
+                { label: 'Common Subject', path: '/school-admin/common-subjects' },
                 { label: 'New Leaves', path: '/school-admin/leaves' },
             ],
         },
@@ -304,6 +308,8 @@ const SchoolAdminDashboard = () => {
                 <Route path="/teachers" element={<TeacherManagement />} />
                 <Route path="/teachers/create" element={<TeacherCreate />} />
                 <Route path="/staff" element={<StaffManagement />} />
+                <Route path="/staff-roles" element={<StaffRoleManagement />} />
+                <Route path="/common-subjects" element={<CommonSubjectManagement />} />
                 <Route path="/staff-attendance" element={<StaffAttendance />} />
                 <Route path="/staff-report" element={<StaffReport />} />
                 <Route path="/student-attendance" element={<StudentAttendance />} />

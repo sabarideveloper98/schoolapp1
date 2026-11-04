@@ -5,11 +5,13 @@ import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Lock, FileSpreadsheet, Upload, ArrowLeft } from 'lucide-react';
+import SubjectSelectDropdown from '../../components/SubjectSelectDropdown';
 
 const TeacherCreate = () => {
   const [loading, setLoading] = useState(false);
   const [photoBase64, setPhotoBase64] = useState('');
   const [photoPreview, setPhotoPreview] = useState('');
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
 
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -56,7 +58,7 @@ const TeacherCreate = () => {
         address: data.address,
         qualification: data.qualification,
         experience: Number(data.experience),
-        domains: data.domains,
+        domains: selectedSubjects,
         password: data.login_password,
         photo: photoBase64
       };
@@ -156,13 +158,13 @@ const TeacherCreate = () => {
               {errors.experience && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.experience.message}</p>}
             </div>
 
-            {/* Domains / Subjects */}
+            {/* Assigned Subjects from Common Subject module */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">Subjects taught <span className="text-slate-400 font-normal"> (optional, comma-separated)</span></label>
-              <input 
-                {...register('domains')} 
-                className="block w-full h-12 px-4 text-slate-800 bg-white border border-slate-200 rounded-xl outline-none transition duration-300 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:text-sm"
-                placeholder="e.g. Mathematics, Physics"
+              <SubjectSelectDropdown
+                selected={selectedSubjects}
+                onChange={setSelectedSubjects}
+                label="Subjects Taught"
+                placeholder="Choose subjects from Common Subject module..."
               />
             </div>
 

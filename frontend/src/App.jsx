@@ -36,7 +36,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/driver/login" element={<DriverLogin />} />
           <Route path="/driver/portal" element={<DriverPortal />} />
-          
+
           <Route path="/super-admin/*" element={
             <ProtectedRoute allowedRoles={['SuperAdmin']}>
               <SuperAdminDashboard />
@@ -67,7 +67,7 @@ function App() {
               <ParentDashboard />
             </ProtectedRoute>
           } />
-          
+
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

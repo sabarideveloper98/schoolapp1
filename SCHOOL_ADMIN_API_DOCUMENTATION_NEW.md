@@ -52,6 +52,8 @@ This document is the official, implementation-verified API contract for all **Sc
     - [11.1 Get Class Student Attendance List](#111-get-class-student-attendance-list)
     - [11.2 Save / Update Student Attendance Records](#112-save--update-student-attendance-records)
     - [11.3 Get Student Attendance Summary Report](#113-get-student-attendance-summary-report)
+    - [11.4 Attendance Module Entity Relationships](#114-attendance-module-entity-relationships)
+    - [11.5 Attendance Discovery Checklist & Implementation Status](#115-attendance-discovery-checklist--implementation-status)
 12. [Exams & Marks Entry](#12-exams--marks-entry)
     - [12.1 Get Examinations List](#121-get-examinations-list)
     - [12.2 Create New Examination](#122-create-new-examination)
@@ -396,8 +398,99 @@ Creates a new teacher document and linked User login account.
     "qualification": "B.Com",
     "experience": 4,
     "password": "123456"
+  ```
+
+---
+
+### 5.3 Staff Role Management
+
+#### 5.3.1 Get All Staff Roles
+- **Endpoint**: `GET /api/schooladmin/staff-roles`
+- **Query Params**: `status` (`Active` | `Inactive`), `search` (text search)
+- **Access**: Private (SchoolAdmin)
+- Auto-seeds default roles (`Driver`, `Peon`, `Accountant`, `Librarian`, `Security`, `Office Assistant`, `Cleaner`, `Clerk`) if none exist for the school. Includes calculated `staffCount` for each role.
+
+#### 5.3.2 Create Staff Role
+- **Endpoint**: `POST /api/schooladmin/staff-roles`
+- **Access**: Private (SchoolAdmin)
+- **Request Body**:
+  ```json
+  {
+    "name": "Librarian",
+    "description": "Library cataloging and book issue management",
+    "status": "Active"
   }
   ```
+
+#### 5.3.3 Update Staff Role
+- **Endpoint**: `PUT /api/schooladmin/staff-roles/:id`
+- **Access**: Private (SchoolAdmin)
+- **Request Body**:
+  ```json
+  {
+    "name": "Head Librarian",
+    "description": "Supervises library resources and staff",
+    "status": "Active"
+  }
+  ```
+- *Note*: If the role name is changed, all associated staff records are automatically updated.
+
+#### 5.3.4 Toggle Staff Role Status
+- **Endpoint**: `PATCH /api/schooladmin/staff-roles/:id/toggle-status`
+- **Access**: Private (SchoolAdmin)
+- Toggles role status between `Active` and `Inactive`.
+
+#### 5.3.5 Delete Staff Role
+- **Endpoint**: `DELETE /api/schooladmin/staff-roles/:id`
+- **Access**: Private (SchoolAdmin)
+- *Note*: Roles with assigned staff members cannot be deleted until reassigned.
+
+---
+
+### 5.4 Common Subject Management (Under Staff Information)
+
+#### 5.4.1 Get All Common Subjects
+- **Endpoint**: `GET /api/schooladmin/common-subjects`
+- **Query Params**: `status` (`Active` | `Inactive`), `search` (text search)
+- **Access**: Private (SchoolAdmin)
+- Auto-seeds standard subjects (`Tamil`, `English`, `Mathematics`, `Science`, `Social Science`, `Computer Science`) and syncs existing school subjects. Returns live `teacherCount` for each subject.
+
+#### 5.4.2 Create Common Subject
+- **Endpoint**: `POST /api/schooladmin/common-subjects`
+- **Access**: Private (SchoolAdmin)
+- **Request Body**:
+  ```json
+  {
+    "name": "Physics",
+    "code": "PHY101",
+    "description": "Mechanics, Thermodynamics, and Electromagnetism",
+    "status": "Active"
+  }
+  ```
+
+#### 5.4.3 Update Common Subject
+- **Endpoint**: `PUT /api/schooladmin/common-subjects/:id`
+- **Access**: Private (SchoolAdmin)
+- **Request Body**:
+  ```json
+  {
+    "name": "Advanced Physics",
+    "code": "PHY201",
+    "description": "Quantum mechanics and modern physics",
+    "status": "Active"
+  }
+  ```
+- *Note*: Cascades subject name updates to teachers' assigned domains.
+
+#### 5.4.4 Toggle Common Subject Status
+- **Endpoint**: `PATCH /api/schooladmin/common-subjects/:id/toggle-status`
+- **Access**: Private (SchoolAdmin)
+- Toggles subject status between `Active` and `Inactive`. Only Active subjects appear in the Add Teacher dropdown.
+
+#### 5.4.5 Delete Common Subject
+- **Endpoint**: `DELETE /api/schooladmin/common-subjects/:id`
+- **Access**: Private (SchoolAdmin)
+- *Note*: Subjects assigned to active teachers are protected from deletion until unassigned.
 
 ---
 
@@ -620,36 +713,328 @@ Creates a new teacher document and linked User login account.
 
 ## 10. Staff & Teacher Attendance
 
+The School Admin Attendance module manages daily check-in/check-out logs, absence tracking, and periodic attendance reports for teaching staff and non-teaching personnel. All operations are scoped by `school_id` and isolated per tenant.
+
+---
+
 ### 10.1 Get Staff / Teacher Attendance List
 
-- **Endpoint**: `GET /api/schooladmin/attendance?role=Staff&date=2026-10-01`
-- **Access**: Private (SchoolAdmin)
-- **Query Parameters**:
-  - `role` (Required): `"Staff"` | `"Teacher"`
-  - `date` (Required): `"YYYY-MM-DD"`
+- **API Name**: Get Staff / Teacher Attendance List
+- **Purpose**: Retrieve the daily attendance record for staff or teachers on a specified date. If attendance has already been recorded for that date, the API returns the saved `StaffAttendance` document. If no record has been submitted yet, it dynamically builds and returns a pre-filled template containing all active teachers or staff in the school with default status `Present` (`09:00 AM` to `05:00 PM`).
+- **HTTP Method**: `GET`
+- **Endpoint**: `/api/schooladmin/attendance`
+- **Route File**: `backend/src/routes/schoolAdminRoutes.js`
+- **Controller Function**: `getStaffAttendance` (`backend/src/controllers/attendanceController.js:24`)
+- **Access / Role**: Private (`SchoolAdmin` only)
+- **Headers**:
+  ```http
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+  ```
+
+#### Query Parameters
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `role` | String | Yes | Filter by employee role category: `"Teacher"` or `"Staff"`. |
+| `date` | String | Yes | Attendance date in ISO format `"YYYY-MM-DD"` (e.g. `"2026-10-01"`). Normalized to UTC start of day. |
+
+#### Request Payload
+- None (HTTP GET request).
+
+#### Success Response (200 OK) — Saved Attendance Document Found
+Returned when attendance has already been saved for this date and role:
+```json
+{
+  "_id": "6a91b2c3d4e5f6a012345678",
+  "school_id": "6a82b7bc84adbdc3f3c19d20",
+  "date": "2026-10-01T00:00:00.000Z",
+  "role_filter": "Teacher",
+  "notify_via": "Do not send",
+  "records": [
+    {
+      "_id": "6a91b2c3d4e5f6a012345679",
+      "user_id": "6a83fed2ef78578a9031672f",
+      "name": "Arun Kumar",
+      "role": "Teacher",
+      "status": "Present",
+      "in_time": "09:00 AM",
+      "out_time": "05:00 PM"
+    },
+    {
+      "_id": "6a91b2c3d4e5f6a01234567a",
+      "user_id": "6a8400a1ef78578a90316730",
+      "name": "Priya Sharma",
+      "role": "Teacher",
+      "status": "Absent",
+      "in_time": "-",
+      "out_time": "-"
+    }
+  ],
+  "createdAt": "2026-10-01T09:30:00.000Z",
+  "updatedAt": "2026-10-01T09:30:00.000Z"
+}
+```
+
+#### Success Response (200 OK) — Template Auto-Generated
+Returned when no record has been created yet for this date; supplies full roster for initial marking:
+```json
+{
+  "school_id": "6a82b7bc84adbdc3f3c19d20",
+  "date": "2026-10-01T00:00:00.000Z",
+  "role_filter": "Staff",
+  "notify_via": "Do not send",
+  "records": [
+    {
+      "user_id": "6ab21fc3c5ca856a445592fb",
+      "name": "Sundar Staff",
+      "role": "Staff",
+      "status": "Present",
+      "in_time": "09:00 AM",
+      "out_time": "05:00 PM"
+    },
+    {
+      "user_id": "6ab21fc3c5ca856a445592fc",
+      "name": "Ramesh Accountant",
+      "role": "Staff",
+      "status": "Present",
+      "in_time": "09:00 AM",
+      "out_time": "05:00 PM"
+    }
+  ]
+}
+```
+
+#### Error Responses
+- **400 Bad Request** (Missing required query parameters):
+  ```json
+  {
+    "message": "Role and Date parameters are required"
+  }
+  ```
+- **401 Unauthorized**:
+  ```json
+  {
+    "message": "Not authorized, token failed"
+  }
+  ```
+- **403 Forbidden**:
+  ```json
+  {
+    "message": "Not authorized as SchoolAdmin"
+  }
+  ```
+- **500 Internal Server Error**:
+  ```json
+  {
+    "message": "Server error",
+    "error": "Error details"
+  }
+  ```
+
+#### Database Model & Fields
+- **Collection**: `staffattendances` (`backend/src/models/StaffAttendance.js`)
+- **Key Fields**: `school_id` (ObjectId, ref `School`), `date` (Date, normalized to UTC midnight), `role_filter` (String: `'Teacher'` | `'Staff'`), `notify_via` (String), `records` (Array of subdocuments: `user_id`, `name`, `role`, `status`, `in_time`, `out_time`).
+- **Index**: Unique compound index on `{ school_id: 1, date: 1, role_filter: 1 }`.
 
 ---
 
 ### 10.2 Save / Update Staff Attendance Records
 
-- **Endpoint**: `POST /api/schooladmin/attendance`
-- **Access**: Private (SchoolAdmin)
-- **Request Body**:
-  ```json
-  {
-    "role": "Staff",
-    "date": "2026-10-01",
+- **API Name**: Save / Update Staff Attendance
+- **Purpose**: Create or bulk update attendance logs for staff or teachers on a specific date. The controller performs an atomic upsert (`findOneAndUpdate` with `{ upsert: true, new: true }`) on `{ school_id, date, role_filter }`.
+- **HTTP Method**: `POST`
+- **Endpoint**: `/api/schooladmin/attendance`
+- **Route File**: `backend/src/routes/schoolAdminRoutes.js`
+- **Controller Function**: `saveStaffAttendance` (`backend/src/controllers/attendanceController.js:86`)
+- **Access / Role**: Private (`SchoolAdmin` only)
+- **Headers**:
+  ```http
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+  ```
+
+#### Request Body Fields
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `role` | String | Yes | Category of personnel: `"Teacher"` or `"Staff"`. |
+| `date` | String | Yes | Attendance date in `"YYYY-MM-DD"` format. |
+| `notify_via` | String | No | Notification trigger (e.g. `"Do not send"`, `"SMS"`, `"Email"`). Default: `"Do not send"`. |
+| `records` | Array of Objects | Yes | Non-empty array of employee attendance status entries. |
+| `records[].user_id` | String (ObjectId) | Yes | User ObjectId of the teacher or staff member. |
+| `records[].name` | String | Yes | Full name of the employee. |
+| `records[].role` | String | Yes | `"Teacher"` or `"Staff"`. |
+| `records[].status` | String | Yes | Attendance status: `"Present"` or `"Absent"`. |
+| `records[].in_time` | String | No | Arrival timestamp string (default `"09:00 AM"`). |
+| `records[].out_time` | String | No | Departure timestamp string (default `"05:00 PM"`). |
+
+#### Request Payload Example
+```json
+{
+  "role": "Teacher",
+  "date": "2026-10-01",
+  "notify_via": "Do not send",
+  "records": [
+    {
+      "user_id": "6a83fed2ef78578a9031672f",
+      "name": "Arun Kumar",
+      "role": "Teacher",
+      "status": "Present",
+      "in_time": "09:00 AM",
+      "out_time": "05:00 PM"
+    },
+    {
+      "user_id": "6a8400a1ef78578a90316730",
+      "name": "Priya Sharma",
+      "role": "Teacher",
+      "status": "Absent",
+      "in_time": "-",
+      "out_time": "-"
+    }
+  ]
+}
+```
+
+#### Success Response (200 OK)
+```json
+{
+  "attendance": {
+    "_id": "6a91b2c3d4e5f6a012345678",
+    "school_id": "6a82b7bc84adbdc3f3c19d20",
+    "date": "2026-10-01T00:00:00.000Z",
+    "role_filter": "Teacher",
+    "notify_via": "Do not send",
     "records": [
       {
-        "user_id": "6ab21fc3c5ca856a445592fb",
-        "name": "Sundar Staff",
-        "role": "Staff",
+        "_id": "6a91b2c3d4e5f6a012345679",
+        "user_id": "6a83fed2ef78578a9031672f",
+        "name": "Arun Kumar",
+        "role": "Teacher",
         "status": "Present",
         "in_time": "09:00 AM",
         "out_time": "05:00 PM"
+      },
+      {
+        "_id": "6a91b2c3d4e5f6a01234567a",
+        "user_id": "6a8400a1ef78578a90316730",
+        "name": "Priya Sharma",
+        "role": "Teacher",
+        "status": "Absent",
+        "in_time": "-",
+        "out_time": "-"
       }
     ],
-    "notify_via": "Do not send"
+    "createdAt": "2026-10-01T09:30:00.000Z",
+    "updatedAt": "2026-10-01T09:30:00.000Z"
+  },
+  "message": "Attendance saved successfully"
+}
+```
+
+#### Error Responses
+- **400 Bad Request** (Missing mandatory payload fields):
+  ```json
+  {
+    "message": "Role, Date, and Records are required"
+  }
+  ```
+- **500 Internal Server Error**:
+  ```json
+  {
+    "message": "Server error",
+    "error": "Error details"
+  }
+  ```
+
+---
+
+### 10.3 Get Staff Attendance Summary Report
+
+- **API Name**: Get Staff Attendance Report
+- **Purpose**: Generates periodic aggregate reports and individual date-by-date attendance histories for staff and teachers. Supports:
+  1. **Overview Summary Mode** (`user_id` omitted): Computes total `present` days, `absent` days, and attendance `rate` percentage across the date range for all staff or teachers.
+  2. **Individual History Mode** (`user_id` specified): Iterates through every calendar date in the range, returning daily attendance state (`Present`, `Absent`, or `N/A`), along with arrival and departure times.
+- **HTTP Method**: `GET`
+- **Endpoint**: `/api/schooladmin/attendance/report`
+- **Route File**: `backend/src/routes/schoolAdminRoutes.js`
+- **Controller Function**: `getStaffAttendanceReport` (`backend/src/controllers/attendanceController.js:122`)
+- **Access / Role**: Private (`SchoolAdmin` only)
+- **Headers**:
+  ```http
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+  ```
+
+#### Query Parameters
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `role` | String | No | Role filter: `"Teacher"` or `"Staff"`. If omitted, includes all roles in overview mode. |
+| `month` | String / Number | Conditional | Month index (`1` to `12`). Required with `year` when `week_start` is not provided. |
+| `year` | String / Number | Conditional | Four-digit calendar year (e.g. `2026`). Required with `month`. |
+| `week_start` | String | Conditional | Start date of 7-day period (`YYYY-MM-DD`). Required if `month`/`year` is not provided. |
+| `user_id` | String (ObjectId) | No | Target employee User ID. If supplied, activates **Individual History Mode**. |
+
+#### Success Response (200 OK) — Overview Summary Mode (`user_id` omitted)
+`GET /api/schooladmin/attendance/report?role=Teacher&month=10&year=2026`
+```json
+{
+  "startDate": "2026-10-01T00:00:00.000Z",
+  "endDate": "2026-10-31T23:59:59.999Z",
+  "summary": [
+    {
+      "user_id": "6a83fed2ef78578a9031672f",
+      "name": "Arun Kumar",
+      "role": "Teacher",
+      "present": 22,
+      "absent": 2,
+      "rate": 92
+    },
+    {
+      "user_id": "6a8400a1ef78578a90316730",
+      "name": "Priya Sharma",
+      "role": "Teacher",
+      "present": 20,
+      "absent": 4,
+      "rate": 83
+    }
+  ]
+}
+```
+
+#### Success Response (200 OK) — Individual History Mode (`user_id` specified)
+`GET /api/schooladmin/attendance/report?user_id=6a83fed2ef78578a9031672f&month=10&year=2026`
+```json
+{
+  "user_id": "6a83fed2ef78578a9031672f",
+  "startDate": "2026-10-01T00:00:00.000Z",
+  "endDate": "2026-10-31T23:59:59.999Z",
+  "records": [
+    {
+      "date": "2026-10-01T00:00:00.000Z",
+      "status": "Present",
+      "in_time": "09:00 AM",
+      "out_time": "05:00 PM"
+    },
+    {
+      "date": "2026-10-02T00:00:00.000Z",
+      "status": "Absent",
+      "in_time": "-",
+      "out_time": "-"
+    },
+    {
+      "date": "2026-10-03T00:00:00.000Z",
+      "status": "N/A",
+      "in_time": "-",
+      "out_time": "-"
+    }
+  ]
+}
+```
+
+#### Error Responses
+- **400 Bad Request** (Missing time window):
+  ```json
+  {
+    "message": "Either month/year or week_start is required"
   }
   ```
 
@@ -657,10 +1042,404 @@ Creates a new teacher document and linked User login account.
 
 ## 11. Student Attendance Management
 
+The Student Attendance module tracks daily and period-level classroom presence for students across grades and sections.
+
+---
+
 ### 11.1 Get Class Student Attendance List
 
-- **Endpoint**: `GET /api/schooladmin/student-attendance?class_id=6a840119ef78578a90316739&date=2026-10-01`
-- **Access**: Private (SchoolAdmin)
+- **API Name**: Get Class Student Attendance List
+- **Purpose**: Retrieve student attendance records for a specific class and date. If attendance has already been recorded, returns the saved `StudentAttendance` document with status and remarks. If no attendance exists for that date, it dynamically fetches all enrolled students in the class from the `Student` collection and returns an auto-generated template with all students set to `Present`.
+- **HTTP Method**: `GET`
+- **Endpoint**: `/api/schooladmin/student-attendance`
+- **Route File**: `backend/src/routes/schoolAdminRoutes.js`
+- **Controller Function**: `getStudentAttendance` (`backend/src/controllers/attendanceController.js:251`)
+- **Access / Role**: Private (`SchoolAdmin` only)
+- **Headers**:
+  ```http
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+  ```
+
+#### Query Parameters
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `class_id` | String (ObjectId) | Yes | Class & Section ObjectId reference (`Class._id`). |
+| `date` | String | Yes | Attendance date in `"YYYY-MM-DD"` format (e.g. `"2026-10-01"`). |
+
+#### Request Payload
+- None (HTTP GET request).
+
+#### Success Response (200 OK) — Saved Attendance Document Found
+`GET /api/schooladmin/student-attendance?class_id=6a840119ef78578a90316739&date=2026-10-01`
+```json
+{
+  "school_name": "Green Valley High School",
+  "attendance": {
+    "_id": "6a92c3d4e5f6a01234567890",
+    "school_id": "6a82b7bc84adbdc3f3c19d20",
+    "class_id": "6a840119ef78578a90316739",
+    "date": "2026-10-01T00:00:00.000Z",
+    "records": [
+      {
+        "_id": "6a92c3d4e5f6a01234567891",
+        "student_id": "6a84052b93171b71e3158e80",
+        "name": "Oliver Ullrich",
+        "admission_number": "ADM10123",
+        "roll_no": "101",
+        "status": "Present",
+        "remarks": ""
+      },
+      {
+        "_id": "6a92c3d4e5f6a01234567892",
+        "student_id": "6a84052b93171b71e3158e81",
+        "name": "Sophia Davis",
+        "admission_number": "ADM10124",
+        "roll_no": "102",
+        "status": "Absent",
+        "remarks": "Fever sick leave"
+      }
+    ],
+    "createdAt": "2026-10-01T09:15:00.000Z",
+    "updatedAt": "2026-10-01T09:15:00.000Z"
+  }
+}
+```
+
+#### Success Response (200 OK) — Template Auto-Generated from Class Roster
+When attendance has not yet been recorded for the requested date:
+```json
+{
+  "school_name": "Green Valley High School",
+  "attendance": {
+    "school_id": "6a82b7bc84adbdc3f3c19d20",
+    "class_id": "6a840119ef78578a90316739",
+    "date": "2026-10-01T00:00:00.000Z",
+    "records": [
+      {
+        "student_id": "6a84052b93171b71e3158e80",
+        "name": "Oliver Ullrich",
+        "admission_number": "ADM10123",
+        "roll_no": "101",
+        "photo": "https://example.com/photos/oliver.jpg",
+        "status": "Present"
+      },
+      {
+        "student_id": "6a84052b93171b71e3158e81",
+        "name": "Sophia Davis",
+        "admission_number": "ADM10124",
+        "roll_no": "102",
+        "photo": "",
+        "status": "Present"
+      }
+    ]
+  }
+}
+```
+
+#### Error Responses
+- **400 Bad Request** (Missing class_id or date):
+  ```json
+  {
+    "message": "Class ID and Date parameters are required"
+  }
+  ```
+- **500 Internal Server Error**:
+  ```json
+  {
+    "message": "Server error",
+    "error": "Error details"
+  }
+  ```
+
+#### Database Model & Fields
+- **Collection**: `studentattendances` (`backend/src/models/StudentAttendance.js`)
+- **Key Fields**: `school_id` (ObjectId, ref `School`), `class_id` (ObjectId, ref `Class`), `date` (Date, normalized to UTC midnight), `records` (Array of subdocuments: `student_id`, `name`, `admission_number`, `roll_no`, `status`, `remarks`).
+- **Index**: Unique compound index on `{ school_id: 1, class_id: 1, date: 1 }`.
+
+---
+
+### 11.2 Save / Update Student Attendance Records
+
+- **API Name**: Save / Update Student Attendance
+- **Purpose**: Record or update attendance for all students in a class on a specific date. Uses `findOneAndUpdate` with `{ upsert: true, new: true }` keyed by `{ school_id, class_id, date }`.
+- **HTTP Method**: `POST`
+- **Endpoint**: `/api/schooladmin/student-attendance`
+- **Route File**: `backend/src/routes/schoolAdminRoutes.js`
+- **Controller Function**: `saveStudentAttendance` (`backend/src/controllers/attendanceController.js:306`)
+- **Access / Role**: Private (`SchoolAdmin` only)
+- **Headers**:
+  ```http
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+  ```
+
+#### Request Body Fields
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `class_id` | String (ObjectId) | Yes | Target Class & Section ObjectId (`Class._id`). |
+| `date` | String | Yes | Attendance date in `"YYYY-MM-DD"` format. |
+| `records` | Array of Objects | Yes | Array of student attendance status entries. |
+| `records[].student_id` | String (ObjectId) | Yes | Student ObjectId reference (`Student._id`). |
+| `records[].name` | String | Yes | Student full name. |
+| `records[].admission_number` | String | No | Official student admission number. |
+| `records[].roll_no` | String | No | Student roll number. |
+| `records[].status` | String | Yes | Status enum: `"Present"`, `"Absent"`, `"Leave"`, `"Late"`, `"Half Day"`. |
+| `records[].remarks` | String | No | Optional notes or absence reason. Default `""`. |
+
+#### Request Payload Example
+```json
+{
+  "class_id": "6a840119ef78578a90316739",
+  "date": "2026-10-01",
+  "records": [
+    {
+      "student_id": "6a84052b93171b71e3158e80",
+      "name": "Oliver Ullrich",
+      "admission_number": "ADM10123",
+      "roll_no": "101",
+      "status": "Present",
+      "remarks": ""
+    },
+    {
+      "student_id": "6a84052b93171b71e3158e81",
+      "name": "Sophia Davis",
+      "admission_number": "ADM10124",
+      "roll_no": "102",
+      "status": "Absent",
+      "remarks": "Medical leave - fever"
+    }
+  ]
+}
+```
+
+#### Success Response (200 OK)
+```json
+{
+  "attendance": {
+    "_id": "6a92c3d4e5f6a01234567890",
+    "school_id": "6a82b7bc84adbdc3f3c19d20",
+    "class_id": "6a840119ef78578a90316739",
+    "date": "2026-10-01T00:00:00.000Z",
+    "records": [
+      {
+        "_id": "6a92c3d4e5f6a01234567891",
+        "student_id": "6a84052b93171b71e3158e80",
+        "name": "Oliver Ullrich",
+        "admission_number": "ADM10123",
+        "roll_no": "101",
+        "status": "Present",
+        "remarks": ""
+      },
+      {
+        "_id": "6a92c3d4e5f6a01234567892",
+        "student_id": "6a84052b93171b71e3158e81",
+        "name": "Sophia Davis",
+        "admission_number": "ADM10124",
+        "roll_no": "102",
+        "status": "Absent",
+        "remarks": "Medical leave - fever"
+      }
+    ],
+    "createdAt": "2026-10-01T09:15:00.000Z",
+    "updatedAt": "2026-10-01T09:15:00.000Z"
+  },
+  "message": "Attendance saved successfully"
+}
+```
+
+#### Error Responses
+- **400 Bad Request** (Missing mandatory fields):
+  ```json
+  {
+    "message": "Class ID, Date, and Records are required"
+  }
+  ```
+- **500 Internal Server Error**:
+  ```json
+  {
+    "message": "Server error",
+    "error": "Error details"
+  }
+  ```
+
+---
+
+### 11.3 Get Student Attendance Summary Report
+
+- **API Name**: Get Student Attendance Report
+- **Purpose**: Generates attendance summary analytics and individual attendance histories for students in a specific class. Supports:
+  1. **Class Overview Mode** (`student_id` omitted): Computes `present` days, `absent` days, and attendance `rate` percentage across the requested time window for each student enrolled in the class.
+  2. **Individual Student Mode** (`student_id` specified): Loops through every date in the selected month or week, returning daily attendance status (`Present`, `Absent`, or `N/A`).
+- **HTTP Method**: `GET`
+- **Endpoint**: `/api/schooladmin/student-attendance/report`
+- **Route File**: `backend/src/routes/schoolAdminRoutes.js`
+- **Controller Function**: `getStudentAttendanceReport` (`backend/src/controllers/attendanceController.js:341`)
+- **Access / Role**: Private (`SchoolAdmin` only)
+- **Headers**:
+  ```http
+  Authorization: Bearer <your_jwt_token>
+  Content-Type: application/json
+  ```
+
+#### Query Parameters
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `class_id` | String (ObjectId) | Yes | Target Class & Section ObjectId (`Class._id`). |
+| `month` | String / Number | Conditional | Month index (`1` to `12`). Required with `year` when `week_start` is not provided. |
+| `year` | String / Number | Conditional | Four-digit calendar year (e.g. `2026`). Required with `month`. |
+| `week_start` | String | Conditional | Start date of 7-day period (`YYYY-MM-DD`). Required if `month`/`year` is absent. |
+| `student_id` | String (ObjectId) | No | Student ObjectId. If provided, activates **Individual Student Mode**. |
+
+#### Success Response (200 OK) — Class Overview Mode (`student_id` omitted)
+`GET /api/schooladmin/student-attendance/report?class_id=6a840119ef78578a90316739&month=10&year=2026`
+```json
+{
+  "startDate": "2026-10-01T00:00:00.000Z",
+  "endDate": "2026-10-31T23:59:59.999Z",
+  "summary": [
+    {
+      "student_id": "6a84052b93171b71e3158e80",
+      "name": "Oliver Ullrich",
+      "roll_no": "101",
+      "admission_number": "ADM10123",
+      "present": 23,
+      "absent": 1,
+      "rate": 96
+    },
+    {
+      "student_id": "6a84052b93171b71e3158e81",
+      "name": "Sophia Davis",
+      "roll_no": "102",
+      "admission_number": "ADM10124",
+      "present": 19,
+      "absent": 5,
+      "rate": 79
+    }
+  ]
+}
+```
+
+#### Success Response (200 OK) — Individual Student Mode (`student_id` specified)
+`GET /api/schooladmin/student-attendance/report?class_id=6a840119ef78578a90316739&student_id=6a84052b93171b71e3158e80&month=10&year=2026`
+```json
+{
+  "student_id": "6a84052b93171b71e3158e80",
+  "startDate": "2026-10-01T00:00:00.000Z",
+  "endDate": "2026-10-31T23:59:59.999Z",
+  "records": [
+    {
+      "date": "2026-10-01T00:00:00.000Z",
+      "status": "Present"
+    },
+    {
+      "date": "2026-10-02T00:00:00.000Z",
+      "status": "Present"
+    },
+    {
+      "date": "2026-10-03T00:00:00.000Z",
+      "status": "Absent"
+    },
+    {
+      "date": "2026-10-04T00:00:00.000Z",
+      "status": "N/A"
+    }
+  ]
+}
+```
+
+#### Error Responses
+- **400 Bad Request** (Missing Class ID):
+  ```json
+  {
+    "message": "Class ID parameter is required"
+  }
+  ```
+- **400 Bad Request** (Missing date parameters):
+  ```json
+  {
+    "message": "Either month/year or week_start is required"
+  }
+  ```
+
+---
+
+### 11.4 Attendance Module Entity Relationships
+
+The Attendance module integrates across core school administration entities as follows:
+
+```
++---------------------------------------------------------------------------------------------------+
+|                                            School Admin                                           |
+| - Scopes all staff and student queries via school_id resolved from admin_id or JWT reference      |
++---------------------------------------------------------------------------------------------------+
+                               |                                                 |
+                               v                                                 v
++---------------------------------------------+   +-------------------------------------------------+
+|            Staff & Teachers                 |   |                Class & Section                  |
+| - Teacher & Staff profiles (User accounts)  |   | - Class standard (e.g. 10) & section (e.g. A)    |
+| - Role filter ('Teacher' | 'Staff')         |   | - Class in-charge teacher designation           |
+| - Records check-in / check-out times        |   | - Encapsulated inside Class ObjectId (class_id) |
++---------------------------------------------+   +-------------------------------------------------+
+                       |                                                   |
+                       v                                                   v
++---------------------------------------------+   +-------------------------------------------------+
+|           StaffAttendance Document          |   |                 Enrolled Students               |
+| - Index: { school_id, date, role_filter }   |   | - Students assigned to class_id                 |
+| - Records: [{ user_id, status, in, out }]   |   | - Identified by student_id, roll_no, admission  |
++---------------------------------------------+   +-------------------------------------------------+
+                       |                                                   |
+                       v                                                   v
++---------------------------------------------+   +-------------------------------------------------+
+|            Payroll Integration              |   |            StudentAttendance Document           |
+| - StaffAttendance records are consumed by   |   | - Index: { school_id, class_id, date }          |
+|   payrollController.js to compute payable   |   | - Records: [{ student_id, status, remarks }]    |
+|   working days, paid leaves, and deductions |   | - Status: Present, Absent, Leave, Late          |
++---------------------------------------------+   +-------------------------------------------------+
+                                                                           |
+                                                                           v
+                                                  +-------------------------------------------------+
+                                                  |            Parent & Teacher Views               |
+                                                  | - Teacher routes: markAttendance, getReport     |
+                                                  | - Parent routes: getAttendance, today's summary |
+                                                  +-------------------------------------------------+
+```
+
+#### Relational Connections & Cross-Module Behavior
+1. **School Admin**: All operations derive `school_id` from the logged-in administrator's profile via `getSchoolId(req.user._id)`. No admin can access or modify attendance records of another institution.
+2. **Academic Year & Dates**: Attendance dates are normalized to UTC start of day (`00:00:00.000Z`) to prevent timezone offset discrepancies between server and clients.
+3. **Class & Section**: In this system, sections are first-class instances of the `Class` model (e.g. Class 10 Section A has its own unique `_id`). Specifying `class_id` fully resolves both the standard and section.
+4. **Student**: Students enrolled in a class are populated automatically when generating attendance templates. Attendance percentages (`rate = Math.round((present / total) * 100)`) are aggregated on demand in reports.
+5. **Teacher & Staff**: Both teachers and staff records are stored in `StaffAttendance` using `role_filter: "Teacher"` or `role_filter: "Staff"`. Teachers also have class-level attendance marking privileges through `/api/teacher/attendance`.
+6. **Payroll Connection**: When executing monthly payroll in [`payrollController.js:204`](file:///Users/sabari/Documents/git/schoolapp/backend/src/controllers/payrollController.js#L204), the system inspects `StaffAttendance` records for that calendar month to verify employee presence and calculate attendance-based salary deductions.
+
+---
+
+### 11.5 Attendance Discovery Checklist & Implementation Status
+
+Below is the verified implementation status for all 19 discovery requirements requested:
+
+| Item # | Discovery Requirement | Implementation Status | Implementation Details / Actual Endpoint |
+| :-: | :--- | :--- | :--- |
+| **1** | Get attendance dashboard / summary | **Implemented** | `GET /api/schooladmin/attendance/report` & `GET /api/schooladmin/student-attendance/report` (Overview summary mode calculates present/absent counts and rates) |
+| **2** | Get attendance records | **Implemented** | `GET /api/schooladmin/attendance` & `GET /api/schooladmin/student-attendance` |
+| **3** | Get attendance by date | **Implemented** | `date` query parameter on `GET /api/schooladmin/attendance` & `GET /api/schooladmin/student-attendance` |
+| **4** | Get attendance by class | **Implemented** | `class_id` query parameter on `GET /api/schooladmin/student-attendance` & `/report` |
+| **5** | Get attendance by section | **Implemented** | `class_id` represents the specific class & section pair in this database architecture |
+| **6** | Get attendance by student | **Implemented** | `student_id` query parameter on `GET /api/schooladmin/student-attendance/report` |
+| **7** | Get attendance by teacher | **Implemented** | `role=Teacher` on `GET /api/schooladmin/attendance` & `user_id` on `/attendance/report` |
+| **8** | Get staff attendance | **Implemented** | `role=Staff` on `GET /api/schooladmin/attendance` & `user_id` on `/attendance/report` |
+| **9** | Get daily attendance | **Implemented** | `GET /api/schooladmin/attendance` & `GET /api/schooladmin/student-attendance` using `date=YYYY-MM-DD` |
+| **10** | Get monthly attendance | **Implemented** | `month` & `year` query parameters on `GET /api/schooladmin/attendance/report` & `GET /api/schooladmin/student-attendance/report` |
+| **11** | Mark student attendance | **Implemented** | `POST /api/schooladmin/student-attendance` (School Admin) and `POST /api/teacher/attendance` (Teacher portal) |
+| **12** | Update attendance records | **Implemented** | Atomic upsert via `POST /api/schooladmin/attendance` and `POST /api/schooladmin/student-attendance` |
+| **13** | Delete attendance records | **Not Implemented** | Records are maintained as permanent audit logs; corrections are made by updating/re-saving attendance. No explicit `DELETE` endpoint exists. |
+| **14** | Get attendance statistics | **Implemented** | Computed on the fly (`present`, `absent`, `rate` percentage) in both report endpoints |
+| **15** | Get present, absent, late, and leave counts | **Implemented** | Present and Absent counts aggregated in reports; `StudentAttendance.records.status` supports `['Present', 'Absent', 'Leave', 'Late', 'Half Day']` |
+| **16** | Attendance reports | **Implemented** | `GET /api/schooladmin/attendance/report` and `GET /api/schooladmin/student-attendance/report` (supports month-wise, week-wise, and individual modes) |
+| **17** | Attendance filtering and searching | **Implemented** | Comprehensive query parameters: `role`, `class_id`, `date`, `month`, `year`, `week_start`, `user_id`, `student_id` |
+| **18** | Attendance export / download APIs | **Not Implemented** | Attendance reports are rendered directly in the web UI ([`StaffReport.jsx`](file:///Users/sabari/Documents/git/schoolapp/frontend/src/pages/schooladmin/StaffReport.jsx) and [`StudentReport.jsx`](file:///Users/sabari/Documents/git/schoolapp/frontend/src/pages/schooladmin/StudentReport.jsx)); no server-side CSV or PDF export route is implemented. |
+| **19** | Additional attendance-related APIs | **Implemented** | Connected endpoints include teacher marking (`POST /api/teacher/attendance`), parent view (`GET /api/parent/attendance`), and payroll integration (`payrollController.js`) |
 
 ---
 

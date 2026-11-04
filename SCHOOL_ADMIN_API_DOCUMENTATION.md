@@ -748,6 +748,9 @@ Content-Type: application/json
 
 ## 14. Timetable Management
 
+> [!NOTE]
+> For the comprehensive, dedicated documentation of all 23+ School Admin Timetable APIs, architectural models, entity relationships, validation rules, and complete testing examples, refer to [SCHOOL_ADMIN_TIMETABLE_API_DOCUMENTATION.md](file:///Users/sabari/Documents/git/schoolapp/SCHOOL_ADMIN_TIMETABLE_API_DOCUMENTATION.md).
+
 ### 14.1 Save Timetable Working Settings
 - **Method**: `POST`
 - **URL**: `/api/timetable/settings`
