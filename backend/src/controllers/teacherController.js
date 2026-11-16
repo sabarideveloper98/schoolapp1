@@ -24,6 +24,7 @@ const Driver = require('../models/Driver');
 const Bus = require('../models/Bus');
 const Notification = require('../models/Notification');
 const bcrypt = require('bcryptjs');
+const { serializeStudent } = require('../utils/studentSerializer');
 
 // Helper to get teacher profile
 const getTeacherProfileHelper = async (userId) => {
@@ -264,7 +265,8 @@ const getStudents = async (req, res) => {
             .populate('class_id', 'class section')
             .populate('parent_user_id', 'email phone');
 
-        res.json(students);
+        const serialized = students.map(s => serializeStudent(s, req));
+        res.json(serialized);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -304,7 +306,7 @@ const getStudentDetails = async (req, res) => {
             .populate('teacher_id', 'name');
 
         res.json({
-            student,
+            student: serializeStudent(student, req, { transport }),
             attendance,
             marks,
             homeworkSubmissions,

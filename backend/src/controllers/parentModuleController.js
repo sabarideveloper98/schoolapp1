@@ -23,6 +23,7 @@ const TripHistory = require('../models/TripHistory');
 const Driver = require('../models/Driver');
 const Bus = require('../models/Bus');
 const Notification = require('../models/Notification');
+const { serializeStudent } = require('../utils/studentSerializer');
 
 // Helper to verify student ownership by parent
 const verifyParentStudentOwnership = async (parentUserId, studentId) => {
@@ -166,7 +167,8 @@ const getLinkedStudents = async (req, res) => {
             .populate('class_id', 'class section')
             .populate('school_id', 'name code logo');
 
-        res.json(students);
+        const serialized = students.map(s => serializeStudent(s, req));
+        res.json(serialized);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch students', error: error.message });
     }
@@ -181,6 +183,8 @@ const getStudentDetails = async (req, res) => {
             .populate('class_id', 'class section')
             .populate('school_id', 'name code logo email phone location');
 
+        const serializedStudent = serializeStudent(populatedStudent, req);
+
         res.json({
             admissionNumber: populatedStudent.admission_number || '',
             name: populatedStudent.student_name,
@@ -192,21 +196,12 @@ const getStudentDetails = async (req, res) => {
             dateOfBirth: populatedStudent.dob || null,
             bloodGroup: populatedStudent.blood_group || '',
             photo: populatedStudent.photo || '',
-            academicInformation: {
-                group: populatedStudent.group || 'General',
-                registrationNo: populatedStudent.registration_no || '',
-                religion: populatedStudent.religion || ''
-            },
-            parentInformation: {
-                fatherName: populatedStudent.father_name || '',
-                motherName: populatedStudent.mother_name || '',
-                parentName: populatedStudent.parent_name || '',
-                parentPhone: populatedStudent.parent_phone || '',
-                parentEmail: populatedStudent.parent_email || '',
-                guardianRelation: populatedStudent.guardian_relation || 'Parent',
-                address: populatedStudent.address || populatedStudent.guardian_address || ''
-            },
-            student: populatedStudent
+            academicInformation: serializedStudent.academic_information,
+            parentInformation: serializedStudent.parent_information,
+            studentInformation: serializedStudent.student_information,
+            previousSchoolInformation: serializedStudent.previous_school_information,
+            transportFeeInformation: serializedStudent.transport_fee_information,
+            student: serializedStudent
         });
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message });

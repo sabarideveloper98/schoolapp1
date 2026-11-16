@@ -58,6 +58,17 @@ const studentSchema = new mongoose.Schema({
         type: Number,
         required: false,
     },
+    student_email: {
+        type: String,
+        required: false,
+        trim: true,
+        lowercase: true,
+    },
+    student_phone: {
+        type: String,
+        required: false,
+        trim: true,
+    },
 
     // --- 2. Admission & Academic Information ---
     admission_number: {
@@ -86,6 +97,16 @@ const studentSchema = new mongoose.Schema({
         trim: true,
     },
     roll_no: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    previous_class: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    previous_academic_details: {
         type: String,
         required: false,
         trim: true,
@@ -140,10 +161,42 @@ const studentSchema = new mongoose.Schema({
         required: false,
         trim: true,
     },
+    father_phone: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    father_occupation: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    father_email: {
+        type: String,
+        required: false,
+        trim: true,
+        lowercase: true,
+    },
     mother_name: {
         type: String,
         required: false,
         trim: true,
+    },
+    mother_phone: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    mother_occupation: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    mother_email: {
+        type: String,
+        required: false,
+        trim: true,
+        lowercase: true,
     },
     guardian_name: {
         type: String,
@@ -173,6 +226,11 @@ const studentSchema = new mongoose.Schema({
         required: function () {
             return !this.guardian_phone;
         },
+        trim: true,
+    },
+    guardian_occupation: {
+        type: String,
+        required: false,
         trim: true,
     },
     guardian_email: {
@@ -251,6 +309,11 @@ const studentSchema = new mongoose.Schema({
         required: false,
         trim: true,
     },
+    aadhaar_number: {
+        type: String,
+        required: false,
+        trim: true,
+    },
     aadhaar_last4: {
         type: String,
         required: false,
@@ -305,7 +368,31 @@ const studentSchema = new mongoose.Schema({
         required: false,
         trim: true,
     },
+    previous_school_address: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    previous_school_board: {
+        type: String,
+        required: false,
+        trim: true,
+    },
     previous_class_completed: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    previous_admission_number: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    previous_school_leaving_date: {
+        type: Date,
+        required: false,
+    },
+    previous_academic_year: {
         type: String,
         required: false,
         trim: true,
@@ -314,6 +401,15 @@ const studentSchema = new mongoose.Schema({
         type: String,
         required: false,
         trim: true,
+    },
+    transfer_certificate_number: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    transfer_certificate_file: {
+        type: String,
+        required: false,
     },
 
     // --- 7. Transport & Fee Information ---
@@ -327,7 +423,69 @@ const studentSchema = new mongoose.Schema({
         required: false,
         trim: true,
     },
+    transport_route: {
+        type: String,
+        required: false,
+        trim: true,
+    },
     stop_name: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    pickup_point: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    drop_point: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    vehicle_number: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    driver_name: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    driver_phone: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    driver_id: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    transport_fee: {
+        type: Number,
+        required: false,
+        default: 0,
+    },
+    transport_fee_type: {
+        type: String,
+        required: false,
+        default: 'Monthly',
+        trim: true,
+    },
+    transport_fee_payment_status: {
+        type: String,
+        required: false,
+        default: 'Pending',
+        enum: ['Pending', 'Paid', 'Partial', 'Waived', 'N/A'],
+    },
+    transport_fee_status: {
+        type: String,
+        required: false,
+        default: 'Pending',
+    },
+    transport_fee_payment_details: {
         type: String,
         required: false,
         trim: true,
@@ -422,10 +580,51 @@ studentSchema.pre('validate', function () {
         this.guardian_address = this.address;
     }
 
-    // 8. Sanitize aadhaar_last4: store ONLY the last 4 numeric digits
+    // 8. Sanitize aadhaar_last4 & sync aadhaar_number
+    if (this.aadhaar_number && !this.aadhaar_last4) {
+        const cleanAadhaar = String(this.aadhaar_number).replace(/\D/g, '');
+        this.aadhaar_last4 = cleanAadhaar.length > 4 ? cleanAadhaar.slice(-4) : cleanAadhaar;
+    }
     if (this.aadhaar_last4) {
         const cleanAadhaar = String(this.aadhaar_last4).replace(/\D/g, '');
         this.aadhaar_last4 = cleanAadhaar.length > 4 ? cleanAadhaar.slice(-4) : cleanAadhaar;
+    }
+
+    // 9. Sync previous class and TC fields
+    if (this.previous_class && !this.previous_class_completed) {
+        this.previous_class_completed = this.previous_class;
+    }
+    if (this.previous_class_completed && !this.previous_class) {
+        this.previous_class = this.previous_class_completed;
+    }
+    if (this.previous_tc_number && !this.transfer_certificate_number) {
+        this.transfer_certificate_number = this.previous_tc_number;
+    }
+    if (this.transfer_certificate_number && !this.previous_tc_number) {
+        this.previous_tc_number = this.transfer_certificate_number;
+    }
+
+    // 10. Sync transport route, stops, and fee status
+    if (this.route_name && !this.transport_route) {
+        this.transport_route = this.route_name;
+    }
+    if (this.transport_route && !this.route_name) {
+        this.route_name = this.transport_route;
+    }
+    if (this.stop_name && !this.pickup_point) {
+        this.pickup_point = this.stop_name;
+    }
+    if (this.pickup_point && !this.stop_name) {
+        this.stop_name = this.pickup_point;
+    }
+    if (this.isModified('transport_fee_payment_status') && this.transport_fee_payment_status) {
+        this.transport_fee_status = this.transport_fee_payment_status;
+    } else if (this.isModified('transport_fee_status') && this.transport_fee_status) {
+        this.transport_fee_payment_status = this.transport_fee_status;
+    } else if (this.transport_fee_payment_status && (!this.transport_fee_status || this.transport_fee_status === 'Pending')) {
+        this.transport_fee_status = this.transport_fee_payment_status;
+    } else if (this.transport_fee_status && (!this.transport_fee_payment_status || this.transport_fee_payment_status === 'Pending')) {
+        this.transport_fee_payment_status = this.transport_fee_status;
     }
 });
 
@@ -434,4 +633,3 @@ studentSchema.index({ school_id: 1, admission_number: 1 }, { unique: true, spars
 
 const Student = createTenantModelProxy('Student', studentSchema);
 module.exports = Student;
-

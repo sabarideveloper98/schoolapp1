@@ -46,6 +46,23 @@ const protect = async (req, res, next) => {
                     req.user = teacherDoc.toObject();
                     req.user.role = 'Teacher';
                 }
+            } else if (decoded.role === 'Student') {
+                const Student = require('../models/Student');
+                let studentDoc = await Student.findById(decoded.id).select('-password');
+                if (!studentDoc) {
+                    studentDoc = await Student.findOne({ user_id: decoded.id }).select('-password');
+                }
+                if (!studentDoc) {
+                    const userDoc = await User.findById(decoded.id).select('reference_id school_id');
+                    if (userDoc && userDoc.reference_id) {
+                        studentDoc = await Student.findById(userDoc.reference_id).select('-password');
+                    }
+                }
+                if (studentDoc) {
+                    req.user = studentDoc.toObject();
+                    req.user.role = 'Student';
+                    req.user.student_id = studentDoc._id;
+                }
             }
 
             if (!req.user) {

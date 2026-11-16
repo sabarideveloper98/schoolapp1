@@ -56,6 +56,10 @@ const resolveUserSchool = async (user, decodedToken = {}) => {
                 const Driver = require('../models/Driver');
                 const d = await Driver.findById(user.reference_id);
                 if (d && d.school_id) school = await School.findById(d.school_id);
+            } else if (role === 'Student') {
+                const Student = require('../models/Student');
+                const st = await Student.findById(user.reference_id || user._id);
+                if (st && st.school_id) school = await School.findById(st.school_id);
             }
         } catch (e) {
             // Ignore error

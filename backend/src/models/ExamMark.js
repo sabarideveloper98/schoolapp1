@@ -16,6 +16,24 @@ const markEntrySchema = new mongoose.Schema({
         type: Number,
         required: true,
         default: 100
+    },
+    passing_marks: {
+        type: Number,
+        required: false,
+        default: 35
+    },
+    grade: {
+        type: String,
+        required: false
+    },
+    remarks: {
+        type: String,
+        required: false,
+        default: ''
+    },
+    exam_date: {
+        type: Date,
+        required: false
     }
 });
 
@@ -39,6 +57,16 @@ const examMarkSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'School',
         required: true
+    },
+    academic_year: {
+        type: String,
+        required: false,
+        default: '2026-2027'
+    },
+    remarks: {
+        type: String,
+        required: false,
+        default: ''
     },
     marks: [markEntrySchema]
 }, { timestamps: true });

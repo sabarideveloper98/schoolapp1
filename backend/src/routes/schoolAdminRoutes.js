@@ -99,6 +99,8 @@ router.route('/student-attendance/report').get(getStudentAttendanceReport);
 
 router.route('/exams').get(getExams).post(createExam);
 router.route('/exam-marks').get(getExamStudentsMarks).post(saveExamMarks);
+router.post('/marks', saveExamMarks);
+router.post('/add-marks', saveExamMarks);
 router.post('/exam-marks/bulk-import', bulkImportExamMarks);
 router.route('/exam-report').get(getExamReport);
 

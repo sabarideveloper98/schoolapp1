@@ -95,6 +95,7 @@ const transportRoutes = require('./routes/transportRoutes');
 const homeworkRoutes = require('./routes/homeworkRoutes');
 const timetableRoutes = require('./routes/timetableRoutes');
 const driverStaffRoutes = require('./routes/driverStaffRoutes');
+const studentRoutes = require('./routes/studentRoutes');
 
 // Swagger API Documentation UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -106,6 +107,7 @@ app.use('/api/schooladmin', schoolAdminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/api/driver', driverStaffRoutes);
+app.use('/api/student', studentRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/homework', homeworkRoutes);

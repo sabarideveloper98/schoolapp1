@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['SuperAdmin', 'SchoolAdmin', 'Teacher', 'Staff', 'Parent', 'Driver'],
+        enum: ['SuperAdmin', 'SchoolAdmin', 'Teacher', 'Staff', 'Parent', 'Driver', 'Student'],
         required: true,
     },
     reference_id: {

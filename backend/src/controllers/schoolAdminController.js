@@ -8,6 +8,9 @@ const Bus = require('../models/Bus');
 const Subject = require('../models/Subject');
 const Class = require('../models/Class');
 const Student = require('../models/Student');
+const Parent = require('../models/Parent');
+const StudentTransport = require('../models/StudentTransport');
+const FeePayment = require('../models/FeePayment');
 const TeacherLeave = require('../models/TeacherLeave');
 const StaffLeave = require('../models/StaffLeave');
 const {
@@ -15,6 +18,7 @@ const {
     generateRollNumbers,
     assignNumbersForStudents
 } = require('../utils/studentNumberGenerator');
+const { serializeStudent } = require('../utils/studentSerializer');
 
 // Helper to get school_id from the logged-in SchoolAdmin
 const getSchoolId = async (adminId) => {
@@ -461,7 +465,7 @@ const getClasses = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
         const classes = await Class.find({ school_id }).populate('class_incharge_id', 'name email').lean();
-        
+
         const classesWithCount = await Promise.all(classes.map(async (cls) => {
             const count = await Student.countDocuments({
                 school_id,
@@ -615,7 +619,44 @@ const getStudents = async (req, res) => {
             .populate('class_id', 'class section')
             .populate('parent_user_id', 'email phone')
             .sort({ createdAt: -1 });
-        res.json(students);
+
+        const studentIds = students.map(s => s._id);
+        const parentUserIds = students.map(s => (s.parent_user_id?._id || s.parent_user_id)).filter(Boolean);
+
+        // Fetch related documents in parallel for high performance without N+1 query overhead
+        const [parents, transports, feePayments] = await Promise.all([
+            Parent.find({ user_id: { $in: parentUserIds } }).lean(),
+            StudentTransport.find({ student_id: { $in: studentIds } })
+                .populate('route_id')
+                .populate('bus_id')
+                .populate('pickup_stop_id')
+                .populate('drop_stop_id')
+                .lean(),
+            FeePayment.find({ student_id: { $in: studentIds } }).sort({ payment_date: -1 }).lean()
+        ]);
+
+        const parentMap = new Map();
+        parents.forEach(p => parentMap.set(p.user_id.toString(), p));
+
+        const transportMap = new Map();
+        transports.forEach(t => transportMap.set(t.student_id.toString(), t));
+
+        const feePaymentMap = new Map();
+        feePayments.forEach(fp => {
+            if (!feePaymentMap.has(fp.student_id.toString())) {
+                feePaymentMap.set(fp.student_id.toString(), fp);
+            }
+        });
+
+        const serializedStudents = students.map(student => {
+            const pUserId = (student.parent_user_id?._id || student.parent_user_id)?.toString();
+            const parent = pUserId ? parentMap.get(pUserId) : null;
+            const transport = transportMap.get(student._id.toString());
+            const feePayment = feePaymentMap.get(student._id.toString());
+            return serializeStudent(student, req, { parent, transport, feePayment });
+        });
+
+        res.json(serializedStudents);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -633,11 +674,32 @@ const getStudentById = async (req, res) => {
         if (!student) {
             return res.status(404).json({ message: 'Student not found' });
         }
-        const studentObj = student.toObject ? student.toObject() : { ...student };
-        if (studentObj.photo) {
-            studentObj.photo = formatPhotoUrl(studentObj.photo, req);
+
+        // Fetch related parent record if exists
+        let parent = null;
+        const pUserId = student.parent_user_id?._id || student.parent_user_id;
+        if (pUserId) {
+            parent = await Parent.findOne({ user_id: pUserId }).lean();
         }
-        res.json(studentObj);
+        if (!parent && (student.parent_phone || student.guardian_phone)) {
+            parent = await Parent.findOne({ school_id, phone: student.parent_phone || student.guardian_phone }).lean();
+        }
+
+        // Fetch related transport record if exists
+        const transport = await StudentTransport.findOne({ student_id: student._id })
+            .populate('route_id')
+            .populate('bus_id')
+            .populate('pickup_stop_id')
+            .populate('drop_stop_id')
+            .lean();
+
+        // Fetch latest fee payment if exists
+        const feePayment = await FeePayment.findOne({ student_id: student._id })
+            .sort({ payment_date: -1 })
+            .lean();
+
+        const serialized = serializeStudent(student, req, { parent, transport, feePayment });
+        res.json(serialized);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -763,6 +825,18 @@ const validateStudentData = (data) => {
     if (guardian_phone && String(guardian_phone).trim() !== '' && !phoneRegex.test(String(guardian_phone).trim())) {
         return 'Guardian Phone must be exactly 10 digits';
     }
+    if (father_phone && String(father_phone).trim() !== '' && !phoneRegex.test(String(father_phone).trim())) {
+        return "Father's Phone must be exactly 10 digits";
+    }
+    if (mother_phone && String(mother_phone).trim() !== '' && !phoneRegex.test(String(mother_phone).trim())) {
+        return "Mother's Phone must be exactly 10 digits";
+    }
+    if (student_phone && String(student_phone).trim() !== '' && !phoneRegex.test(String(student_phone).trim())) {
+        return 'Student Phone must be exactly 10 digits';
+    }
+    if (driver_phone && String(driver_phone).trim() !== '' && !phoneRegex.test(String(driver_phone).trim())) {
+        return 'Driver Phone must be exactly 10 digits';
+    }
     if (login_phone && String(login_phone).trim() !== '' && !phoneRegex.test(String(login_phone).trim())) {
         return 'Login Phone must be exactly 10 digits';
     }
@@ -780,6 +854,15 @@ const validateStudentData = (data) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (guardian_email && String(guardian_email).trim() !== '' && !emailRegex.test(String(guardian_email).trim())) {
         return 'Please enter a valid Guardian Email address';
+    }
+    if (father_email && String(father_email).trim() !== '' && !emailRegex.test(String(father_email).trim())) {
+        return "Please enter a valid Father's Email address";
+    }
+    if (mother_email && String(mother_email).trim() !== '' && !emailRegex.test(String(mother_email).trim())) {
+        return "Please enter a valid Mother's Email address";
+    }
+    if (student_email && String(student_email).trim() !== '' && !emailRegex.test(String(student_email).trim())) {
+        return 'Please enter a valid Student Email address';
     }
     if (login_email && String(login_email).trim() !== '' && !emailRegex.test(String(login_email).trim())) {
         return 'Please enter a valid Login Email address';
@@ -827,10 +910,19 @@ const createStudent = async (req, res) => {
             emergency_contact_phone, district, transport_required, fee_category, student_type,
 
             // Optional fields
-            registration_no, apaar_id, pen_number, emis_id, aadhaar_last4, stream_group, group,
+            registration_no, apaar_id, pen_number, emis_id, aadhaar_last4, aadhaar_number, stream_group, group,
             house, religion, community_category, caste, mother_tongue, is_cwsn, disability_type,
-            economic_category, guardian_email, previous_school_name, previous_class_completed,
-            previous_tc_number, route_name, stop_name, sibling_admission_no, allergies, medical_notes, photo,
+            economic_category, guardian_email, previous_school_name, previous_class_completed, previous_class,
+            previous_academic_details, previous_school_address, previous_school_board, previous_admission_number,
+            previous_school_leaving_date, previous_academic_year, previous_tc_number, transfer_certificate_number,
+            transfer_certificate_file, route_name, stop_name, transport_route, pickup_point, drop_point,
+            vehicle_number, driver_name, driver_phone, driver_id, transport_fee, transport_fee_type,
+            transport_fee_payment_status, transport_fee_status, transport_fee_payment_details,
+            sibling_admission_no, allergies, medical_notes, photo,
+
+            // Parent & Contact Details
+            father_phone, father_occupation, father_email, mother_phone, mother_occupation, mother_email,
+            guardian_occupation, student_email, student_phone,
 
             // Legacy & Login credentials
             first_name, last_name, age, dob, address, guardian_address, parent_name, parent_phone, parent_email,
@@ -965,6 +1057,8 @@ const createStudent = async (req, res) => {
             mother_tongue,
             student_status: student_status || 'Active',
             age: age || 0,
+            student_email,
+            student_phone,
 
             // 2. Admission & Academic Info
             admission_number: final_admission_number,
@@ -973,6 +1067,8 @@ const createStudent = async (req, res) => {
             class: resolvedClass,
             section: resolvedSection,
             roll_no: final_roll_no,
+            previous_class: previous_class || previous_class_completed,
+            previous_academic_details,
             admission_type: admission_type || 'Regular',
             stream_group: stream_group || group || 'Science',
             group: stream_group || group || 'Science',
@@ -984,12 +1080,19 @@ const createStudent = async (req, res) => {
 
             // 3. Parent & Guardian Info
             father_name,
+            father_phone,
+            father_occupation,
+            father_email,
             mother_name,
+            mother_phone,
+            mother_occupation,
+            mother_email,
             guardian_name: final_parent_name,
             parent_name: final_parent_name,
             guardian_relation: guardian_relation || 'Father',
             guardian_phone: final_parent_phone,
             parent_phone: final_parent_phone,
+            guardian_occupation,
             guardian_email: final_parent_email,
             parent_email: final_parent_email,
             whatsapp_number,
@@ -1008,6 +1111,7 @@ const createStudent = async (req, res) => {
             apaar_id,
             pen_number,
             emis_id,
+            aadhaar_number,
             aadhaar_last4: clean_aadhaar,
             religion: religion || 'General',
             community_category,
@@ -1019,13 +1123,32 @@ const createStudent = async (req, res) => {
 
             // 6. Previous School Info
             previous_school_name,
-            previous_class_completed,
-            previous_tc_number,
+            previous_school_address,
+            previous_school_board,
+            previous_class_completed: previous_class_completed || previous_class,
+            previous_admission_number,
+            previous_school_leaving_date: previous_school_leaving_date ? new Date(previous_school_leaving_date) : undefined,
+            previous_academic_year,
+            previous_tc_number: previous_tc_number || transfer_certificate_number,
+            transfer_certificate_number: transfer_certificate_number || previous_tc_number,
+            transfer_certificate_file,
 
             // 7. Transport & Fee Info
             transport_required: transport_required === true || transport_required === 'true',
-            route_name,
-            stop_name,
+            route_name: route_name || transport_route,
+            transport_route: transport_route || route_name,
+            stop_name: stop_name || pickup_point,
+            pickup_point: pickup_point || stop_name,
+            drop_point,
+            vehicle_number,
+            driver_name,
+            driver_phone,
+            driver_id,
+            transport_fee: transport_fee ? Number(transport_fee) : 0,
+            transport_fee_type: transport_fee_type || 'Monthly',
+            transport_fee_payment_status: transport_fee_payment_status || transport_fee_status || 'Pending',
+            transport_fee_status: transport_fee_status || transport_fee_payment_status || 'Pending',
+            transport_fee_payment_details,
             fee_category,
 
             // 8. Medical & Emergency Info
@@ -1088,7 +1211,16 @@ const updateStudent = async (req, res) => {
             'district', 'state', 'pincode', 'fee_category', 'student_type',
             'apaar_id', 'pen_number', 'emis_id', 'house', 'community_category', 'caste',
             'mother_tongue', 'disability_type', 'economic_category', 'previous_school_name',
-            'previous_class_completed', 'previous_tc_number', 'route_name', 'stop_name',
+            'previous_class_completed', 'previous_class', 'previous_academic_details',
+            'previous_school_address', 'previous_school_board', 'previous_admission_number',
+            'previous_school_leaving_date', 'previous_academic_year',
+            'previous_tc_number', 'transfer_certificate_number', 'transfer_certificate_file',
+            'route_name', 'stop_name', 'transport_route', 'pickup_point', 'drop_point',
+            'vehicle_number', 'driver_name', 'driver_phone', 'driver_id', 'transport_fee',
+            'transport_fee_type', 'transport_fee_payment_status', 'transport_fee_status',
+            'transport_fee_payment_details',
+            'father_phone', 'father_occupation', 'father_email', 'mother_phone', 'mother_occupation',
+            'mother_email', 'guardian_occupation', 'student_email', 'student_phone', 'aadhaar_number',
             'sibling_admission_no', 'allergies', 'medical_notes', 'photo', 'address'
         ];
 
@@ -1143,6 +1275,14 @@ const updateStudent = async (req, res) => {
             updateData.admission_date = req.body.admission_date ? new Date(req.body.admission_date) : student.admission_date;
         }
 
+        if (req.body.previous_school_leaving_date !== undefined) {
+            updateData.previous_school_leaving_date = req.body.previous_school_leaving_date ? new Date(req.body.previous_school_leaving_date) : undefined;
+        }
+
+        if (req.body.transport_fee !== undefined) {
+            updateData.transport_fee = req.body.transport_fee !== '' ? Number(req.body.transport_fee) : 0;
+        }
+
         if (req.body.transport_required !== undefined) {
             updateData.transport_required = req.body.transport_required === true || req.body.transport_required === 'true';
         }
@@ -1151,7 +1291,43 @@ const updateStudent = async (req, res) => {
             updateData.is_cwsn = req.body.is_cwsn === true || req.body.is_cwsn === 'true';
         }
 
-        if (req.body.aadhaar_last4 !== undefined) {
+        // Sync legacy transport / previous school / aadhaar aliases
+        if (req.body.previous_class !== undefined && !req.body.previous_class_completed) {
+            updateData.previous_class_completed = req.body.previous_class;
+        }
+        if (req.body.previous_class_completed !== undefined && !req.body.previous_class) {
+            updateData.previous_class = req.body.previous_class_completed;
+        }
+        if (req.body.transfer_certificate_number !== undefined && !req.body.previous_tc_number) {
+            updateData.previous_tc_number = req.body.transfer_certificate_number;
+        }
+        if (req.body.previous_tc_number !== undefined && !req.body.transfer_certificate_number) {
+            updateData.transfer_certificate_number = req.body.previous_tc_number;
+        }
+        if (req.body.transport_route !== undefined && !req.body.route_name) {
+            updateData.route_name = req.body.transport_route;
+        }
+        if (req.body.route_name !== undefined && !req.body.transport_route) {
+            updateData.transport_route = req.body.route_name;
+        }
+        if (req.body.pickup_point !== undefined && !req.body.stop_name) {
+            updateData.stop_name = req.body.pickup_point;
+        }
+        if (req.body.stop_name !== undefined && !req.body.pickup_point) {
+            updateData.pickup_point = req.body.stop_name;
+        }
+        if (req.body.transport_fee_payment_status !== undefined && !req.body.transport_fee_status) {
+            updateData.transport_fee_status = req.body.transport_fee_payment_status;
+        }
+        if (req.body.transport_fee_status !== undefined && !req.body.transport_fee_payment_status) {
+            updateData.transport_fee_payment_status = req.body.transport_fee_status;
+        }
+
+        if (req.body.aadhaar_number !== undefined) {
+            const cleanFull = String(req.body.aadhaar_number).replace(/\D/g, '');
+            updateData.aadhaar_number = cleanFull;
+            updateData.aadhaar_last4 = cleanFull.length > 4 ? cleanFull.slice(-4) : cleanFull;
+        } else if (req.body.aadhaar_last4 !== undefined) {
             const cleanAadhaar = String(req.body.aadhaar_last4).replace(/\D/g, '');
             updateData.aadhaar_last4 = cleanAadhaar.length > 4 ? cleanAadhaar.slice(-4) : cleanAadhaar;
         }
