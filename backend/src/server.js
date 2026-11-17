@@ -104,14 +104,17 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/schooladmin', schoolAdminRoutes);
-app.use('/api/school-admin', schoolAdminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/api/driver', driverStaffRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/transport', transportRoutes);
+app.use('/api/school-admin/transport', transportRoutes);
+app.use('/api/schooladmin/transport', transportRoutes);
 app.use('/api/homework', homeworkRoutes);
+app.use('/api/school-admin/homework', homeworkRoutes);
+app.use('/api/schooladmin/homework', homeworkRoutes);
 app.use('/api/timetable', timetableRoutes);
 
 app.get('/', (req, res) => {

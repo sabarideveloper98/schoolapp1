@@ -59,12 +59,12 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
 const getTransportStats = async (req, res) => {
     try {
         const schoolIds = await getSchoolIds(req.user);
-        
+
         const totalBuses = await Bus.countDocuments({ school_id: { $in: schoolIds } });
         const activeRoutes = await Route.countDocuments({ school_id: { $in: schoolIds }, status: 'Active' });
         const totalDrivers = await Driver.countDocuments({ school_id: { $in: schoolIds }, status: 'Active' });
         const studentsUsingTransport = await StudentTransport.countDocuments({ school_id: { $in: schoolIds }, status: 'Active' });
-        
+
         const activeTrips = await TripHistory.find({ school_id: { $in: schoolIds }, status: 'In Progress' })
             .populate('bus_id', 'bus_number bus_name vehicle_reg_number')
             .populate('driver_id', 'name mobile_number photo')
@@ -94,9 +94,62 @@ const getBuses = async (req, res) => {
     try {
         const schoolIds = await getSchoolIds(req.user);
         const buses = await Bus.find({ school_id: { $in: schoolIds } }).sort({ createdAt: -1 });
+
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            return res.json({
+                success: true,
+                message: 'Vehicles retrieved successfully',
+                data: {
+                    vehicles: buses.map(b => ({
+                        vehicleId: b._id,
+                        vehicleNumber: b.bus_number || b.vehicle_reg_number,
+                        vehicleName: b.bus_name,
+                        vehicleType: b.bus_type || 'Bus',
+                        registrationNumber: b.vehicle_reg_number,
+                        totalSeats: b.total_seats,
+                        capacity: b.total_seats,
+                        status: b.status,
+                        createdDate: b.createdAt,
+                        updatedDate: b.updatedAt
+                    })),
+                    totalRecords: buses.length
+                }
+            });
+        }
+
         res.json(buses);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getBusById = async (req, res) => {
+    try {
+        const bus = await Bus.findById(req.params.id);
+        if (!bus) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            return res.json({
+                success: true,
+                message: 'Vehicle details retrieved successfully',
+                data: {
+                    vehicleId: bus._id,
+                    vehicleNumber: bus.bus_number || bus.vehicle_reg_number,
+                    vehicleName: bus.bus_name,
+                    vehicleType: bus.bus_type || 'Bus',
+                    registrationNumber: bus.vehicle_reg_number,
+                    totalSeats: bus.total_seats,
+                    capacity: bus.total_seats,
+                    gpsEnabled: bus.gps_enabled,
+                    status: bus.status,
+                    createdDate: bus.createdAt,
+                    updatedDate: bus.updatedAt
+                }
+            });
+        }
+        res.json(bus);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -179,9 +232,70 @@ const getDrivers = async (req, res) => {
         }
 
         const drivers = await Driver.find({ school_id: { $in: schoolIds } }).populate('assigned_bus_id').sort({ createdAt: -1 });
+
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            return res.json({
+                success: true,
+                message: 'Drivers retrieved successfully',
+                data: {
+                    drivers: drivers.map(d => ({
+                        driverId: d._id,
+                        driverCode: d.driver_id,
+                        driverName: d.name,
+                        driverPhone: d.mobile_number,
+                        email: d.email,
+                        licenseNumber: d.license_number,
+                        assignedVehicle: d.assigned_bus_id ? {
+                            vehicleId: d.assigned_bus_id._id,
+                            vehicleNumber: d.assigned_bus_id.bus_number,
+                            vehicleName: d.assigned_bus_id.bus_name
+                        } : null,
+                        status: d.status,
+                        createdDate: d.createdAt,
+                        updatedDate: d.updatedAt
+                    })),
+                    totalRecords: drivers.length
+                }
+            });
+        }
+
         res.json(drivers);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getDriverById = async (req, res) => {
+    try {
+        const driver = await Driver.findById(req.params.id).populate('assigned_bus_id');
+        if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
+
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            return res.json({
+                success: true,
+                message: 'Driver details retrieved successfully',
+                data: {
+                    driverId: driver._id,
+                    driverCode: driver.driver_id,
+                    driverName: driver.name,
+                    driverPhone: driver.mobile_number,
+                    email: driver.email,
+                    licenseNumber: driver.license_number,
+                    licenseExpiry: driver.license_expiry,
+                    assignedVehicle: driver.assigned_bus_id ? {
+                        vehicleId: driver.assigned_bus_id._id,
+                        vehicleNumber: driver.assigned_bus_id.bus_number,
+                        vehicleName: driver.assigned_bus_id.bus_name
+                    } : null,
+                    status: driver.status,
+                    createdDate: driver.createdAt,
+                    updatedDate: driver.updatedAt
+                }
+            });
+        }
+        res.json(driver);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -427,9 +541,71 @@ const getRoutes = async (req, res) => {
             };
         }));
 
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            return res.json({
+                success: true,
+                message: 'Transport routes retrieved successfully',
+                data: {
+                    routes: routesWithStops.map(r => ({
+                        routeId: r._id,
+                        routeName: r.route_name,
+                        routeNumber: r.route_id,
+                        pickupPoint: r.start_point,
+                        dropPoint: r.end_point,
+                        vehicleId: r.assigned_bus_id?._id || null,
+                        vehicleNumber: r.assigned_bus_id?.bus_number || r.assigned_bus_id?.vehicle_reg_number || 'N/A',
+                        vehicleName: r.assigned_bus_id?.bus_name || 'N/A',
+                        totalDistanceKm: r.total_distance_km,
+                        estimatedDurationMins: r.estimated_duration_mins,
+                        stops: r.stops,
+                        status: r.status,
+                        createdDate: r.createdAt,
+                        updatedDate: r.updatedAt
+                    })),
+                    totalRecords: routesWithStops.length
+                }
+            });
+        }
+
         res.json(routesWithStops);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getRouteById = async (req, res) => {
+    try {
+        const route = await Route.findById(req.params.id).populate('assigned_bus_id');
+        if (!route) return res.status(404).json({ success: false, message: 'Route not found' });
+        const stops = await RouteStop.find({ route_id: route._id }).sort({ stop_order: 1 });
+
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            return res.json({
+                success: true,
+                message: 'Route details retrieved successfully',
+                data: {
+                    routeId: route._id,
+                    routeNumber: route.route_id,
+                    routeName: route.route_name,
+                    pickupPoint: route.start_point,
+                    dropPoint: route.end_point,
+                    totalDistanceKm: route.total_distance_km,
+                    estimatedDurationMins: route.estimated_duration_mins,
+                    assignedVehicle: route.assigned_bus_id ? {
+                        vehicleId: route.assigned_bus_id._id,
+                        vehicleNumber: route.assigned_bus_id.bus_number,
+                        vehicleName: route.assigned_bus_id.bus_name
+                    } : null,
+                    stops,
+                    status: route.status,
+                    createdDate: route.createdAt,
+                    updatedDate: route.updatedAt
+                }
+            });
+        }
+        res.json({ ...route.toObject(), stops });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -623,65 +799,274 @@ const assignRouteToBus = async (req, res) => {
 
 const getStudentTransports = async (req, res) => {
     try {
-        const school_id = await getSchoolId(req.user);
-        const allocations = await StudentTransport.find({ school_id })
-            .populate('student_id', 'student_name roll_no admission_number class_id parent_name parent_phone')
+        const schoolIds = await getSchoolIds(req.user);
+        const allocations = await StudentTransport.find({ school_id: { $in: schoolIds } })
+            .populate('student_id', 'student_name roll_no admission_number class section parent_name parent_phone transport_fee transport_fee_payment_status')
             .populate('class_id', 'class_name section')
-            .populate('route_id', 'route_name')
-            .populate('bus_id', 'bus_number bus_name')
+            .populate('route_id', 'route_name route_id start_point end_point')
+            .populate('bus_id', 'bus_number bus_name vehicle_reg_number')
             .populate('pickup_stop_id', 'stop_name estimated_arrival_time')
+            .populate('drop_stop_id', 'stop_name')
             .sort({ createdAt: -1 });
+
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            return res.json({
+                success: true,
+                message: 'Student transport allocations retrieved successfully',
+                data: {
+                    allocations: allocations.map(a => {
+                        const st = a.student_id;
+                        return {
+                            allocationId: a._id,
+                            studentId: st?._id,
+                            studentName: st?.student_name,
+                            admissionNumber: a.admission_number || st?.admission_number,
+                            class: a.class_id?.class_name || st?.class,
+                            section: a.class_id?.section || st?.section,
+                            routeId: a.route_id?._id,
+                            routeName: a.route_id?.route_name,
+                            routeNumber: a.route_id?.route_id,
+                            pickupPoint: a.pickup_stop_id?.stop_name || a.route_id?.start_point,
+                            dropPoint: a.drop_stop_id?.stop_name || a.route_id?.end_point,
+                            vehicleId: a.bus_id?._id,
+                            vehicleNumber: a.bus_id?.bus_number || a.bus_id?.vehicle_reg_number,
+                            transportFee: st?.transport_fee || 0,
+                            paymentStatus: st?.transport_fee_payment_status || 'Pending',
+                            status: a.status,
+                            createdDate: a.createdAt,
+                            updatedDate: a.updatedAt
+                        };
+                    }),
+                    totalRecords: allocations.length
+                }
+            });
+        }
 
         res.json(allocations);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getStudentTransportById = async (req, res) => {
+    try {
+        const allocation = await StudentTransport.findById(req.params.id)
+            .populate('student_id', 'student_name roll_no admission_number class section parent_name parent_phone transport_fee transport_fee_payment_status')
+            .populate('class_id', 'class_name section')
+            .populate('route_id', 'route_name route_id start_point end_point')
+            .populate('bus_id', 'bus_number bus_name vehicle_reg_number')
+            .populate('pickup_stop_id', 'stop_name estimated_arrival_time')
+            .populate('drop_stop_id', 'stop_name');
+
+        if (!allocation) return res.status(404).json({ success: false, message: 'Student transport allocation not found' });
+
+        if (req.query.envelope === 'true' || req.originalUrl.includes('/school-admin/') || req.originalUrl.includes('/schooladmin/')) {
+            const st = allocation.student_id;
+            return res.json({
+                success: true,
+                message: 'Student transport allocation details retrieved successfully',
+                data: {
+                    allocationId: allocation._id,
+                    studentId: st?._id,
+                    studentName: st?.student_name,
+                    admissionNumber: allocation.admission_number || st?.admission_number,
+                    class: allocation.class_id?.class_name || st?.class,
+                    section: allocation.class_id?.section || st?.section,
+                    routeId: allocation.route_id?._id,
+                    routeName: allocation.route_id?.route_name,
+                    routeNumber: allocation.route_id?.route_id,
+                    pickupPoint: allocation.pickup_stop_id?.stop_name || allocation.route_id?.start_point,
+                    dropPoint: allocation.drop_stop_id?.stop_name || allocation.route_id?.end_point,
+                    vehicleId: allocation.bus_id?._id,
+                    vehicleNumber: allocation.bus_id?.bus_number || allocation.bus_id?.vehicle_reg_number,
+                    transportFee: st?.transport_fee || 0,
+                    paymentStatus: st?.transport_fee_payment_status || 'Pending',
+                    status: allocation.status,
+                    createdDate: allocation.createdAt,
+                    updatedDate: allocation.updatedAt
+                }
+            });
+        }
+        res.json(allocation);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
 const assignStudentTransport = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user);
-        const { student_id, admission_number, class_id, route_id, bus_id, pickup_stop_id, drop_stop_id } = req.body;
+        const { student_id, admission_number, class_id, route_id, bus_id, pickup_stop_id, drop_stop_id, transport_fee, transport_fee_payment_status } = req.body;
 
         if (!student_id || !class_id || !route_id || !bus_id || !pickup_stop_id) {
-            return res.status(400).json({ message: 'Student, Class, Route, Bus and Pickup Stop are required' });
+            return res.status(400).json({ success: false, message: 'Student, Class, Route, Bus and Pickup Stop are required' });
         }
 
-        const existing = await StudentTransport.findOne({ student_id });
-        if (existing) {
-            existing.route_id = route_id;
-            existing.bus_id = bus_id;
-            existing.pickup_stop_id = pickup_stop_id;
-            existing.drop_stop_id = drop_stop_id || pickup_stop_id;
-            existing.status = 'Active';
-            await existing.save();
-            return res.json({ message: 'Student transport updated successfully', allocation: existing });
+        let allocation = await StudentTransport.findOne({ student_id });
+        if (allocation) {
+            allocation.route_id = route_id;
+            allocation.bus_id = bus_id;
+            allocation.pickup_stop_id = pickup_stop_id;
+            allocation.drop_stop_id = drop_stop_id || pickup_stop_id;
+            allocation.status = 'Active';
+            await allocation.save();
+        } else {
+            allocation = await StudentTransport.create({
+                school_id,
+                student_id,
+                admission_number: admission_number || 'N/A',
+                class_id,
+                route_id,
+                bus_id,
+                pickup_stop_id,
+                drop_stop_id: drop_stop_id || pickup_stop_id,
+                status: 'Active'
+            });
         }
 
-        const newAllocation = await StudentTransport.create({
-            school_id,
-            student_id,
-            admission_number: admission_number || 'N/A',
-            class_id,
-            route_id,
-            bus_id,
-            pickup_stop_id,
-            drop_stop_id: drop_stop_id || pickup_stop_id,
-            status: 'Active'
+        // Sync with Student document
+        await Student.findByIdAndUpdate(student_id, {
+            transport_required: true,
+            transport_route: route_id,
+            vehicle_number: bus_id,
+            pickup_point: pickup_stop_id,
+            ...(transport_fee !== undefined && { transport_fee }),
+            ...(transport_fee_payment_status && { transport_fee_payment_status })
         });
 
-        res.status(201).json({ message: 'Student transport assigned successfully', allocation: newAllocation });
+        res.status(201).json({
+            success: true,
+            message: 'Student transport assigned successfully',
+            data: allocation,
+            allocation
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const updateStudentTransport = async (req, res) => {
+    try {
+        const allocation = await StudentTransport.findById(req.params.id);
+        if (!allocation) return res.status(404).json({ success: false, message: 'Student transport allocation not found' });
+
+        Object.assign(allocation, req.body);
+        await allocation.save();
+
+        if (allocation.student_id) {
+            const studentUpdate = {};
+            if (req.body.transport_fee !== undefined) studentUpdate.transport_fee = req.body.transport_fee;
+            if (req.body.transport_fee_payment_status) studentUpdate.transport_fee_payment_status = req.body.transport_fee_payment_status;
+            if (req.body.pickup_point) studentUpdate.pickup_point = req.body.pickup_point;
+            if (req.body.drop_point) studentUpdate.drop_point = req.body.drop_point;
+            if (Object.keys(studentUpdate).length > 0) {
+                await Student.findByIdAndUpdate(allocation.student_id, studentUpdate);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Student transport allocation updated successfully',
+            data: allocation
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
 const removeStudentTransport = async (req, res) => {
     try {
-        await StudentTransport.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Student transport unassigned successfully' });
+        const allocation = await StudentTransport.findByIdAndDelete(req.params.id);
+        if (allocation && allocation.student_id) {
+            await Student.findByIdAndUpdate(allocation.student_id, {
+                transport_required: false
+            });
+        }
+        res.json({ success: true, message: 'Student transport unassigned successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getRouteStudents = async (req, res) => {
+    try {
+        const route_id = req.params.id || req.params.routeId;
+        const allocations = await StudentTransport.find({ route_id, status: 'Active' })
+            .populate('student_id', 'student_name roll_no admission_number class section parent_name parent_phone transport_fee transport_fee_payment_status')
+            .populate('class_id', 'class_name section')
+            .populate('route_id', 'route_name route_id start_point end_point')
+            .populate('bus_id', 'bus_number bus_name')
+            .populate('pickup_stop_id', 'stop_name');
+
+        const students = allocations.map(a => {
+            const st = a.student_id;
+            return {
+                allocationId: a._id,
+                studentId: st?._id,
+                studentName: st?.student_name,
+                admissionNumber: a.admission_number || st?.admission_number,
+                class: a.class_id?.class_name || st?.class,
+                section: a.class_id?.section || st?.section,
+                pickupPoint: a.pickup_stop_id?.stop_name || 'N/A',
+                dropPoint: a.route_id?.end_point || 'N/A',
+                vehicleNumber: a.bus_id?.bus_number || 'N/A',
+                transportFee: st?.transport_fee || 0,
+                paymentStatus: st?.transport_fee_payment_status || 'Pending'
+            };
+        });
+
+        res.json({
+            success: true,
+            message: 'Route-wise student list retrieved successfully',
+            data: {
+                routeId: route_id,
+                students,
+                totalStudents: students.length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getVehicleStudents = async (req, res) => {
+    try {
+        const bus_id = req.params.id || req.params.busId || req.params.vehicleId;
+        const allocations = await StudentTransport.find({ bus_id, status: 'Active' })
+            .populate('student_id', 'student_name roll_no admission_number class section parent_name parent_phone transport_fee transport_fee_payment_status')
+            .populate('class_id', 'class_name section')
+            .populate('route_id', 'route_name route_id')
+            .populate('bus_id', 'bus_number bus_name')
+            .populate('pickup_stop_id', 'stop_name');
+
+        const students = allocations.map(a => {
+            const st = a.student_id;
+            return {
+                allocationId: a._id,
+                studentId: st?._id,
+                studentName: st?.student_name,
+                admissionNumber: a.admission_number || st?.admission_number,
+                class: a.class_id?.class_name || st?.class,
+                section: a.class_id?.section || st?.section,
+                routeName: a.route_id?.route_name || 'N/A',
+                routeNumber: a.route_id?.route_id || 'N/A',
+                pickupPoint: a.pickup_stop_id?.stop_name || 'N/A',
+                transportFee: st?.transport_fee || 0,
+                paymentStatus: st?.transport_fee_payment_status || 'Pending'
+            };
+        });
+
+        res.json({
+            success: true,
+            message: 'Vehicle-wise student list retrieved successfully',
+            data: {
+                vehicleId: bus_id,
+                students,
+                totalStudents: students.length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -778,7 +1163,7 @@ const updateGpsLocation = async (req, res) => {
 
         // Fetch Route Stops to calculate closest stop & ETA
         const stops = await RouteStop.find({ route_id: activeTrip.route_id }).sort({ stop_order: 1 });
-        
+
         let closestStop = null;
         let minDistance = Infinity;
         let closestStopIndex = 0;
@@ -813,7 +1198,7 @@ const updateGpsLocation = async (req, res) => {
         activeTrip.current_latitude = parseFloat(latitude);
         activeTrip.current_longitude = parseFloat(longitude);
         activeTrip.current_speed = speed ? Math.round(speed) : 0;
-        
+
         activeTrip.gps_logs.push({
             latitude: parseFloat(latitude),
             longitude: parseFloat(longitude),
@@ -865,7 +1250,7 @@ const endTrip = async (req, res) => {
 
         activeTrip.status = 'Completed';
         activeTrip.end_time = new Date();
-        
+
         // Compute total distance travelled if GPS logs exist
         if (activeTrip.gps_logs.length >= 2) {
             let totalDist = 0;
@@ -1061,19 +1446,225 @@ const getNotifications = async (req, res) => {
     }
 };
 
+// ----------------------------------------------------
+// 8. Transport Fee Management
+// ----------------------------------------------------
+const getTransportFeeSummary = async (req, res) => {
+    try {
+        const schoolIds = await getSchoolIds(req.user);
+        const allocations = await StudentTransport.find({ school_id: { $in: schoolIds }, status: 'Active' })
+            .populate('student_id', 'transport_fee transport_fee_payment_status transport_fee_type')
+            .lean();
+
+        let totalExpected = 0;
+        let totalCollected = 0;
+        let totalPending = 0;
+        let totalStudents = allocations.length;
+        let paidStudents = 0;
+        let pendingStudents = 0;
+
+        allocations.forEach(a => {
+            const st = a.student_id;
+            const fee = Number(st?.transport_fee) || 0;
+            const status = st?.transport_fee_payment_status || 'Pending';
+            totalExpected += fee;
+
+            if (status === 'Paid') {
+                totalCollected += fee;
+                paidStudents++;
+            } else if (status === 'Partial') {
+                const half = Math.round(fee / 2);
+                totalCollected += half;
+                totalPending += half;
+                pendingStudents++;
+            } else {
+                totalPending += fee;
+                pendingStudents++;
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Transport fee summary retrieved successfully',
+            data: {
+                totalStudentsUsingTransport: totalStudents,
+                totalExpectedFee: totalExpected,
+                totalCollectedFee: totalCollected,
+                totalPendingFee: totalPending,
+                paidStudentsCount: paidStudents,
+                pendingStudentsCount: pendingStudents
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getStudentTransportFees = async (req, res) => {
+    try {
+        const schoolIds = await getSchoolIds(req.user);
+        const allocations = await StudentTransport.find({ school_id: { $in: schoolIds }, status: 'Active' })
+            .populate('student_id', 'student_name roll_no admission_number class section parent_name parent_phone transport_fee transport_fee_payment_status transport_fee_type')
+            .populate('class_id', 'class_name section')
+            .populate('route_id', 'route_name route_id')
+            .populate('bus_id', 'bus_number vehicle_reg_number')
+            .populate('pickup_stop_id', 'stop_name')
+            .lean();
+
+        const results = allocations
+            .filter(a => a.student_id)
+            .map(a => {
+                const st = a.student_id;
+                const fee = Number(st.transport_fee) || 0;
+                return {
+                    allocationId: a._id,
+                    studentId: st._id,
+                    studentName: st.student_name,
+                    admissionNumber: st.admission_number,
+                    class: a.class_id?.class_name || st.class,
+                    section: a.class_id?.section || st.section,
+                    routeId: a.route_id?._id,
+                    routeName: a.route_id?.route_name || 'N/A',
+                    routeNumber: a.route_id?.route_id || 'N/A',
+                    vehicleNumber: a.bus_id?.vehicle_reg_number || a.bus_id?.bus_number || 'N/A',
+                    pickupPoint: a.pickup_stop_id?.stop_name || 'N/A',
+                    transportFee: fee,
+                    feeType: st.transport_fee_type || 'Monthly',
+                    paymentStatus: st.transport_fee_payment_status || 'Pending'
+                };
+            });
+
+        res.json({
+            success: true,
+            message: 'Student-wise transport fees retrieved successfully',
+            data: {
+                studentFees: results,
+                totalRecords: results.length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getTransportFeePaymentStatus = async (req, res) => {
+    try {
+        const schoolIds = await getSchoolIds(req.user);
+        const allocations = await StudentTransport.find({ school_id: { $in: schoolIds }, status: 'Active' })
+            .populate('student_id', 'transport_fee transport_fee_payment_status')
+            .lean();
+
+        const summary = {
+            Paid: { count: 0, totalAmount: 0 },
+            Pending: { count: 0, totalAmount: 0 },
+            Partial: { count: 0, totalAmount: 0 },
+            Waived: { count: 0, totalAmount: 0 }
+        };
+
+        allocations.forEach(a => {
+            const st = a.student_id;
+            const status = st?.transport_fee_payment_status || 'Pending';
+            const fee = Number(st?.transport_fee) || 0;
+            if (summary[status]) {
+                summary[status].count++;
+                summary[status].totalAmount += fee;
+            } else {
+                summary.Pending.count++;
+                summary.Pending.totalAmount += fee;
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Transport fee payment status summary retrieved successfully',
+            data: {
+                paymentStatusSummary: summary,
+                totalStudents: allocations.length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getPendingTransportFees = async (req, res) => {
+    try {
+        const schoolIds = await getSchoolIds(req.user);
+        const allocations = await StudentTransport.find({ school_id: { $in: schoolIds }, status: 'Active' })
+            .populate({
+                path: 'student_id',
+                match: {
+                    $or: [
+                        { transport_fee_payment_status: { $in: ['Pending', 'Partial'] } },
+                        { transport_fee_payment_status: { $exists: false } }
+                    ]
+                },
+                select: 'student_name roll_no admission_number class section parent_name parent_phone transport_fee transport_fee_payment_status transport_fee_type'
+            })
+            .populate('class_id', 'class_name section')
+            .populate('route_id', 'route_name route_id')
+            .populate('bus_id', 'bus_number vehicle_reg_number')
+            .populate('pickup_stop_id', 'stop_name')
+            .lean();
+
+        const pendingList = allocations
+            .filter(a => a.student_id)
+            .map(a => {
+                const st = a.student_id;
+                const fee = Number(st.transport_fee) || 0;
+                const pendingAmount = (st.transport_fee_payment_status === 'Partial') ? Math.round(fee / 2) : fee;
+                return {
+                    allocationId: a._id,
+                    studentId: st._id,
+                    studentName: st.student_name,
+                    admissionNumber: st.admission_number,
+                    class: a.class_id?.class_name || st.class,
+                    section: a.class_id?.section || st.section,
+                    routeId: a.route_id?._id,
+                    routeName: a.route_id?.route_name || 'N/A',
+                    routeNumber: a.route_id?.route_id || 'N/A',
+                    vehicleNumber: a.bus_id?.vehicle_reg_number || a.bus_id?.bus_number || 'N/A',
+                    pickupPoint: a.pickup_stop_id?.stop_name || 'N/A',
+                    transportFee: fee,
+                    pendingAmount,
+                    paymentStatus: st.transport_fee_payment_status || 'Pending',
+                    parentName: st.parent_name || 'N/A',
+                    parentPhone: st.parent_phone || 'N/A'
+                };
+            });
+
+        const totalPendingAmount = pendingList.reduce((acc, curr) => acc + curr.pendingAmount, 0);
+
+        res.json({
+            success: true,
+            message: 'Pending transport fees retrieved successfully',
+            data: {
+                totalPendingStudents: pendingList.length,
+                totalPendingAmount,
+                pendingList
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     getTransportStats,
     getBuses,
+    getBusById,
     createBus,
     updateBus,
     deleteBus,
     getDrivers,
+    getDriverById,
     createDriver,
     updateDriver,
     deleteDriver,
     driverLogin,
     getDriverPortalData,
     getRoutes,
+    getRouteById,
     createRoute,
     updateRoute,
     deleteRoute,
@@ -1085,8 +1676,16 @@ module.exports = {
     unassignDriver,
     assignRouteToBus,
     getStudentTransports,
+    getStudentTransportById,
     assignStudentTransport,
+    updateStudentTransport,
     removeStudentTransport,
+    getRouteStudents,
+    getVehicleStudents,
+    getTransportFeeSummary,
+    getStudentTransportFees,
+    getTransportFeePaymentStatus,
+    getPendingTransportFees,
     startTrip,
     updateGpsLocation,
     endTrip,
@@ -1097,3 +1696,4 @@ module.exports = {
     getTripHistoryLogs,
     getNotifications
 };
+

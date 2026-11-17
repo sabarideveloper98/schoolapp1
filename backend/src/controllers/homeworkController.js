@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Homework = require('../models/Homework');
 const HomeworkAssignment = require('../models/HomeworkAssignment');
 const HomeworkSubmission = require('../models/HomeworkSubmission');
@@ -135,31 +136,74 @@ const createHomework = async (req, res) => {
 const getHomeworkList = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user);
-        const { class_id, subject_name, category } = req.query;
+        const { class_id, section, subject_id, subject_name, category, status, page, limit } = req.query;
 
         const query = { school_id };
         if (class_id) query.assigned_classes = class_id;
+        if (section) query.assigned_section = section;
+        if (subject_id) {
+            if (mongoose.Types.ObjectId.isValid(subject_id)) {
+                query.subject_id = subject_id;
+            } else {
+                query.subject_name = new RegExp(subject_id, 'i');
+            }
+        }
         if (subject_name) query.subject_name = new RegExp(subject_name, 'i');
         if (category) query.category = category;
+        if (status) query.status = status;
 
-        const homeworks = await Homework.find(query)
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 50;
+        const skip = (pageNum - 1) * limitNum;
+
+        const totalRecords = await Homework.countDocuments(query);
+
+        let hwQuery = Homework.find(query)
             .populate('assigned_classes', 'class class_name section')
             .populate({
                 path: 'assigned_students',
                 select: 'student_name roll_no admission_number class section class_id',
                 populate: { path: 'class_id', select: 'class section class_name' }
             })
+            .populate('created_by', 'name email role')
             .sort({ createdAt: -1 });
 
-        // Enrich with submission counts
+        if (page && limit) {
+            hwQuery = hwQuery.skip(skip).limit(limitNum);
+        }
+
+        const homeworks = await hwQuery;
+
+        // Enrich with submission counts and standard response fields
         const enrichedHomeworks = await Promise.all(homeworks.map(async (hw) => {
             const totalAssigned = await HomeworkAssignment.countDocuments({ homework_id: hw._id });
             const totalSubmitted = await HomeworkSubmission.countDocuments({ homework_id: hw._id });
             const totalReviewed = await HomeworkReview.countDocuments({ homework_id: hw._id });
             const totalLate = await HomeworkSubmission.countDocuments({ homework_id: hw._id, is_late: true });
+            const firstClass = hw.assigned_classes && hw.assigned_classes.length > 0 ? hw.assigned_classes[0] : null;
 
             return {
                 ...hw.toObject(),
+                homeworkId: hw._id,
+                title: hw.title,
+                description: hw.description,
+                academicYear: '2026-2027',
+                classId: firstClass?._id || null,
+                className: firstClass?.class || firstClass?.class_name || 'N/A',
+                sectionId: hw.assigned_section || firstClass?.section || null,
+                sectionName: hw.assigned_section || firstClass?.section || 'All',
+                subjectId: hw.subject_id || null,
+                subjectName: hw.subject_name,
+                teacherId: hw.created_by?._id || hw.created_by || null,
+                teacherName: hw.created_by?.name || hw.creator_name || 'Teacher/Admin',
+                assignedDate: hw.assigned_date,
+                submissionDate: hw.due_date,
+                dueDate: hw.due_date,
+                attachment: hw.attachment_url || '',
+                document: hw.attachment_url || '',
+                status: hw.status,
+                createdDate: hw.createdAt,
+                updatedDate: hw.updatedAt,
                 stats: {
                     totalAssigned,
                     totalSubmitted,
@@ -169,6 +213,22 @@ const getHomeworkList = async (req, res) => {
                 }
             };
         }));
+
+        if (req.baseUrl.includes('school-admin') || req.baseUrl.includes('schooladmin') || req.query.envelope === 'true' || req.query.page) {
+            return res.json({
+                success: true,
+                message: 'Homework retrieved successfully',
+                data: {
+                    homework: enrichedHomeworks,
+                    totalRecords,
+                    pagination: {
+                        currentPage: pageNum,
+                        totalPages: Math.ceil(totalRecords / limitNum),
+                        limit: limitNum
+                    }
+                }
+            });
+        }
 
         res.json(enrichedHomeworks);
     } catch (error) {
@@ -180,9 +240,10 @@ const getHomeworkById = async (req, res) => {
     try {
         const homework = await Homework.findById(req.params.id)
             .populate('assigned_classes', 'class class_name section')
-            .populate('assigned_students', 'student_name roll_no admission_number');
+            .populate('assigned_students', 'student_name roll_no admission_number')
+            .populate('created_by', 'name email role');
 
-        if (!homework) return res.status(404).json({ message: 'Homework not found' });
+        if (!homework) return res.status(404).json({ success: false, message: 'Homework not found' });
 
         const assignments = await HomeworkAssignment.find({ homework_id: homework._id })
             .populate('student_id', 'student_name roll_no admission_number parent_name parent_phone')
@@ -195,14 +256,59 @@ const getHomeworkById = async (req, res) => {
             .populate('student_id', 'student_name')
             .populate('evaluated_by', 'name email');
 
+        const firstClass = homework.assigned_classes && homework.assigned_classes.length > 0 ? homework.assigned_classes[0] : null;
+
+        const formattedHomework = {
+            ...homework.toObject(),
+            homeworkId: homework._id,
+            title: homework.title,
+            description: homework.description,
+            academicYear: '2026-2027',
+            classId: firstClass?._id || null,
+            className: firstClass?.class || firstClass?.class_name || 'N/A',
+            sectionId: homework.assigned_section || firstClass?.section || null,
+            sectionName: homework.assigned_section || firstClass?.section || 'All',
+            subjectId: homework.subject_id || null,
+            subjectName: homework.subject_name,
+            teacherId: homework.created_by?._id || homework.created_by || null,
+            teacherName: homework.created_by?.name || homework.creator_name || 'Teacher/Admin',
+            assignedDate: homework.assigned_date,
+            submissionDate: homework.due_date,
+            dueDate: homework.due_date,
+            attachment: homework.attachment_url || '',
+            document: homework.attachment_url || '',
+            status: homework.status,
+            createdDate: homework.createdAt,
+            updatedDate: homework.updatedAt,
+            stats: {
+                totalAssigned: assignments.length,
+                totalSubmitted: submissions.length,
+                totalReviewed: reviews.length,
+                pendingSubmissions: Math.max(0, assignments.length - submissions.length)
+            }
+        };
+
+        if (req.baseUrl.includes('school-admin') || req.baseUrl.includes('schooladmin') || req.query.envelope === 'true') {
+            return res.json({
+                success: true,
+                message: 'Homework details retrieved successfully',
+                data: {
+                    homework: formattedHomework,
+                    assignments,
+                    submissions,
+                    reviews
+                }
+            });
+        }
+
         res.json({
-            homework,
+            homework: formattedHomework,
             assignments,
             submissions,
             reviews
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -453,6 +559,371 @@ const evaluateSubmission = async (req, res) => {
     }
 };
 
+const getClassHomework = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const { classId } = req.params;
+
+        const homeworks = await Homework.find({ school_id, assigned_classes: classId })
+            .populate('assigned_classes', 'class class_name section')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        res.json({
+            success: true,
+            message: 'Class homework retrieved successfully',
+            data: {
+                classId,
+                totalRecords: homeworks.length,
+                homework: homeworks
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getSectionHomework = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const { classId, section } = req.params;
+
+        const homeworks = await Homework.find({
+            school_id,
+            assigned_classes: classId,
+            $or: [
+                { assigned_section: section },
+                { assigned_section: '' },
+                { assigned_section: { $exists: false } }
+            ]
+        })
+            .populate('assigned_classes', 'class class_name section')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        res.json({
+            success: true,
+            message: 'Section homework retrieved successfully',
+            data: {
+                classId,
+                section,
+                totalRecords: homeworks.length,
+                homework: homeworks
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getSubjectHomework = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const { subjectId } = req.params;
+
+        const query = { school_id };
+        if (mongoose.Types.ObjectId.isValid(subjectId)) {
+            query.$or = [
+                { subject_id: subjectId },
+                { subject_name: new RegExp(subjectId, 'i') }
+            ];
+        } else {
+            query.subject_name = new RegExp(subjectId, 'i');
+        }
+
+        const homeworks = await Homework.find(query)
+            .populate('assigned_classes', 'class class_name section')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        res.json({
+            success: true,
+            message: 'Subject homework retrieved successfully',
+            data: {
+                subjectId,
+                totalRecords: homeworks.length,
+                homework: homeworks
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getHomeworkSubmissions = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const homeworkId = req.params.id || req.query.homework_id;
+        const { student_id, class_id, status } = req.query;
+
+        const query = { school_id };
+        if (homeworkId) query.homework_id = homeworkId;
+        if (student_id) query.student_id = student_id;
+
+        const submissions = await HomeworkSubmission.find(query)
+            .populate('homework_id', 'title subject_name due_date max_marks category')
+            .populate({
+                path: 'student_id',
+                select: 'student_name roll_no admission_number class section class_id photo parent_phone parent_name',
+                populate: { path: 'class_id', select: 'class section class_name' }
+            })
+            .sort({ submitted_at: -1 })
+            .lean();
+
+        const enriched = await Promise.all(submissions.map(async (sub) => {
+            const review = await HomeworkReview.findOne({ submission_id: sub._id })
+                .populate('evaluated_by', 'name email role')
+                .lean();
+
+            return {
+                submissionId: sub._id,
+                homeworkId: sub.homework_id?._id,
+                homeworkTitle: sub.homework_id?.title || 'N/A',
+                subjectName: sub.homework_id?.subject_name || 'N/A',
+                dueDate: sub.homework_id?.due_date,
+                maxMarks: sub.homework_id?.max_marks || 100,
+                studentId: sub.student_id?._id,
+                studentName: sub.student_id?.student_name || 'N/A',
+                admissionNumber: sub.student_id?.admission_number || 'N/A',
+                class: sub.student_id?.class_id?.class || sub.student_id?.class || 'N/A',
+                section: sub.student_id?.class_id?.section || sub.student_id?.section || 'N/A',
+                submissionNotes: sub.submission_notes || '',
+                attachmentUrl: sub.attachment_url || '',
+                document: sub.attachment_url || '',
+                submittedAt: sub.submitted_at,
+                submissionDate: sub.submitted_at,
+                isLate: sub.is_late || false,
+                submissionStatus: review ? 'Reviewed' : (sub.is_late ? 'Late' : 'Submitted'),
+                marksObtained: review?.marks_obtained !== undefined ? review.marks_obtained : null,
+                teacherRemarks: review?.remarks || '',
+                evaluatedBy: review?.evaluated_by?.name || null,
+                evaluatedAt: review?.evaluated_at || null,
+                createdDate: sub.createdAt,
+                updatedDate: sub.updatedAt
+            };
+        }));
+
+        let filtered = enriched;
+        if (status) {
+            filtered = filtered.filter(s => s.submissionStatus.toLowerCase() === status.toLowerCase());
+        }
+        if (class_id) {
+            filtered = filtered.filter(s => s.class === class_id);
+        }
+
+        res.json({
+            success: true,
+            message: 'Homework submissions retrieved successfully',
+            data: {
+                submissions: filtered,
+                totalRecords: filtered.length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getSubmissionById = async (req, res) => {
+    try {
+        const submission = await HomeworkSubmission.findById(req.params.id)
+            .populate('homework_id', 'title description subject_name due_date max_marks category instructions')
+            .populate({
+                path: 'student_id',
+                select: 'student_name roll_no admission_number class section class_id photo parent_phone parent_name',
+                populate: { path: 'class_id', select: 'class section class_name' }
+            })
+            .lean();
+
+        if (!submission) return res.status(404).json({ success: false, message: 'Submission not found' });
+
+        const review = await HomeworkReview.findOne({ submission_id: submission._id })
+            .populate('evaluated_by', 'name email role')
+            .lean();
+
+        const data = {
+            submissionId: submission._id,
+            homeworkId: submission.homework_id?._id,
+            homeworkTitle: submission.homework_id?.title || 'N/A',
+            description: submission.homework_id?.description || '',
+            instructions: submission.homework_id?.instructions || '',
+            subjectName: submission.homework_id?.subject_name || 'N/A',
+            dueDate: submission.homework_id?.due_date,
+            maxMarks: submission.homework_id?.max_marks || 100,
+            studentId: submission.student_id?._id,
+            studentName: submission.student_id?.student_name || 'N/A',
+            admissionNumber: submission.student_id?.admission_number || 'N/A',
+            class: submission.student_id?.class_id?.class || submission.student_id?.class || 'N/A',
+            section: submission.student_id?.class_id?.section || submission.student_id?.section || 'N/A',
+            submissionNotes: submission.submission_notes || '',
+            attachmentUrl: submission.attachment_url || '',
+            document: submission.attachment_url || '',
+            submittedAt: submission.submitted_at,
+            submissionDate: submission.submitted_at,
+            isLate: submission.is_late || false,
+            submissionStatus: review ? 'Reviewed' : (submission.is_late ? 'Late' : 'Submitted'),
+            marksObtained: review?.marks_obtained !== undefined ? review.marks_obtained : null,
+            teacherRemarks: review?.remarks || '',
+            evaluatedBy: review?.evaluated_by?.name || null,
+            evaluatedAt: review?.evaluated_at || null,
+            createdDate: submission.createdAt,
+            updatedDate: submission.updatedAt
+        };
+
+        res.json({
+            success: true,
+            message: 'Submission details retrieved successfully',
+            data: { submission: data }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getPendingSubmissions = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const { class_id, homework_id } = req.query;
+
+        const query = { school_id, status: 'Pending' };
+        if (homework_id) query.homework_id = homework_id;
+        if (class_id) query.class_id = class_id;
+
+        const pendingAssignments = await HomeworkAssignment.find(query)
+            .populate('homework_id', 'title subject_name due_date max_marks creator_name')
+            .populate({
+                path: 'student_id',
+                select: 'student_name roll_no admission_number class section class_id parent_name parent_phone photo',
+                populate: { path: 'class_id', select: 'class section class_name' }
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const pendingList = pendingAssignments
+            .filter(a => a.student_id && a.homework_id)
+            .map(a => {
+                const now = new Date();
+                const dueDate = new Date(a.homework_id.due_date);
+                const isOverdue = now > dueDate;
+                const diffTime = Math.abs(dueDate - now);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                return {
+                    assignmentId: a._id,
+                    homeworkId: a.homework_id._id,
+                    homeworkTitle: a.homework_id.title,
+                    subjectName: a.homework_id.subject_name,
+                    dueDate: a.homework_id.due_date,
+                    submissionDate: a.homework_id.due_date,
+                    teacherName: a.homework_id.creator_name || 'Teacher/Admin',
+                    studentId: a.student_id._id,
+                    studentName: a.student_id.student_name,
+                    admissionNumber: a.student_id.admission_number,
+                    class: a.student_id.class_id?.class || a.student_id.class || 'N/A',
+                    section: a.student_id.class_id?.section || a.student_id.section || 'N/A',
+                    parentName: a.student_id.parent_name || 'N/A',
+                    parentPhone: a.student_id.parent_phone || 'N/A',
+                    submissionStatus: isOverdue ? 'Overdue' : 'Pending',
+                    isOverdue,
+                    daysRemaining: isOverdue ? -diffDays : diffDays
+                };
+            });
+
+        res.json({
+            success: true,
+            message: 'Pending homework submissions retrieved successfully',
+            data: {
+                totalPending: pendingList.length,
+                pendingSubmissions: pendingList
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getCompletedSubmissions = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const { homework_id, class_id } = req.query;
+
+        const query = { school_id };
+        if (homework_id) query.homework_id = homework_id;
+
+        const submissions = await HomeworkSubmission.find(query)
+            .populate('homework_id', 'title subject_name due_date max_marks')
+            .populate({
+                path: 'student_id',
+                select: 'student_name roll_no admission_number class section class_id photo',
+                populate: { path: 'class_id', select: 'class section class_name' }
+            })
+            .sort({ submitted_at: -1 })
+            .lean();
+
+        const completedList = await Promise.all(submissions.map(async (sub) => {
+            const review = await HomeworkReview.findOne({ submission_id: sub._id })
+                .populate('evaluated_by', 'name email')
+                .lean();
+
+            return {
+                submissionId: sub._id,
+                homeworkId: sub.homework_id?._id,
+                homeworkTitle: sub.homework_id?.title || 'N/A',
+                subjectName: sub.homework_id?.subject_name || 'N/A',
+                studentId: sub.student_id?._id,
+                studentName: sub.student_id?.student_name || 'N/A',
+                admissionNumber: sub.student_id?.admission_number || 'N/A',
+                class: sub.student_id?.class_id?.class || sub.student_id?.class || 'N/A',
+                section: sub.student_id?.class_id?.section || sub.student_id?.section || 'N/A',
+                submissionNotes: sub.submission_notes || '',
+                attachmentUrl: sub.attachment_url || '',
+                submittedAt: sub.submitted_at,
+                submissionStatus: review ? 'Reviewed' : 'Submitted',
+                marksObtained: review?.marks_obtained !== undefined ? review.marks_obtained : null,
+                maxMarks: sub.homework_id?.max_marks || 100,
+                teacherRemarks: review?.remarks || '',
+                evaluatedBy: review?.evaluated_by?.name || null
+            };
+        }));
+
+        res.json({
+            success: true,
+            message: 'Completed homework submissions retrieved successfully',
+            data: {
+                totalCompleted: completedList.length,
+                completedSubmissions: completedList
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getSubmissionAttachments = async (req, res) => {
+    try {
+        const submission = await HomeworkSubmission.findById(req.params.id)
+            .populate('homework_id', 'title subject_name')
+            .populate('student_id', 'student_name admission_number')
+            .lean();
+
+        if (!submission) return res.status(404).json({ success: false, message: 'Submission not found' });
+
+        res.json({
+            success: true,
+            message: 'Submission attachments retrieved successfully',
+            data: {
+                submissionId: submission._id,
+                homeworkTitle: submission.homework_id?.title || '',
+                studentName: submission.student_id?.student_name || '',
+                attachmentUrl: submission.attachment_url || '',
+                hasAttachment: Boolean(submission.attachment_url)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
 // ----------------------------------------------------
 // 4. Reports & Dashboards
 // ----------------------------------------------------
@@ -480,6 +951,179 @@ const getHomeworkStats = async (req, res) => {
     }
 };
 
+const getHomeworkSummaryReport = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+
+        const totalHomework = await Homework.countDocuments({ school_id });
+        const totalAssignments = await HomeworkAssignment.countDocuments({ school_id });
+        const totalSubmissions = await HomeworkSubmission.countDocuments({ school_id });
+        const totalReviewed = await HomeworkReview.countDocuments({ school_id });
+        const totalLate = await HomeworkSubmission.countDocuments({ school_id, is_late: true });
+        const pendingSubmissions = Math.max(0, totalAssignments - totalSubmissions);
+        const completionRate = totalAssignments > 0 ? parseFloat(((totalSubmissions / totalAssignments) * 100).toFixed(1)) : 0;
+
+        res.json({
+            success: true,
+            message: 'Homework summary report retrieved successfully',
+            data: {
+                totalHomework,
+                totalAssignments,
+                totalSubmissions,
+                totalReviewed,
+                pendingSubmissions,
+                totalLate,
+                completionRate
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getStudentHomeworkReport = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const { student_id, class_id } = req.query;
+
+        let studentQuery = { school_id };
+        if (student_id) studentQuery._id = student_id;
+        if (class_id) studentQuery.class_id = class_id;
+
+        const students = await Student.find(studentQuery)
+            .select('student_name roll_no admission_number class section class_id photo')
+            .lean();
+
+        const report = await Promise.all(students.map(async (st) => {
+            const assigned = await HomeworkAssignment.find({ student_id: st._id }).lean();
+            const totalAssigned = assigned.length;
+            const submitted = await HomeworkSubmission.find({ student_id: st._id }).lean();
+            const totalSubmitted = submitted.length;
+            const reviews = await HomeworkReview.find({ student_id: st._id }).lean();
+            const totalReviewed = reviews.length;
+            const pending = Math.max(0, totalAssigned - totalSubmitted);
+            const completionRate = totalAssigned > 0 ? parseFloat(((totalSubmitted / totalAssigned) * 100).toFixed(1)) : 0;
+
+            const totalMarksObtained = reviews.reduce((sum, r) => sum + (Number(r.marks_obtained) || 0), 0);
+            const averageScore = totalReviewed > 0 ? parseFloat((totalMarksObtained / totalReviewed).toFixed(1)) : 0;
+
+            return {
+                studentId: st._id,
+                studentName: st.student_name,
+                admissionNumber: st.admission_number,
+                class: st.class,
+                section: st.section,
+                totalAssigned,
+                totalSubmitted,
+                totalReviewed,
+                pendingSubmissions: pending,
+                completionRate,
+                averageScore
+            };
+        }));
+
+        res.json({
+            success: true,
+            message: 'Student-wise homework report retrieved successfully',
+            data: {
+                totalStudents: report.length,
+                studentsReport: report
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getClassHomeworkReport = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+        const classes = await Class.find({ school_id }).sort({ class: 1, section: 1 }).lean();
+
+        const classReports = await Promise.all(classes.map(async (cls) => {
+            const studentsInClass = await Student.find({ class_id: cls._id }).select('_id').lean();
+            const studentIds = studentsInClass.map(s => s._id);
+
+            const totalHomework = await Homework.countDocuments({
+                school_id,
+                assigned_classes: cls._id
+            });
+
+            const totalAssignments = await HomeworkAssignment.countDocuments({
+                school_id,
+                student_id: { $in: studentIds }
+            });
+
+            const totalSubmissions = await HomeworkSubmission.countDocuments({
+                school_id,
+                student_id: { $in: studentIds }
+            });
+
+            const pending = Math.max(0, totalAssignments - totalSubmissions);
+            const completionRate = totalAssignments > 0 ? parseFloat(((totalSubmissions / totalAssignments) * 100).toFixed(1)) : 0;
+
+            return {
+                classId: cls._id,
+                className: cls.class,
+                section: cls.section,
+                totalStudents: studentIds.length,
+                totalHomework,
+                totalAssignments,
+                totalSubmissions,
+                pendingSubmissions: pending,
+                completionRate
+            };
+        }));
+
+        res.json({
+            success: true,
+            message: 'Class-wise homework report retrieved successfully',
+            data: {
+                totalClasses: classReports.length,
+                classesReport: classReports
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getSubmissionStatusReport = async (req, res) => {
+    try {
+        const school_id = await getSchoolId(req.user);
+
+        const totalAssignments = await HomeworkAssignment.countDocuments({ school_id });
+        const pendingCount = await HomeworkAssignment.countDocuments({ school_id, status: 'Pending' });
+        const submittedCount = await HomeworkSubmission.countDocuments({ school_id });
+        const reviewedCount = await HomeworkReview.countDocuments({ school_id });
+        const lateCount = await HomeworkSubmission.countDocuments({ school_id, is_late: true });
+
+        const statusReport = {
+            totalAssignments,
+            statusCounts: {
+                Pending: pendingCount,
+                Submitted: submittedCount,
+                Reviewed: reviewedCount,
+                Late: lateCount
+            },
+            statusPercentages: {
+                Pending: totalAssignments > 0 ? parseFloat(((pendingCount / totalAssignments) * 100).toFixed(1)) : 0,
+                Submitted: totalAssignments > 0 ? parseFloat(((submittedCount / totalAssignments) * 100).toFixed(1)) : 0,
+                Reviewed: totalAssignments > 0 ? parseFloat(((reviewedCount / totalAssignments) * 100).toFixed(1)) : 0,
+                Late: totalAssignments > 0 ? parseFloat(((lateCount / totalAssignments) * 100).toFixed(1)) : 0
+            }
+        };
+
+        res.json({
+            success: true,
+            message: 'Submission status report retrieved successfully',
+            data: statusReport
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
 const getHomeworkNotifications = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user);
@@ -498,9 +1142,21 @@ module.exports = {
     getHomeworkById,
     updateHomework,
     deleteHomework,
+    getClassHomework,
+    getSectionHomework,
+    getSubjectHomework,
+    getHomeworkSubmissions,
+    getSubmissionById,
+    getPendingSubmissions,
+    getCompletedSubmissions,
+    getSubmissionAttachments,
     getStudentHomework,
     submitHomework,
     evaluateSubmission,
     getHomeworkStats,
+    getHomeworkSummaryReport,
+    getStudentHomeworkReport,
+    getClassHomeworkReport,
+    getSubmissionStatusReport,
     getHomeworkNotifications
 };

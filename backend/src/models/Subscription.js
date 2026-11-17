@@ -83,6 +83,17 @@ const subscriptionSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true
+    },
+    cancellation_reason: {
+        type: String,
+        default: ''
+    },
+    cancelled_at: {
+        type: Date
+    },
+    auto_renew: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 
