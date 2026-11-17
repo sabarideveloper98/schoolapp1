@@ -135,7 +135,8 @@ const StudentAttendance = () => {
       setSearched(true);
       setLoadingRecords(false);
     } catch (error) {
-      toast.error('Failed to fetch student attendance logs');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error?.details || error.message || 'Failed to fetch student attendance logs';
+      toast.error(errorMsg);
       setLoadingRecords(false);
     }
   };
@@ -187,7 +188,8 @@ const StudentAttendance = () => {
       toast.success('Student attendance saved successfully!');
       setLoadingRecords(false);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save attendance');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error?.details || error.message || 'Failed to save attendance';
+      toast.error(errorMsg);
       setLoadingRecords(false);
     }
   };

@@ -45,6 +45,21 @@ const staffLeaveSchema = new mongoose.Schema({
     admin_remarks: {
         type: String,
         default: ''
+    },
+    attachment: {
+        type: String,
+        default: ''
+    },
+    academic_year: {
+        type: String,
+        default: '2026-2027'
+    },
+    approved_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    approved_date: {
+        type: Date
     }
 }, { timestamps: true });
 

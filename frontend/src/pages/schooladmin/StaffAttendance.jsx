@@ -43,7 +43,8 @@ const StaffAttendance = () => {
       setNotifyVia(data.notify_via || 'Do not send');
       setLoading(false);
     } catch (error) {
-      toast.error('Failed to load attendance records');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error?.details || error.message || 'Failed to load attendance records';
+      toast.error(errorMsg);
       setLoading(false);
     }
   };
@@ -103,7 +104,8 @@ const StaffAttendance = () => {
       toast.success('Attendance saved successfully!');
       setLoading(false);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save attendance');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error?.details || error.message || 'Failed to save attendance';
+      toast.error(errorMsg);
       setLoading(false);
     }
   };

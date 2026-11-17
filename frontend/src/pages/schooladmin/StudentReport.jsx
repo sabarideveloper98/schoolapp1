@@ -150,7 +150,8 @@ const StudentReport = () => {
       }
       setLoading(false);
     } catch (error) {
-      toast.error('Failed to generate student report');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error?.details || error.message || 'Failed to generate student report';
+      toast.error(errorMsg);
       setLoading(false);
     }
   };

@@ -43,6 +43,7 @@ const {
 } = require('../controllers/feeController');
 const {
     getExpenseCategories, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory,
+    getIncomeCategories,
     getExpenses, createExpense, updateExpense, deleteExpense,
     getIncomeList, createIncome, updateIncome, deleteIncome,
     getFinanceDashboardStats, getFinancialReports
@@ -135,11 +136,14 @@ router.route('/fees/dashboard').get(getFeeDashboardStats);
 // School Expenses & Finance Module
 router.route('/finance/categories').get(getExpenseCategories).post(createExpenseCategory);
 router.route('/finance/categories/:id').put(updateExpenseCategory).delete(deleteExpenseCategory);
+router.route('/finance/income-categories').get(getIncomeCategories);
 router.route('/finance/expenses').get(getExpenses).post(createExpense);
 router.route('/finance/expenses/:id').put(updateExpense).delete(deleteExpense);
 router.route('/finance/income').get(getIncomeList).post(createIncome);
 router.route('/finance/income/:id').put(updateIncome).delete(deleteIncome);
 router.route('/finance/dashboard').get(getFinanceDashboardStats);
+router.route('/finance/summary').get(getFinanceDashboardStats);
+router.route('/finance/fee-summary').get(getFeeDashboardStats);
 router.route('/finance/reports').get(getFinancialReports);
 
 module.exports = router;

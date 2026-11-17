@@ -713,6 +713,9 @@ Creates a new teacher document and linked User login account.
 
 ## 10. Staff & Teacher Attendance
 
+> [!NOTE]
+> For the complete Attendance API specifications, standardized response envelopes, Postman collections, and root cause analysis of the "Unnamed Error" resolution, refer to [**`SCHOOL_ADMIN_ATTENDANCE_API_DOCUMENTATION.md`**](file:///Users/sabari/Documents/git/schoolapp/SCHOOL_ADMIN_ATTENDANCE_API_DOCUMENTATION.md).
+
 The School Admin Attendance module manages daily check-in/check-out logs, absence tracking, and periodic attendance reports for teaching staff and non-teaching personnel. All operations are scoped by `school_id` and isolated per tenant.
 
 ---
@@ -1461,6 +1464,546 @@ Below is the verified implementation status for all 19 discovery requirements re
   }
 ]
 ```
+
+---
+
+## 13. Leave Management
+
+### 13.1 Get All School Leaves (Staff & Teachers)
+
+Retrieve paginated and filtered leave applications for all teachers and staff members belonging to the authenticated school.
+
+- **Endpoint**: `GET /api/schooladmin/leaves` or `GET /api/school-admin/leaves`
+- **Method**: `GET`
+- **Access**: Private (SchoolAdmin)
+- **Headers**:
+  ```http
+  Authorization: Bearer <token>
+  ```
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `status` | String | No | `all` | Filter by status: `Pending`, `Approved`, `Rejected`, `Cancelled` |
+| `employeeType` / `employee_type` | String | No | `all` | Filter by employee source: `Teacher`, `Staff` |
+| `employeeId` / `employee_id` | String | No | - | Filter by formatted ID (e.g. `TCH-9D20`, `STF-5C11`) or raw MongoDB ObjectId |
+| `leaveType` / `leave_type` | String | No | `all` | Filter by leave type (e.g., `Casual Leave`, `Sick Leave`, `Medical Leave`, `Maternity Leave`) |
+| `fromDate` / `from_date` | String | No | - | Return leaves active on or after this date (`YYYY-MM-DD`) |
+| `toDate` / `to_date` | String | No | - | Return leaves active on or before this date (`YYYY-MM-DD`) |
+| `academicYear` / `academic_year`| String | No | - | Filter by academic year (e.g. `2026-2027`) |
+| `search` | String | No | - | Search keyword matching employee name, ID, department, leave type, or reason |
+| `page` | Integer | No | `1` | Page number (must be >= 1) |
+| `limit` | Integer | No | `all` | Items per page (must be >= 1) |
+
+#### Example Request
+
+```http
+GET /api/school-admin/leaves?status=Pending&page=1&limit=10 HTTP/1.1
+Host: localhost:5001
+Authorization: Bearer <school_admin_jwt_token>
+```
+
+#### Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "message": "Leave records retrieved successfully",
+  "data": {
+    "leaves": [
+      {
+        "_id": "6a91cbf7502bf2b545d61245",
+        "leaveId": "6a91cbf7502bf2b545d61245",
+        "leave_id": "6a91cbf7502bf2b545d61245",
+        "leave_source": "Teacher",
+        "employeeId": "TCH-673D",
+        "employee_id": "TCH-673D",
+        "raw_employee_id": "6a84d4715978434771aa673d",
+        "employeeName": "Priya Sharma",
+        "employee_name": "Priya Sharma",
+        "employeeRole": "Teacher",
+        "employee_role": "Teacher",
+        "role": "Teacher",
+        "employeeType": "Teacher",
+        "employee_type": "Teacher",
+        "department": "Mathematics, Science",
+        "designation": "Teacher",
+        "employeeEmail": "priya.sharma@school.edu",
+        "employeePhone": "9876543210",
+        "leaveType": "Casual Leave",
+        "leave_type": "Casual Leave",
+        "fromDate": "2026-11-20",
+        "from_date": "2026-11-20",
+        "toDate": "2026-11-21",
+        "to_date": "2026-11-21",
+        "startDate": "2026-11-20T00:00:00.000Z",
+        "endDate": "2026-11-21T00:00:00.000Z",
+        "totalDays": 2,
+        "total_days": 2,
+        "reason": "Personal family function",
+        "leaveReason": "Personal family function",
+        "description": "Personal family function",
+        "appliedDate": "2026-11-17T05:30:00.000Z",
+        "applied_date": "2026-11-17T05:30:00.000Z",
+        "attachment": null,
+        "status": "Pending",
+        "adminRemarks": null,
+        "admin_remarks": null,
+        "approvedBy": null,
+        "approved_by": null,
+        "approvedDate": null,
+        "approved_date": null,
+        "academicYear": "2026-2027",
+        "academic_year": "2026-2027"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 10,
+      "totalRecords": 1,
+      "totalPages": 1
+    }
+  },
+  "total": 1,
+  "leaves": [
+    {
+      "_id": "6a91cbf7502bf2b545d61245",
+      "leaveId": "6a91cbf7502bf2b545d61245",
+      "employeeId": "TCH-673D",
+      "employeeName": "Priya Sharma",
+      "employeeType": "Teacher",
+      "leaveType": "Casual Leave",
+      "fromDate": "2026-11-20",
+      "toDate": "2026-11-21",
+      "totalDays": 2,
+      "reason": "Personal family function",
+      "appliedDate": "2026-11-17T05:30:00.000Z",
+      "status": "Pending",
+      "adminRemarks": null
+    }
+  ]
+}
+```
+
+---
+
+## 14. Finance and Expenses API Documentation
+
+### 14.1 Overview & Root Cause Analysis of Empty Responses
+
+When investigating empty finance and expense responses in the School Management Application, the root causes identified were:
+
+1. **No Expenses or Income in Current Reporting Month**: In school `6a82b7bc84adbdc3f3c19d20` (`jonson`), only one test expense from October 2026 existed. In the other schools (`Smart School`, `Jai Hind`, `vidyalaya`, `Balaji School`), 0 expenses and 0 incomes existed. Queries filtering for `thisMonth` or `current month` (November 2026) returned ₹0.
+2. **Missing Controller Model Import**: [`financeController.js`](file:///Users/sabari/Documents/git/schoolapp/backend/src/controllers/financeController.js) called `.populate('student_id')` on `FeePayment` without requiring `../models/Student`, causing `MissingSchemaError` on reports.
+3. **No Automatic Seeding for Finance**: Unlike `ExpenseCategory` (which auto-seeded on empty), `Expense` and `Income` did not auto-seed sample records when empty.
+4. **Missing Pagination and Filter Normalization**: `getExpenses` and `getIncomeList` lacked pagination validation (`page`, `limit`), date range aliases (`fromDate`/`toDate`), and envelope formatting.
+
+**Fix Applied:**
+- Enhanced [`financeController.js`](file:///Users/sabari/Documents/git/schoolapp/backend/src/controllers/financeController.js) with safe, idempotent `seedDummyFinanceData()` that automatically inserts realistic test records marked with `isDummy: true` when a school dataset contains no records.
+- Added support for both kebab-case (`/api/school-admin/finance/...`) and legacy lowercase (`/api/schooladmin/finance/...`) routes.
+- Dual-mode response formatting: returns structured envelope `{ success: true, message: "...", data: { ... } }` for API calls and direct arrays for existing frontend pages ([`ExpenseManagement.jsx`](file:///Users/sabari/Documents/git/schoolapp/frontend/src/pages/schooladmin/ExpenseManagement.jsx), [`IncomeManagement.jsx`](file:///Users/sabari/Documents/git/schoolapp/frontend/src/pages/schooladmin/IncomeManagement.jsx)).
+
+---
+
+### 14.2 API Summary Matrix
+
+| API Name | Route | Method | Access | Model / Collection | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Finance Dashboard** | `/api/school-admin/finance/dashboard` | `GET` | SchoolAdmin | `Expense`, `Income`, `FeePayment`, `Payroll`, `StudentFee` | **Enhanced** |
+| **Finance Summary** | `/api/school-admin/finance/summary` | `GET` | SchoolAdmin | Same as Finance Dashboard | **Newly Added Route** |
+| **Expenses List** | `/api/school-admin/finance/expenses` | `GET` | SchoolAdmin | `Expense`, `ExpenseCategory` | **Enhanced & Seeded** |
+| **Add Expense** | `/api/school-admin/finance/expenses` | `POST` | SchoolAdmin | `Expense` | **Existing** |
+| **Update Expense** | `/api/school-admin/finance/expenses/:id` | `PUT` | SchoolAdmin | `Expense` | **Existing** |
+| **Delete Expense** | `/api/school-admin/finance/expenses/:id` | `DELETE` | SchoolAdmin | `Expense` | **Existing** |
+| **Income List** | `/api/school-admin/finance/income` | `GET` | SchoolAdmin | `Income` | **Enhanced & Seeded** |
+| **Add Income** | `/api/school-admin/finance/income` | `POST` | SchoolAdmin | `Income` | **Existing** |
+| **Update Income** | `/api/school-admin/finance/income/:id` | `PUT` | SchoolAdmin | `Income` | **Existing** |
+| **Delete Income** | `/api/school-admin/finance/income/:id` | `DELETE` | SchoolAdmin | `Income` | **Existing** |
+| **Expense Categories** | `/api/school-admin/finance/categories` | `GET`, `POST` | SchoolAdmin | `ExpenseCategory` | **Existing** |
+| **Income Categories** | `/api/school-admin/finance/income-categories` | `GET` | SchoolAdmin | Static Reference Enums | **Newly Added Route** |
+| **Fee Collection Summary** | `/api/school-admin/finance/fee-summary` | `GET` | SchoolAdmin | `FeePayment`, `StudentFee` | **Newly Added Route** |
+| **Financial Reports** | `/api/school-admin/finance/reports` | `GET` | SchoolAdmin | `Expense`, `Income`, `FeePayment`, `Payroll` | **Enhanced & Bug Fixed** |
+
+---
+
+### 14.3 Expenses List API
+
+- **Endpoint**: `GET /api/school-admin/finance/expenses` or `GET /api/schooladmin/finance/expenses`
+- **Method**: `GET`
+- **Access**: Private (SchoolAdmin)
+- **Headers**:
+  ```http
+  Authorization: Bearer <school_admin_jwt_token>
+  ```
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `status` | String | No | `all` | Filter by payment status: `Paid`, `Pending` |
+| `category_id` / `categoryId` / `category` | String | No | `all` | Category ObjectId or Category Name string |
+| `payment_method` / `paymentMethod` | String | No | `all` | Payment method: `Cash`, `UPI`, `Bank Transfer`, `Cheque`, `Online Payment` |
+| `from_date` / `fromDate` / `start_date` | String | No | - | Filter expenses on or after date (`YYYY-MM-DD`) |
+| `to_date` / `toDate` / `end_date` | String | No | - | Filter expenses on or before date (`YYYY-MM-DD`) |
+| `academic_year` / `academicYear` | String | No | - | Filter by academic session (e.g. `2026-2027`) |
+| `isDummy` / `is_dummy` | Boolean | No | `all` | Filter for test dummy records (`true` or `false`) |
+| `search` | String | No | - | Search keyword in expense ID, title, reference number, or description |
+| `page` | Integer | No | `1` | Page number (must be integer $\ge 1$) |
+| `limit` | Integer | No | `all` | Records per page (must be integer $\ge 1$) |
+
+#### Example Request
+
+```http
+GET /api/school-admin/finance/expenses?status=Paid&page=1&limit=5 HTTP/1.1
+Host: localhost:5001
+Authorization: Bearer <school_admin_jwt_token>
+```
+
+#### Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "message": "Expenses retrieved successfully",
+  "data": {
+    "expenses": [
+      {
+        "_id": "6afbf90ab50edd25323bd481",
+        "expenseId": "EXP-2610003",
+        "expense_id": "EXP-2610003",
+        "title": "Electricity Bill",
+        "category": "Electricity Bill",
+        "category_name": "Electricity Bill",
+        "category_code": "ELEC",
+        "categoryId": "6a95b181144124b0d991bb4b",
+        "date": "2026-11-10",
+        "expenseDate": "2026-11-10",
+        "expense_date": "2026-11-10T10:00:00.000Z",
+        "amount": 5000,
+        "paymentMethod": "Bank Transfer",
+        "payment_method": "Bank Transfer",
+        "referenceNumber": "REF-ELEC-2601",
+        "reference_number": "REF-ELEC-2601",
+        "description": "Monthly electricity bill",
+        "receipt": "",
+        "status": "Paid",
+        "isDummy": true,
+        "is_dummy": true,
+        "academicYear": "2026-2027",
+        "createdBy": "School Admin",
+        "createdDate": "2026-11-17T12:19:54.000Z",
+        "updatedDate": "2026-11-17T12:19:54.000Z"
+      },
+      {
+        "_id": "6afbf90ab50edd25323bd482",
+        "expenseId": "EXP-2610004",
+        "expense_id": "EXP-2610004",
+        "title": "Stationery Purchase",
+        "category": "Office Expense",
+        "category_name": "Office Expense",
+        "category_code": "OFFC",
+        "categoryId": "6a95b181144124b0d991bb4f",
+        "date": "2026-11-12",
+        "expenseDate": "2026-11-12",
+        "expense_date": "2026-11-12T11:30:00.000Z",
+        "amount": 2500,
+        "paymentMethod": "Cash",
+        "referenceNumber": "REF-STAT-2602",
+        "reference_number": "REF-STAT-2602",
+        "description": "School stationery purchase",
+        "receipt": "",
+        "status": "Paid",
+        "isDummy": true,
+        "is_dummy": true,
+        "academicYear": "2026-2027",
+        "createdBy": "School Admin",
+        "createdDate": "2026-11-17T12:19:54.000Z",
+        "updatedDate": "2026-11-17T12:19:54.000Z"
+      }
+    ],
+    "totalRecords": 6,
+    "totalAmount": 23000,
+    "pagination": {
+      "currentPage": 1,
+      "limit": 5,
+      "totalRecords": 6,
+      "totalPages": 2
+    }
+  },
+  "totalRecords": 6,
+  "totalAmount": 23000
+}
+```
+
+---
+
+### 14.4 Add Expense API
+
+- **Endpoint**: `POST /api/school-admin/finance/expenses`
+- **Method**: `POST`
+- **Access**: Private (SchoolAdmin)
+- **Headers**: `Authorization: Bearer <token>`, `Content-Type: application/json`
+
+#### Request Payload
+
+```json
+{
+  "title": "Lab Chemicals Purchase",
+  "category_id": "6a95b181144124b0d991bb50",
+  "amount": 3500,
+  "expense_date": "2026-11-17",
+  "payment_method": "UPI",
+  "reference_number": "UPI-TXN-987654",
+  "description": "Chemistry laboratory reagent restock",
+  "attachment_url": "https://storage.school.in/receipts/lab_3500.pdf",
+  "status": "Paid",
+  "academic_year": "2026-2027"
+}
+```
+
+#### Success Response (201 Created)
+
+```json
+{
+  "_id": "6afbfa68b50edd25323bd488",
+  "school_id": "6a82b7bc84adbdc3f3c19d20",
+  "expense_id": "EXP-2610008",
+  "expense_date": "2026-11-17T00:00:00.000Z",
+  "category_id": {
+    "_id": "6a95b181144124b0d991bb50",
+    "name": "Maintenance",
+    "code": "MAIN"
+  },
+  "title": "Lab Chemicals Purchase",
+  "amount": 3500,
+  "payment_method": "UPI",
+  "reference_number": "UPI-TXN-987654",
+  "description": "Chemistry laboratory reagent restock",
+  "attachment_url": "https://storage.school.in/receipts/lab_3500.pdf",
+  "status": "Paid",
+  "isDummy": false,
+  "academic_year": "2026-2027",
+  "createdAt": "2026-11-17T12:25:00.000Z",
+  "updatedAt": "2026-11-17T12:25:00.000Z"
+}
+```
+
+---
+
+### 14.5 Finance Dashboard API
+
+- **Endpoint**: `GET /api/school-admin/finance/dashboard` or `GET /api/school-admin/finance/summary`
+- **Method**: `GET`
+- **Access**: Private (SchoolAdmin)
+- **Headers**: `Authorization: Bearer <token>`
+
+#### Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "message": "Finance dashboard statistics retrieved successfully",
+  "data": {
+    "totalIncome": 584554,
+    "totalExpenses": 27738.46,
+    "totalBalance": 556815.54,
+    "netBalance": 556815.54,
+    "monthlyIncome": 95000,
+    "monthlyExpenses": 21000,
+    "yearlyIncome": 584554,
+    "yearlyExpenses": 27738.46,
+    "feeCollection": 479554,
+    "feeCollectionIncome": 479554,
+    "pendingFees": 609000,
+    "payrollExpenses": 4738.46,
+    "todayIncome": 0,
+    "todayExpenses": 0,
+    "thisMonthIncome": 95000,
+    "thisMonthExpenses": 21000,
+    "expenseCategorySummary": [
+      { "category": "Building Rent", "amount": 2000 },
+      { "category": "Electricity Bill", "amount": 5000 },
+      { "category": "Office Expense", "amount": 2500 },
+      { "category": "Transport Expense", "amount": 4000 },
+      { "category": "Maintenance", "amount": 8000 },
+      { "category": "Internet Bill", "amount": 1500 },
+      { "category": "Teacher & Staff Payroll", "amount": 4738.46 }
+    ],
+    "incomeCategorySummary": [
+      { "incomeType": "Donation", "category": "Donation", "amount": 10000 },
+      { "incomeType": "Admission Fee", "category": "Admission Fee", "amount": 25000 },
+      { "incomeType": "Student Fee Collection", "category": "Student Fee Collection", "amount": 529554 },
+      { "incomeType": "Transport Fee", "category": "Transport Fee", "amount": 15000 },
+      { "incomeType": "Other Income", "category": "Other Income", "amount": 5000 }
+    ],
+    "categoryBreakdown": [
+      { "category": "Building Rent", "amount": 2000 },
+      { "category": "Electricity Bill", "amount": 5000 },
+      { "category": "Office Expense", "amount": 2500 },
+      { "category": "Transport Expense", "amount": 4000 },
+      { "category": "Maintenance", "amount": 8000 },
+      { "category": "Internet Bill", "amount": 1500 },
+      { "category": "Teacher & Staff Payroll", "amount": 4738.46 }
+    ],
+    "monthlyTrend": [
+      { "month": "Jun 2026", "expenses": 0, "income": 0, "net": 0 },
+      { "month": "Jul 2026", "expenses": 0, "income": 0, "net": 0 },
+      { "month": "Aug 2026", "expenses": 0, "income": 0, "net": 0 },
+      { "month": "Sep 2026", "expenses": 0, "income": 0, "net": 0 },
+      { "month": "Oct 2026", "expenses": 6738.46, "income": 489554, "net": 482815.54 },
+      { "month": "Nov 2026", "expenses": 21000, "income": 95000, "net": 74000 }
+    ]
+  },
+  "totalIncome": 584554,
+  "totalExpenses": 27738.46,
+  "totalBalance": 556815.54,
+  "netBalance": 556815.54,
+  "monthlyIncome": 95000,
+  "monthlyExpenses": 21000,
+  "yearlyIncome": 584554,
+  "yearlyExpenses": 27738.46,
+  "feeCollection": 479554,
+  "pendingFees": 609000
+}
+```
+
+---
+
+### 14.6 Income List API
+
+- **Endpoint**: `GET /api/school-admin/finance/income` or `GET /api/schooladmin/finance/income`
+- **Method**: `GET`
+- **Access**: Private (SchoolAdmin)
+- **Headers**: `Authorization: Bearer <token>`
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `income_type` / `incomeType` | String | No | Enum: `Admission Fee`, `Student Fee Collection`, `Transport Fee`, `Hostel Fee`, `Donation`, `Sponsorship`, `Other Income` |
+| `payment_method` / `paymentMethod` | String | No | `Cash`, `UPI`, `Bank Transfer`, `Cheque`, `Online Payment` |
+| `start_date` / `startDate` / `fromDate` | String | No | Active on or after date (`YYYY-MM-DD`) |
+| `end_date` / `endDate` / `toDate` | String | No | Active on or before date (`YYYY-MM-DD`) |
+| `academic_year` / `academicYear` | String | No | Academic session (e.g. `2026-2027`) |
+| `isDummy` / `is_dummy` | Boolean | No | Filter test dummy data |
+| `search` | String | No | Keyword search matching income ID, type, reference number, or description |
+| `page` / `limit` | Integer | No | Standard pagination controls |
+
+#### Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "message": "Income records retrieved successfully",
+  "data": {
+    "income": [
+      {
+        "_id": "6afbf90ab50edd25323bd486",
+        "incomeId": "INC-2610003",
+        "income_id": "INC-2610003",
+        "incomeType": "Admission Fee",
+        "income_type": "Admission Fee",
+        "title": "Admission Fee",
+        "category": "Admission Fee",
+        "date": "2026-11-05",
+        "incomeDate": "2026-11-05",
+        "amount": 25000,
+        "paymentMethod": "Bank Transfer",
+        "payment_method": "Bank Transfer",
+        "referenceNumber": "REF-ADM-2601",
+        "description": "New student admissions enrollment fee collection",
+        "isDummy": true,
+        "academicYear": "2026-2027"
+      },
+      {
+        "_id": "6afbf90ab50edd25323bd487",
+        "incomeId": "INC-2610004",
+        "income_id": "INC-2610004",
+        "incomeType": "Student Fee Collection",
+        "income_type": "Student Fee Collection",
+        "title": "Student Fee Collection",
+        "category": "Student Fee Collection",
+        "date": "2026-11-08",
+        "incomeDate": "2026-11-08",
+        "amount": 50000,
+        "paymentMethod": "UPI",
+        "payment_method": "UPI",
+        "referenceNumber": "REF-TUT-2602",
+        "description": "Term 2 tuition fees collection installment",
+        "isDummy": true,
+        "academicYear": "2026-2027"
+      }
+    ],
+    "totalRecords": 5,
+    "totalAmount": 105000,
+    "pagination": {
+      "currentPage": 1,
+      "limit": 5,
+      "totalRecords": 5,
+      "totalPages": 1
+    }
+  },
+  "totalRecords": 5,
+  "totalAmount": 105000
+}
+```
+
+---
+
+### 14.7 Financial Reports API
+
+- **Endpoint**: `GET /api/school-admin/finance/reports` or `GET /api/schooladmin/finance/reports`
+- **Method**: `GET`
+- **Access**: Private (SchoolAdmin)
+- **Headers**: `Authorization: Bearer <token>`
+
+#### Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "message": "Financial reports retrieved successfully",
+  "data": {
+    "expenses": [...],
+    "incomes": [...],
+    "feePayments": [...],
+    "payrolls": [...],
+    "summary": {
+      "totalManualExpense": 23000,
+      "totalPayrollExpense": 4738.46,
+      "totalOverallExpense": 27738.46,
+      "totalManualIncome": 105000,
+      "totalFeeIncome": 479554,
+      "totalOverallIncome": 584554,
+      "netProfitLoss": 556815.54,
+      "teacherSalaryCost": 4738.46,
+      "staffSalaryCost": 0,
+      "totalRefunds": 0,
+      "pendingFeesTotal": 609000
+    }
+  }
+}
+```
+
+---
+
+### 14.8 Seeded Dummy Data Records (for Development/Testing)
+
+The dummy dataset seeded strictly preserves existing records, tags all sample rows with `isDummy: true`, and associates them with the current academic year (`2026-2027`):
+
+#### Seeded Sample Expenses
+1. **Electricity Bill** – ₹5,000 (`EXP-2610003`, Category: `Electricity Bill`, Date: `2026-11-10`, Bank Transfer)
+2. **Stationery Purchase** – ₹2,500 (`EXP-2610004`, Category: `Office Expense`, Date: `2026-11-12`, Cash)
+3. **Transportation Maintenance** – ₹4,000 (`EXP-2610005`, Category: `Transport Expense`, Date: `2026-11-13`, UPI)
+4. **Building Maintenance** – ₹8,000 (`EXP-2610006`, Category: `Maintenance`, Date: `2026-11-14`, Cheque)
+5. **Internet Bill** – ₹1,500 (`EXP-2610007`, Category: `Internet Bill`, Date: `2026-11-15`, Online Payment)
+
+#### Seeded Sample Income
+1. **Admission Fees** – ₹25,000 (`INC-2610003`, Type: `Admission Fee`, Date: `2026-11-05`, Bank Transfer)
+2. **Tuition Fees** – ₹50,000 (`INC-2610004`, Type: `Student Fee Collection`, Date: `2026-11-08`, UPI)
+3. **Transport Fees** – ₹15,000 (`INC-2610005`, Type: `Transport Fee`, Date: `2026-11-11`, Cash)
+4. **Other Income** – ₹5,000 (`INC-2610006`, Type: `Other Income`, Date: `2026-11-16`, Cash)
 
 ---
 

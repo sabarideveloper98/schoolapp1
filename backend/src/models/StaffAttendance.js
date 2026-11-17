@@ -18,7 +18,7 @@ const staffAttendanceRecordSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Present', 'Absent'],
+        enum: ['Present', 'Absent', 'Leave', 'Late', 'Half Day', 'Holiday'],
         required: true,
         default: 'Present'
     },
@@ -29,6 +29,10 @@ const staffAttendanceRecordSchema = new mongoose.Schema({
     out_time: {
         type: String,
         default: '05:00 PM'
+    },
+    remarks: {
+        type: String,
+        default: ''
     }
 });
 
@@ -45,6 +49,21 @@ const staffAttendanceSchema = new mongoose.Schema({
     role_filter: {
         type: String,
         required: true // 'Teacher' or 'Staff' (matching the role selected in UI)
+    },
+    academic_year: {
+        type: String,
+        required: false,
+        default: '2026-2027'
+    },
+    created_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
+    updated_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
     },
     records: [staffAttendanceRecordSchema],
     notify_via: {

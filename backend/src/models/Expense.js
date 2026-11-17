@@ -52,6 +52,18 @@ const expenseSchema = new mongoose.Schema({
         type: String,
         enum: ['Paid', 'Pending'],
         default: 'Paid'
+    },
+    isDummy: {
+        type: Boolean,
+        default: false
+    },
+    academic_year: {
+        type: String,
+        default: '2026-2027'
+    },
+    created_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 }, { timestamps: true });
 

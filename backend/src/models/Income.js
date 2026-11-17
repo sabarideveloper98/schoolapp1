@@ -38,6 +38,18 @@ const incomeSchema = new mongoose.Schema({
     description: {
         type: String,
         default: ''
+    },
+    isDummy: {
+        type: Boolean,
+        default: false
+    },
+    academic_year: {
+        type: String,
+        default: '2026-2027'
+    },
+    created_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 }, { timestamps: true });
 

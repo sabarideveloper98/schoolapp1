@@ -123,7 +123,8 @@ const StaffReport = () => {
       }
       setLoading(false);
     } catch (error) {
-      toast.error('Failed to generate report');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error?.details || error.message || 'Failed to generate report';
+      toast.error(errorMsg);
       setLoading(false);
     }
   };

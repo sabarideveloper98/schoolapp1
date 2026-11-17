@@ -1887,12 +1887,54 @@ const getSchoolAdminProfile = async (req, res) => {
 const getSchoolLeaves = async (req, res) => {
     try {
         const school_id = await getSchoolId(req.user._id);
-        const { status, employee_type, search } = req.query;
+
+        // Extract query parameters (supporting both camelCase and snake_case)
+        const employeeIdParam = req.query.employeeId || req.query.employee_id;
+        const employeeTypeParam = req.query.employeeType || req.query.employee_type;
+        const leaveTypeParam = req.query.leaveType || req.query.leave_type;
+        const statusParam = req.query.status;
+        const fromDateParam = req.query.fromDate || req.query.from_date || req.query.startDate || req.query.start_date;
+        const toDateParam = req.query.toDate || req.query.to_date || req.query.endDate || req.query.end_date;
+        const academicYearParam = req.query.academicYear || req.query.academic_year;
+        const searchParam = req.query.search;
+        const pageParam = req.query.page;
+        const limitParam = req.query.limit;
+
+        // Validation for pagination
+        let page = 1;
+        if (pageParam !== undefined) {
+            page = parseInt(pageParam, 10);
+            if (isNaN(page) || page < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Page parameter must be a positive integer',
+                    error: {
+                        code: 'INVALID_PAGE_PARAM',
+                        details: 'Page must be an integer greater than or equal to 1'
+                    }
+                });
+            }
+        }
+
+        let limit = 0; // 0 means return all records if not specified
+        if (limitParam !== undefined) {
+            limit = parseInt(limitParam, 10);
+            if (isNaN(limit) || limit < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Limit parameter must be a positive integer',
+                    error: {
+                        code: 'INVALID_LIMIT_PARAM',
+                        details: 'Limit must be an integer greater than or equal to 1'
+                    }
+                });
+            }
+        }
 
         // Fetch teachers and staff belonging to this school
         const [teachers, staffMembers] = await Promise.all([
-            Teacher.find({ school_id }).select('_id name email phone'),
-            Staff.find({ school_id }).select('_id name email phone role')
+            Teacher.find({ school_id }).select('_id name email phone domains qualification experience'),
+            Staff.find({ school_id }).select('_id name email phone role address qualification experience')
         ]);
 
         const teacherIds = teachers.map(t => t._id);
@@ -1901,31 +1943,71 @@ const getSchoolLeaves = async (req, res) => {
         const teacherMap = new Map(teachers.map(t => [String(t._id), t]));
         const staffMap = new Map(staffMembers.map(s => [String(s._id), s]));
 
-        // Fetch Teacher Leaves for this school
+        // Build base TeacherLeave query
         const teacherLeaveQuery = {
             $or: [
                 { school_id },
                 { teacher_id: { $in: teacherIds } }
             ]
         };
-        if (status && status !== 'all') {
-            teacherLeaveQuery.status = status;
-        }
 
-        // Fetch Staff Leaves for this school
+        // Build base StaffLeave query
         const staffLeaveQuery = {
             $or: [
                 { school_id },
                 { staff_id: { $in: staffIds } }
             ]
         };
-        if (status && status !== 'all') {
-            staffLeaveQuery.status = status;
+
+        // Status Filter
+        if (statusParam && statusParam !== 'all') {
+            teacherLeaveQuery.status = statusParam;
+            staffLeaveQuery.status = statusParam;
         }
 
+        // Leave Type Filter
+        if (leaveTypeParam && leaveTypeParam !== 'all') {
+            const regex = new RegExp(`^${leaveTypeParam.trim()}$`, 'i');
+            teacherLeaveQuery.leave_type = regex;
+            staffLeaveQuery.leave_type = regex;
+        }
+
+        // Academic Year Filter
+        if (academicYearParam) {
+            teacherLeaveQuery.academic_year = academicYearParam;
+            staffLeaveQuery.academic_year = academicYearParam;
+        }
+
+        // Date Range Filters
+        if (fromDateParam || toDateParam) {
+            if (fromDateParam) {
+                const parsedFrom = new Date(fromDateParam);
+                if (!isNaN(parsedFrom.getTime())) {
+                    parsedFrom.setHours(0, 0, 0, 0);
+                    teacherLeaveQuery.end_date = { ...(teacherLeaveQuery.end_date || {}), $gte: parsedFrom };
+                    staffLeaveQuery.end_date = { ...(staffLeaveQuery.end_date || {}), $gte: parsedFrom };
+                }
+            }
+            if (toDateParam) {
+                const parsedTo = new Date(toDateParam);
+                if (!isNaN(parsedTo.getTime())) {
+                    parsedTo.setHours(23, 59, 59, 999);
+                    teacherLeaveQuery.start_date = { ...(teacherLeaveQuery.start_date || {}), $lte: parsedTo };
+                    staffLeaveQuery.start_date = { ...(staffLeaveQuery.start_date || {}), $lte: parsedTo };
+                }
+            }
+        }
+
+        // Fetch records with populated references
         const [teacherLeaves, staffLeaves] = await Promise.all([
-            TeacherLeave.find(teacherLeaveQuery).populate('teacher_id', 'name email phone').sort({ createdAt: -1 }),
-            StaffLeave.find(staffLeaveQuery).populate('staff_id', 'name email phone role').sort({ createdAt: -1 })
+            TeacherLeave.find(teacherLeaveQuery)
+                .populate('teacher_id', 'name email phone domains qualification')
+                .populate('approved_by', 'name email role')
+                .sort({ createdAt: -1 }),
+            StaffLeave.find(staffLeaveQuery)
+                .populate('staff_id', 'name email phone role qualification')
+                .populate('approved_by', 'name email role')
+                .sort({ createdAt: -1 })
         ]);
 
         const calculateDays = (start, end) => {
@@ -1938,91 +2020,206 @@ const getSchoolLeaves = async (req, res) => {
             return days > 0 ? days : 1;
         };
 
+        const formatDateStr = (d) => {
+            if (!d) return null;
+            try {
+                return new Date(d).toISOString().split('T')[0];
+            } catch {
+                return null;
+            }
+        };
+
         const formattedTeacherLeaves = teacherLeaves.map(l => {
             const t = l.teacher_id || teacherMap.get(String(l.teacher_id)) || {};
-            const empId = t._id ? `TCH-${String(t._id).slice(-4).toUpperCase()}` : '-';
+            const empCode = t._id ? `TCH-${String(t._id).slice(-4).toUpperCase()}` : '-';
+            const totalDays = calculateDays(l.start_date, l.end_date);
+            const department = (t.domains && t.domains.length > 0) ? t.domains.join(', ') : 'Academic';
+            const approvedByObj = l.approved_by || null;
+            const approvedByName = approvedByObj?.name || (approvedByObj ? String(approvedByObj) : null);
+
             return {
                 _id: l._id,
+                leaveId: l._id,
                 leave_id: l._id,
                 leave_source: 'Teacher',
-                employee_id: empId,
+                employeeId: empCode,
+                employee_id: empCode,
                 raw_employee_id: t._id || l.teacher_id,
+                employeeName: t.name || 'Teacher',
                 employee_name: t.name || 'Teacher',
+                employeeRole: 'Teacher',
+                employee_role: 'Teacher',
+                role: 'Teacher',
+                employeeType: 'Teacher',
                 employee_type: 'Teacher',
+                department,
+                designation: 'Teacher',
+                employeeEmail: t.email || '-',
                 employee_email: t.email || '-',
+                employeePhone: t.phone || '-',
                 employee_phone: t.phone || '-',
+                leaveType: l.leave_type,
                 leave_type: l.leave_type,
+                fromDate: formatDateStr(l.start_date),
+                from_date: formatDateStr(l.start_date),
+                toDate: formatDateStr(l.end_date),
+                to_date: formatDateStr(l.end_date),
+                startDate: l.start_date,
                 start_date: l.start_date,
+                endDate: l.end_date,
                 end_date: l.end_date,
-                from_date: l.start_date,
-                to_date: l.end_date,
-                total_days: calculateDays(l.start_date, l.end_date),
+                totalDays,
+                total_days: totalDays,
                 reason: l.reason,
-                status: l.status || 'Pending',
-                admin_remarks: l.admin_remarks || '',
+                leaveReason: l.reason,
+                description: l.reason,
+                appliedDate: l.createdAt,
                 applied_date: l.createdAt,
-                createdAt: l.createdAt
+                createdAt: l.createdAt,
+                attachment: l.attachment || null,
+                status: l.status || 'Pending',
+                adminRemarks: l.admin_remarks || null,
+                admin_remarks: l.admin_remarks || null,
+                approvedBy: approvedByName,
+                approved_by: approvedByName,
+                approvedDate: l.approved_date || null,
+                approved_date: l.approved_date || null,
+                academicYear: l.academic_year || '2026-2027',
+                academic_year: l.academic_year || '2026-2027'
             };
         });
 
         const formattedStaffLeaves = staffLeaves.map(l => {
             const s = l.staff_id || staffMap.get(String(l.staff_id)) || {};
             const role = s.role || 'Staff';
-            const empId = s._id ? `STF-${String(s._id).slice(-4).toUpperCase()}` : '-';
+            const empCode = s._id ? `STF-${String(s._id).slice(-4).toUpperCase()}` : '-';
+            const totalDays = calculateDays(l.start_date, l.end_date);
+            const department = 'Administration';
+            const approvedByObj = l.approved_by || null;
+            const approvedByName = approvedByObj?.name || (approvedByObj ? String(approvedByObj) : null);
+
             return {
                 _id: l._id,
+                leaveId: l._id,
                 leave_id: l._id,
                 leave_source: 'Staff',
-                employee_id: empId,
+                employeeId: empCode,
+                employee_id: empCode,
                 raw_employee_id: s._id || l.staff_id,
+                employeeName: s.name || 'Staff Member',
                 employee_name: s.name || 'Staff Member',
+                employeeRole: role,
+                employee_role: role,
+                role,
+                employeeType: 'Staff',
                 employee_type: role === 'Staff' ? 'Staff' : `Staff (${role})`,
                 raw_role: role,
+                department,
+                designation: role,
+                employeeEmail: s.email || '-',
                 employee_email: s.email || '-',
+                employeePhone: s.phone || '-',
                 employee_phone: s.phone || '-',
+                leaveType: l.leave_type,
                 leave_type: l.leave_type,
+                fromDate: formatDateStr(l.start_date),
+                from_date: formatDateStr(l.start_date),
+                toDate: formatDateStr(l.end_date),
+                to_date: formatDateStr(l.end_date),
+                startDate: l.start_date,
                 start_date: l.start_date,
+                endDate: l.end_date,
                 end_date: l.end_date,
-                from_date: l.start_date,
-                to_date: l.end_date,
-                total_days: calculateDays(l.start_date, l.end_date),
+                totalDays,
+                total_days: totalDays,
                 reason: l.reason,
-                status: l.status || 'Pending',
-                admin_remarks: l.admin_remarks || '',
+                leaveReason: l.reason,
+                description: l.reason,
+                appliedDate: l.createdAt,
                 applied_date: l.createdAt,
-                createdAt: l.createdAt
+                createdAt: l.createdAt,
+                attachment: l.attachment || null,
+                status: l.status || 'Pending',
+                adminRemarks: l.admin_remarks || null,
+                admin_remarks: l.admin_remarks || null,
+                approvedBy: approvedByName,
+                approved_by: approvedByName,
+                approvedDate: l.approved_date || null,
+                approved_date: l.approved_date || null,
+                academicYear: l.academic_year || '2026-2027',
+                academic_year: l.academic_year || '2026-2027'
             };
         });
 
         let combined = [...formattedTeacherLeaves, ...formattedStaffLeaves];
 
-        // Filter by employee_type if provided ('Teacher', 'Staff', or 'all')
-        if (employee_type && employee_type !== 'all') {
-            combined = combined.filter(l => l.leave_source.toLowerCase() === employee_type.toLowerCase());
+        // Filter by employeeType / employee_type ('Teacher', 'Staff', or 'all')
+        if (employeeTypeParam && employeeTypeParam !== 'all') {
+            const targetType = employeeTypeParam.toLowerCase();
+            combined = combined.filter(l => l.leave_source.toLowerCase() === targetType || l.employee_type.toLowerCase().includes(targetType));
+        }
+
+        // Filter by employeeId / employee_id
+        if (employeeIdParam) {
+            const targetEmpId = String(employeeIdParam).trim().toLowerCase();
+            combined = combined.filter(l =>
+                String(l.employee_id).toLowerCase().includes(targetEmpId) ||
+                String(l.raw_employee_id).toLowerCase() === targetEmpId
+            );
         }
 
         // Filter by search query if provided
-        if (search && search.trim()) {
-            const q = search.trim().toLowerCase();
+        if (searchParam && searchParam.trim()) {
+            const q = searchParam.trim().toLowerCase();
             combined = combined.filter(l =>
                 l.employee_name.toLowerCase().includes(q) ||
                 l.employee_id.toLowerCase().includes(q) ||
                 l.leave_type.toLowerCase().includes(q) ||
-                l.reason.toLowerCase().includes(q)
+                l.reason.toLowerCase().includes(q) ||
+                (l.department && l.department.toLowerCase().includes(q))
             );
         }
 
         // Sort latest first
         combined.sort((a, b) => new Date(b.applied_date) - new Date(a.applied_date));
 
-        res.json({
+        const totalRecords = combined.length;
+        let paginatedLeaves = combined;
+        let totalPages = 1;
+
+        if (limit > 0) {
+            totalPages = Math.ceil(totalRecords / limit) || 1;
+            const startIndex = (page - 1) * limit;
+            paginatedLeaves = combined.slice(startIndex, startIndex + limit);
+        }
+
+        const pagination = {
+            currentPage: page,
+            limit: limit > 0 ? limit : totalRecords,
+            totalRecords,
+            totalPages
+        };
+
+        return res.status(200).json({
             success: true,
-            total: combined.length,
-            leaves: combined
+            message: 'Leave records retrieved successfully',
+            data: {
+                leaves: paginatedLeaves,
+                pagination
+            },
+            total: totalRecords,
+            leaves: paginatedLeaves
         });
     } catch (error) {
         console.error('getSchoolLeaves error:', error);
-        res.status(500).json({ message: 'Server error while fetching leaves', error: error.message });
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while fetching leaves',
+            error: {
+                code: 'LEAVES_FETCH_ERROR',
+                details: error.message
+            }
+        });
     }
 };
 

@@ -21,7 +21,7 @@ const studentAttendanceRecordSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Present', 'Absent', 'Leave', 'Late', 'Half Day'],
+        enum: ['Present', 'Absent', 'Leave', 'Late', 'Half Day', 'Holiday'],
         required: true,
         default: 'Present'
     },
@@ -46,6 +46,21 @@ const studentAttendanceSchema = new mongoose.Schema({
     date: {
         type: Date,
         required: true
+    },
+    academic_year: {
+        type: String,
+        required: false,
+        default: '2026-2027'
+    },
+    created_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
+    updated_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
     },
     records: [studentAttendanceRecordSchema]
 }, { timestamps: true });
