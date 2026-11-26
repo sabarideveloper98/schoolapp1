@@ -34,7 +34,18 @@ const {
     getTeacherReports,
     getNotifications,
     sendMessage,
-    getSentMessages
+    getSentMessages,
+    getTeacherTimetableEndpoint,
+    getTeacherDailyTimetable,
+    getTeacherWeeklyTimetable,
+    getTeacherTimetableByDate,
+    getTeacherTimetableByDay,
+    getTeacherClassTimetable,
+    getTeacherSectionTimetable,
+    getTeacherAssignedSubjects,
+    getTeacherPeriodDetails,
+    getTeacherScheduleEndpoint,
+    getTeacherUpcomingClasses
 } = require('../controllers/teacherController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -103,6 +114,25 @@ router.get('/notifications', getNotifications);
 router.route('/messages')
     .get(getSentMessages)
     .post(sendMessage);
+
+// Timetable Module Routes
+router.get('/timetable', getTeacherTimetableEndpoint);
+router.get('/timetable/daily', getTeacherDailyTimetable);
+router.get('/timetable/weekly', getTeacherWeeklyTimetable);
+router.get('/timetable/date/:date', getTeacherTimetableByDate);
+router.get('/timetable/day/:day', getTeacherTimetableByDay);
+router.get('/timetable/class/:classId', getTeacherClassTimetable);
+router.get('/timetable/class/:classId/section/:sectionId', getTeacherSectionTimetable);
+router.get('/timetable/subjects', getTeacherAssignedSubjects);
+router.get('/timetable/periods', getTeacherPeriodDetails);
+router.get('/timetable/period-timings', getTeacherPeriodDetails);
+router.get('/timetable/schedule', getTeacherScheduleEndpoint);
+router.get('/timetable/upcoming', getTeacherUpcomingClasses);
+
+// Homework & Assignments Module Routes
+const homeworkRoutes = require('./homeworkRoutes');
+router.use('/homework', homeworkRoutes);
+router.use('/assignments', homeworkRoutes);
 
 module.exports = router;
 

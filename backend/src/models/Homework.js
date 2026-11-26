@@ -16,6 +16,11 @@ const homeworkSchema = new mongoose.Schema({
         type: String,
         default: 'Teacher/Admin'
     },
+    teacher_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Teacher',
+        required: false
+    },
     title: {
         type: String,
         required: true,

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Student = require('../models/Student');
 const User = require('../models/User');
 const Teacher = require('../models/Teacher');
@@ -23,6 +24,16 @@ const Route = require('../models/Route');
 const Driver = require('../models/Driver');
 const Bus = require('../models/Bus');
 const Notification = require('../models/Notification');
+const TimetableMaster = require('../models/TimetableMaster');
+const PeriodConfig = require('../models/PeriodConfig');
+const TimetableSettings = require('../models/TimetableSettings');
+const {
+    parseTimeToMinutes,
+    formatMinutesToTime,
+    getWeekDateForDay,
+    formatClassName,
+    getEnrichedTeacherSchedule
+} = require('../services/teacherTimetableService');
 const bcrypt = require('bcryptjs');
 const { serializeStudent } = require('../utils/studentSerializer');
 
@@ -100,9 +111,13 @@ const getDashboardStats = async (req, res) => {
         const pendingAttendanceCount = Math.max(0, assignedClassesCount - attendanceTakenCount);
 
         // Pending Homework count
+        const teacherIds = [teacherId, teacher?._id, teacher?.user_id, req.user?._id].filter(Boolean);
         const pendingHomeworkCount = await Homework.countDocuments({
             school_id: schoolId,
-            teacher_id: teacherId,
+            $or: [
+                { teacher_id: { $in: teacherIds } },
+                { created_by: { $in: teacherIds } }
+            ],
             due_date: { $gte: todayDate }
         });
 
@@ -1097,7 +1112,13 @@ const getTeacherReports = async (req, res) => {
         const classIds = await getTeacherClassIdsHelper(teacher._id, teacher.school_id);
 
         const totalStudents = await Student.countDocuments({ class_id: { $in: classIds } });
-        const totalHomeworks = await Homework.countDocuments({ teacher_id: teacher._id });
+        const teacherReportIds = [teacher._id, teacher.user_id, req.user?._id].filter(Boolean);
+        const totalHomeworks = await Homework.countDocuments({
+            $or: [
+                { teacher_id: { $in: teacherReportIds } },
+                { created_by: { $in: teacherReportIds } }
+            ]
+        });
         const totalMaterials = await StudyMaterial.countDocuments({ teacher_id: teacher._id });
         const totalNotices = await Notice.countDocuments({ teacher_id: teacher._id });
         const totalRemarks = await StudentRemark.countDocuments({ teacher_id: teacher._id });
@@ -1268,6 +1289,506 @@ const loginTeacher = async (req, res) => {
     }
 };
 
+
+// ==========================================
+// TEACHER LOGIN - TIMETABLE MODULE CONTROLLERS
+// ==========================================
+
+// @desc    Get complete timetable for logged-in teacher
+// @route   GET /api/teacher/timetable
+// @access  Private (Teacher)
+const getTeacherTimetableEndpoint = async (req, res) => {
+    try {
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        let filteredSchedule = enriched.schedule;
+        const { day, date, classId } = req.query;
+
+        if (day) {
+            filteredSchedule = filteredSchedule.filter(s => s.day.toLowerCase() === day.toLowerCase());
+        }
+        if (date) {
+            const dateObj = new Date(date);
+            if (!isNaN(dateObj.getTime())) {
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const queryDay = days[dateObj.getDay()];
+                filteredSchedule = filteredSchedule.filter(s => s.day.toLowerCase() === queryDay.toLowerCase());
+            }
+        }
+        if (classId) {
+            filteredSchedule = filteredSchedule.filter(s => s.classId?.toString() === classId.toString());
+        }
+
+        res.json({
+            success: true,
+            message: 'Teacher timetable fetched successfully',
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                totalPeriods: filteredSchedule.length,
+                maxAllowedWeeklyPeriods: enriched.maxAllowed,
+                workloadStatus: enriched.workloadStatus,
+                timetable: filteredSchedule
+            },
+            teacher: enriched.teacher,
+            settings: enriched.settings,
+            periods: enriched.periods,
+            totalPeriods: filteredSchedule.length,
+            maxAllowed: enriched.maxAllowed,
+            workloadStatus: enriched.workloadStatus,
+            schedule: filteredSchedule,
+            entries: filteredSchedule
+        });
+    } catch (error) {
+        console.error('getTeacherTimetableEndpoint error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch teacher timetable', error: error.message });
+    }
+};
+
+// @desc    Get daily timetable for today or specified day/date
+// @route   GET /api/teacher/timetable/daily
+// @access  Private (Teacher)
+const getTeacherDailyTimetable = async (req, res) => {
+    try {
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        let targetDay = req.query.day;
+        let targetDate = req.query.date;
+
+        if (targetDate) {
+            const d = new Date(targetDate);
+            if (!isNaN(d.getTime())) {
+                targetDay = days[d.getDay()];
+            }
+        }
+        if (!targetDay) {
+            targetDay = days[new Date().getDay()];
+            targetDate = targetDate || new Date().toISOString().split('T')[0];
+        } else {
+            targetDate = targetDate || getWeekDateForDay(targetDay);
+        }
+
+        const dayClasses = enriched.schedule.filter(s => s.day.toLowerCase() === targetDay.toLowerCase());
+        dayClasses.sort((a, b) => (parseTimeToMinutes(a.startTime) || 0) - (parseTimeToMinutes(b.startTime) || 0));
+
+        const totalTeachingMinutes = dayClasses.reduce((acc, c) => acc + (c.durationMinutes || 40), 0);
+        const totalPeriodsInDay = (enriched.settings?.periods_per_day || 7);
+        const freePeriods = Math.max(0, totalPeriodsInDay - dayClasses.length);
+
+        res.json({
+            success: true,
+            message: `Daily timetable for ${targetDay} fetched successfully`,
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                day: targetDay,
+                date: targetDate,
+                totalClasses: dayClasses.length,
+                totalTeachingMinutes,
+                freePeriodsCount: freePeriods,
+                classes: dayClasses,
+                timetable: dayClasses
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherDailyTimetable error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch daily timetable', error: error.message });
+    }
+};
+
+// @desc    Get weekly timetable grouped by day
+// @route   GET /api/teacher/timetable/weekly
+// @access  Private (Teacher)
+const getTeacherWeeklyTimetable = async (req, res) => {
+    try {
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const workingDays = enriched.settings?.working_days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        const weeklySchedule = {};
+        const dailySummary = {};
+
+        workingDays.forEach(day => {
+            const classesForDay = enriched.schedule.filter(s => s.day.toLowerCase() === day.toLowerCase());
+            classesForDay.sort((a, b) => (parseTimeToMinutes(a.startTime) || 0) - (parseTimeToMinutes(b.startTime) || 0));
+            weeklySchedule[day] = classesForDay;
+            dailySummary[day] = {
+                periodCount: classesForDay.length,
+                teachingMinutes: classesForDay.reduce((acc, c) => acc + (c.durationMinutes || 40), 0)
+            };
+        });
+
+        res.json({
+            success: true,
+            message: 'Weekly timetable fetched successfully',
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                academicYear: '2026-2027',
+                workingDays,
+                totalWeeklyPeriods: enriched.totalPeriods,
+                maxAllowedWeeklyPeriods: enriched.maxAllowed,
+                workloadStatus: enriched.workloadStatus,
+                dailySummary,
+                weeklySchedule,
+                weeklyTimetable: weeklySchedule,
+                timetable: enriched.schedule
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherWeeklyTimetable error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch weekly timetable', error: error.message });
+    }
+};
+
+// @desc    Get timetable by specific date
+// @route   GET /api/teacher/timetable/date/:date
+// @access  Private (Teacher)
+const getTeacherTimetableByDate = async (req, res) => {
+    try {
+        const { date } = req.params;
+        const dateObj = new Date(date);
+        if (isNaN(dateObj.getTime())) {
+            return res.status(400).json({ success: false, message: 'Invalid date format. Use YYYY-MM-DD' });
+        }
+
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayName = days[dateObj.getDay()];
+
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const classes = enriched.schedule
+            .filter(s => s.day.toLowerCase() === dayName.toLowerCase())
+            .map(s => ({ ...s, timetableDate: date }));
+
+        classes.sort((a, b) => (parseTimeToMinutes(a.startTime) || 0) - (parseTimeToMinutes(b.startTime) || 0));
+
+        res.json({
+            success: true,
+            message: `Timetable for date ${date} (${dayName}) fetched successfully`,
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                date,
+                day: dayName,
+                totalClasses: classes.length,
+                timetable: classes
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherTimetableByDate error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch timetable by date', error: error.message });
+    }
+};
+
+// @desc    Get timetable by day name
+// @route   GET /api/teacher/timetable/day/:day
+// @access  Private (Teacher)
+const getTeacherTimetableByDay = async (req, res) => {
+    try {
+        const { day } = req.params;
+        const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const matchedDay = validDays.find(d => d.toLowerCase() === (day || '').toLowerCase());
+        if (!matchedDay) {
+            return res.status(400).json({ success: false, message: `Invalid day. Allowed: ${validDays.join(', ')}` });
+        }
+
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const classes = enriched.schedule.filter(s => s.day.toLowerCase() === matchedDay.toLowerCase());
+        classes.sort((a, b) => (parseTimeToMinutes(a.startTime) || 0) - (parseTimeToMinutes(b.startTime) || 0));
+
+        res.json({
+            success: true,
+            message: `Timetable for ${matchedDay} fetched successfully`,
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                day: matchedDay,
+                date: getWeekDateForDay(matchedDay),
+                totalClasses: classes.length,
+                timetable: classes
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherTimetableByDay error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch timetable by day', error: error.message });
+    }
+};
+
+// @desc    Get timetable by class
+// @route   GET /api/teacher/timetable/class/:classId
+// @access  Private (Teacher)
+const getTeacherClassTimetable = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(classId)) {
+            return res.status(400).json({ success: false, message: 'Invalid class ID format' });
+        }
+
+        const classDoc = await Class.findById(classId);
+        if (!classDoc) {
+            return res.status(404).json({ success: false, message: 'Class not found' });
+        }
+
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const teacherClassSlots = enriched.schedule.filter(s => s.classId?.toString() === classId.toString());
+
+        res.json({
+            success: true,
+            message: `Timetable for class ${classDoc.class}-${classDoc.section} fetched successfully`,
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                classId,
+                className: formatClassName(classDoc.class),
+                sectionName: classDoc.section,
+                totalAssignedPeriods: teacherClassSlots.length,
+                timetable: teacherClassSlots
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherClassTimetable error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch class timetable', error: error.message });
+    }
+};
+
+// @desc    Get timetable by section
+// @route   GET /api/teacher/timetable/class/:classId/section/:sectionId
+// @access  Private (Teacher)
+const getTeacherSectionTimetable = async (req, res) => {
+    try {
+        const { classId, sectionId } = req.params;
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const filtered = enriched.schedule.filter(s => {
+            const matchClass = s.classId?.toString() === classId.toString() || s.className?.includes(classId);
+            const matchSection = s.sectionName?.toLowerCase() === sectionId.toLowerCase();
+            return matchClass && matchSection;
+        });
+
+        res.json({
+            success: true,
+            message: `Timetable for section ${sectionId} fetched successfully`,
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                classId,
+                sectionName: sectionId,
+                totalPeriods: filtered.length,
+                timetable: filtered
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherSectionTimetable error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch section timetable', error: error.message });
+    }
+};
+
+// @desc    Get distinct subjects assigned to teacher with weekly period load
+// @route   GET /api/teacher/timetable/subjects
+// @access  Private (Teacher)
+const getTeacherAssignedSubjects = async (req, res) => {
+    try {
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const subjectMap = new Map();
+
+        enriched.schedule.forEach(slot => {
+            const subId = slot.subjectId || slot.subjectName;
+            if (!subjectMap.has(subId)) {
+                subjectMap.set(subId, {
+                    subjectId: slot.subjectId,
+                    subjectName: slot.subjectName,
+                    classes: new Set(),
+                    weeklyPeriodsCount: 0
+                });
+            }
+            const sObj = subjectMap.get(subId);
+            sObj.weeklyPeriodsCount++;
+            sObj.classes.add(`${slot.className} - ${slot.sectionName}`);
+        });
+
+        const subjectsList = Array.from(subjectMap.values()).map(s => ({
+            subjectId: s.subjectId,
+            subjectName: s.subjectName,
+            classes: Array.from(s.classes),
+            weeklyPeriodsCount: s.weeklyPeriodsCount
+        }));
+
+        res.json({
+            success: true,
+            message: 'Teacher assigned subjects fetched successfully',
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                totalSubjects: subjectsList.length,
+                subjects: subjectsList
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherAssignedSubjects error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch assigned subjects', error: error.message });
+    }
+};
+
+// @desc    Get period details and period timings
+// @route   GET /api/teacher/timetable/periods
+// @access  Private (Teacher)
+const getTeacherPeriodDetails = async (req, res) => {
+    try {
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const periods = (enriched.periods || []).map((p, idx) => ({
+            periodId: p._id || `period_${idx + 1}`,
+            periodName: p.period_name,
+            periodNumber: idx + 1,
+            startTime: p.start_time,
+            endTime: p.end_time,
+            durationMinutes: (parseTimeToMinutes(p.end_time) - parseTimeToMinutes(p.start_time)) || 40,
+            type: p.type || (p.is_lunch ? 'Lunch' : p.is_break ? 'Break' : 'Teaching Period'),
+            isLunch: !!p.is_lunch,
+            isBreak: !!p.is_break
+        }));
+
+        res.json({
+            success: true,
+            message: 'Period details and timings fetched successfully',
+            data: {
+                totalPeriods: periods.length,
+                schoolStartTime: enriched.settings?.school_start_time || '08:45 AM',
+                schoolEndTime: enriched.settings?.school_end_time || '02:25 PM',
+                periods
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherPeriodDetails error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch period details', error: error.message });
+    }
+};
+
+// @desc    Get teacher schedule grid and summary workload metrics
+// @route   GET /api/teacher/timetable/schedule
+// @access  Private (Teacher)
+const getTeacherScheduleEndpoint = async (req, res) => {
+    try {
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        res.json({
+            success: true,
+            message: 'Teacher schedule fetched successfully',
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                totalWeeklyPeriods: enriched.totalPeriods,
+                maxAllowedWeeklyPeriods: enriched.maxAllowed,
+                workloadStatus: enriched.workloadStatus,
+                schedule: enriched.schedule
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherScheduleEndpoint error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch teacher schedule', error: error.message });
+    }
+};
+
+// @desc    Get upcoming classes for teacher today/tomorrow with real-time status
+// @route   GET /api/teacher/timetable/upcoming
+// @access  Private (Teacher)
+const getTeacherUpcomingClasses = async (req, res) => {
+    try {
+        const teacher = await getTeacherProfileHelper(req.user._id);
+        const schoolId = teacher.school_id;
+        const enriched = await getEnrichedTeacherSchedule(teacher, schoolId);
+
+        const now = new Date();
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const currentDay = days[now.getDay()];
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        // Today's classes
+        const todayClasses = enriched.schedule.filter(s => s.day.toLowerCase() === currentDay.toLowerCase());
+        todayClasses.sort((a, b) => (parseTimeToMinutes(a.startTime) || 0) - (parseTimeToMinutes(b.startTime) || 0));
+
+        let ongoingClass = null;
+        let nextClass = null;
+        const upcomingToday = [];
+
+        todayClasses.forEach(slot => {
+            const startM = parseTimeToMinutes(slot.startTime);
+            const endM = parseTimeToMinutes(slot.endTime);
+
+            if (startM !== null && endM !== null) {
+                if (currentMinutes >= startM && currentMinutes <= endM) {
+                    ongoingClass = {
+                        ...slot,
+                        minutesRemaining: endM - currentMinutes
+                    };
+                } else if (startM > currentMinutes) {
+                    upcomingToday.push({
+                        ...slot,
+                        startsInMinutes: startM - currentMinutes
+                    });
+                }
+            }
+        });
+
+        if (upcomingToday.length > 0) {
+            nextClass = upcomingToday[0];
+        }
+
+        // Tomorrow's classes
+        const tomorrowIdx = (now.getDay() + 1) % 7;
+        const tomorrowDay = days[tomorrowIdx];
+        const tomorrowClasses = enriched.schedule.filter(s => s.day.toLowerCase() === tomorrowDay.toLowerCase());
+        tomorrowClasses.sort((a, b) => (parseTimeToMinutes(a.startTime) || 0) - (parseTimeToMinutes(b.startTime) || 0));
+
+        res.json({
+            success: true,
+            message: 'Upcoming classes fetched successfully',
+            data: {
+                teacherId: teacher.teacher_id || teacher._id.toString(),
+                teacherName: teacher.name,
+                currentTime: formatMinutesToTime(currentMinutes),
+                currentDay,
+                hasClassesToday: todayClasses.length > 0,
+                ongoingClass,
+                nextClass,
+                upcomingToday,
+                totalUpcomingToday: upcomingToday.length,
+                allTodayClassesCount: todayClasses.length,
+                tomorrowDay,
+                tomorrowClassesCount: tomorrowClasses.length,
+                tomorrowPreview: tomorrowClasses.slice(0, 3)
+            }
+        });
+    } catch (error) {
+        console.error('getTeacherUpcomingClasses error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch upcoming classes', error: error.message });
+    }
+};
+
 module.exports = {
     loginTeacher,
     getDashboardStats,
@@ -1302,5 +1823,17 @@ module.exports = {
     getTeacherReports,
     getNotifications,
     sendMessage,
-    getSentMessages
+    getSentMessages,
+    // Timetable Module Controllers
+    getTeacherTimetableEndpoint,
+    getTeacherDailyTimetable,
+    getTeacherWeeklyTimetable,
+    getTeacherTimetableByDate,
+    getTeacherTimetableByDay,
+    getTeacherClassTimetable,
+    getTeacherSectionTimetable,
+    getTeacherAssignedSubjects,
+    getTeacherPeriodDetails,
+    getTeacherScheduleEndpoint,
+    getTeacherUpcomingClasses
 };

@@ -9,6 +9,8 @@ const Student = require('../models/Student');
 const Class = require('../models/Class');
 const User = require('../models/User');
 const Teacher = require('../models/Teacher');
+const ClassSubject = require('../models/ClassSubject');
+const TeacherAssignment = require('../models/TeacherAssignment');
 
 // Helper to resolve School ID
 const getSchoolId = async (user) => {
@@ -24,6 +26,36 @@ const getSchoolId = async (user) => {
     if (teacherByUser && teacherByUser.school_id) return teacherByUser.school_id;
     school = await School.findOne({});
     return school ? school._id : user._id;
+};
+
+// Teacher Authorization Helpers
+const getTeacherProfileHelper = async (userId) => {
+    if (!userId) return null;
+    let teacher = await Teacher.findOne({ user_id: userId });
+    if (!teacher) {
+        teacher = await Teacher.findById(userId);
+    }
+    return teacher;
+};
+
+const getTeacherClassIdsHelper = async (teacherId, schoolId) => {
+    if (!teacherId) return [];
+    const classQuery = { class_incharge_id: teacherId };
+    if (schoolId) classQuery.school_id = schoolId;
+    const inchargeClasses = await Class.find(classQuery);
+    const inchargeIds = inchargeClasses.map(c => c._id.toString());
+
+    const taQuery = { teacher_id: teacherId };
+    if (schoolId) taQuery.school_id = schoolId;
+    const assignments = await TeacherAssignment.find(taQuery);
+    const assignmentIds = assignments.map(a => a.class_id ? a.class_id.toString() : null).filter(Boolean);
+
+    const csQuery = { teacher_id: teacherId };
+    if (schoolId) csQuery.school_id = schoolId;
+    const classSubjects = await ClassSubject.find(csQuery);
+    const csIds = classSubjects.map(cs => cs.class_id ? cs.class_id.toString() : null).filter(Boolean);
+
+    return [...new Set([...inchargeIds, ...assignmentIds, ...csIds])];
 };
 
 // ----------------------------------------------------
@@ -50,7 +82,28 @@ const createHomework = async (req, res) => {
         } = req.body;
 
         if (!title || !subject_name || !description || !assignment_type || !due_date) {
-            return res.status(400).json({ message: 'Title, subject name, description, assignment type and due date are required' });
+            return res.status(400).json({ success: false, message: 'Title, subject name, description, assignment type and due date are required' });
+        }
+
+        const isAssignmentRoute = req.baseUrl.includes('assignment');
+        const resolvedCategory = category || (isAssignmentRoute ? 'Assignment' : 'Homework');
+
+        let teacherId = null;
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            teacherId = teacher?._id || req.user._id;
+
+            // Authorization: verify teacher is authorized for the target classes
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacherId, school_id);
+            if (assigned_classes && assigned_classes.length > 0 && authorizedClassIds.length > 0) {
+                const unauthorized = assigned_classes.some(cId => !authorizedClassIds.includes(cId.toString()));
+                if (unauthorized) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Forbidden: You are not authorized to assign homework/assignments to classes you do not teach'
+                    });
+                }
+            }
         }
 
         const creator_name = req.user.name || req.user.email || 'Teacher/Admin';
@@ -60,12 +113,13 @@ const createHomework = async (req, res) => {
             school_id,
             created_by: req.user._id,
             creator_name,
+            teacher_id: teacherId,
             title,
             subject_id: subject_id || null,
             subject_name,
             description,
             instructions: instructions || '',
-            category: category || 'Homework',
+            category: resolvedCategory,
             assignment_type,
             assigned_classes: assigned_classes || [],
             assigned_section: assigned_section || '',
@@ -86,8 +140,6 @@ const createHomework = async (req, res) => {
         } else if (assignment_type === 'Class' && assigned_classes && assigned_classes.length > 0) {
             targetStudents = await Student.find({ class_id: assigned_classes[0] });
         } else if (assignment_type === 'Section' && assigned_classes && assigned_classes.length > 0) {
-            // Find students in class and section
-            const classObj = await Class.findById(assigned_classes[0]);
             targetStudents = await Student.find({
                 class_id: assigned_classes[0],
                 ...(assigned_section ? { section: assigned_section } : {})
@@ -115,21 +167,26 @@ const createHomework = async (req, res) => {
                 school_id,
                 student_id: student._id,
                 homework_id: newHomework._id,
-                title: `New Homework: ${title}`,
-                message: `New ${category} for ${subject_name} assigned by ${creator_name}. Due on ${new Date(due_date).toLocaleDateString()}.`,
+                title: `New ${resolvedCategory}: ${title}`,
+                message: `New ${resolvedCategory} for ${subject_name} assigned by ${creator_name}. Due on ${new Date(due_date).toLocaleDateString()}.`,
                 type: 'Assigned'
             }));
             await HomeworkNotification.insertMany(notificationsToCreate);
         }
 
         res.status(201).json({
-            message: 'Homework created and assigned successfully',
+            success: true,
+            message: `${resolvedCategory} created and assigned successfully`,
             homework: newHomework,
+            data: {
+                homework: newHomework,
+                assignedCount: targetStudents.length
+            },
             assignedCount: targetStudents.length
         });
     } catch (error) {
         console.error('Error creating homework:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -149,8 +206,34 @@ const getHomeworkList = async (req, res) => {
             }
         }
         if (subject_name) query.subject_name = new RegExp(subject_name, 'i');
-        if (category) query.category = category;
+
+        // Route-aware category defaulting
+        const isAssignmentRoute = req.baseUrl.includes('assignment');
+        if (category) {
+            query.category = category;
+        } else if (isAssignmentRoute) {
+            query.category = 'Assignment';
+        } else if (req.baseUrl.includes('teacher/homework')) {
+            query.category = 'Homework';
+        }
+
         if (status) query.status = status;
+
+        // Teacher role authorization filtering: access own created homework or assigned classes
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const teacherIds = [req.user._id, teacher?._id, teacher?.user_id].filter(Boolean);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, school_id);
+
+            query.$and = query.$and || [];
+            query.$and.push({
+                $or: [
+                    { created_by: { $in: teacherIds } },
+                    { teacher_id: { $in: teacherIds } },
+                    { assigned_classes: { $in: authorizedClassIds } }
+                ]
+            });
+        }
 
         const pageNum = parseInt(page) || 1;
         const limitNum = parseInt(limit) || 50;
@@ -194,13 +277,14 @@ const getHomeworkList = async (req, res) => {
                 sectionName: hw.assigned_section || firstClass?.section || 'All',
                 subjectId: hw.subject_id || null,
                 subjectName: hw.subject_name,
-                teacherId: hw.created_by?._id || hw.created_by || null,
+                teacherId: hw.teacher_id || hw.created_by?._id || hw.created_by || null,
                 teacherName: hw.created_by?.name || hw.creator_name || 'Teacher/Admin',
                 assignedDate: hw.assigned_date,
                 submissionDate: hw.due_date,
                 dueDate: hw.due_date,
                 attachment: hw.attachment_url || '',
                 document: hw.attachment_url || '',
+                category: hw.category || 'Homework',
                 status: hw.status,
                 createdDate: hw.createdAt,
                 updatedDate: hw.updatedAt,
@@ -214,10 +298,10 @@ const getHomeworkList = async (req, res) => {
             };
         }));
 
-        if (req.baseUrl.includes('school-admin') || req.baseUrl.includes('schooladmin') || req.query.envelope === 'true' || req.query.page) {
+        if (req.baseUrl.includes('school-admin') || req.baseUrl.includes('schooladmin') || req.baseUrl.includes('teacher') || req.query.envelope === 'true' || req.query.page) {
             return res.json({
                 success: true,
-                message: 'Homework retrieved successfully',
+                message: `${query.category || 'Homework / Assignments'} retrieved successfully`,
                 data: {
                     homework: enrichedHomeworks,
                     totalRecords,
@@ -232,7 +316,7 @@ const getHomeworkList = async (req, res) => {
 
         res.json(enrichedHomeworks);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -243,7 +327,25 @@ const getHomeworkById = async (req, res) => {
             .populate('assigned_students', 'student_name roll_no admission_number')
             .populate('created_by', 'name email role');
 
-        if (!homework) return res.status(404).json({ success: false, message: 'Homework not found' });
+        if (!homework) return res.status(404).json({ success: false, message: 'Homework / Assignment not found' });
+
+        // Teacher role authorization check
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const teacherIds = [req.user._id?.toString(), teacher?._id?.toString(), teacher?.user_id?.toString()].filter(Boolean);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, homework.school_id);
+            const isCreator = teacherIds.includes(homework.created_by?._id?.toString()) ||
+                              teacherIds.includes(homework.created_by?.toString()) ||
+                              teacherIds.includes(homework.teacher_id?.toString());
+            const hasClass = homework.assigned_classes?.some(c => authorizedClassIds.includes(c._id ? c._id.toString() : c.toString()));
+
+            if (!isCreator && !hasClass && authorizedClassIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You do not have permission to access this homework/assignment'
+                });
+            }
+        }
 
         const assignments = await HomeworkAssignment.find({ homework_id: homework._id })
             .populate('student_id', 'student_name roll_no admission_number parent_name parent_phone')
@@ -270,13 +372,14 @@ const getHomeworkById = async (req, res) => {
             sectionName: homework.assigned_section || firstClass?.section || 'All',
             subjectId: homework.subject_id || null,
             subjectName: homework.subject_name,
-            teacherId: homework.created_by?._id || homework.created_by || null,
+            teacherId: homework.teacher_id || homework.created_by?._id || homework.created_by || null,
             teacherName: homework.created_by?.name || homework.creator_name || 'Teacher/Admin',
             assignedDate: homework.assigned_date,
             submissionDate: homework.due_date,
             dueDate: homework.due_date,
             attachment: homework.attachment_url || '',
             document: homework.attachment_url || '',
+            category: homework.category || 'Homework',
             status: homework.status,
             createdDate: homework.createdAt,
             updatedDate: homework.updatedAt,
@@ -288,20 +391,15 @@ const getHomeworkById = async (req, res) => {
             }
         };
 
-        if (req.baseUrl.includes('school-admin') || req.baseUrl.includes('schooladmin') || req.query.envelope === 'true') {
-            return res.json({
-                success: true,
-                message: 'Homework details retrieved successfully',
-                data: {
-                    homework: formattedHomework,
-                    assignments,
-                    submissions,
-                    reviews
-                }
-            });
-        }
-
         res.json({
+            success: true,
+            message: `${formattedHomework.category || 'Homework'} details retrieved successfully`,
+            data: {
+                homework: formattedHomework,
+                assignments,
+                submissions,
+                reviews
+            },
             homework: formattedHomework,
             assignments,
             submissions,
@@ -315,22 +413,61 @@ const getHomeworkById = async (req, res) => {
 const updateHomework = async (req, res) => {
     try {
         const homework = await Homework.findById(req.params.id);
-        if (!homework) return res.status(404).json({ message: 'Homework not found' });
+        if (!homework) return res.status(404).json({ success: false, message: 'Homework / Assignment not found' });
+
+        // Teacher role authorization check
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const teacherIds = [req.user._id?.toString(), teacher?._id?.toString(), teacher?.user_id?.toString()].filter(Boolean);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, homework.school_id);
+            const isCreator = teacherIds.includes(homework.created_by?.toString()) ||
+                              teacherIds.includes(homework.teacher_id?.toString());
+            const hasClass = homework.assigned_classes?.some(c => authorizedClassIds.includes(c.toString()));
+
+            if (!isCreator && !hasClass && authorizedClassIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You do not have permission to update this homework/assignment'
+                });
+            }
+        }
 
         Object.assign(homework, req.body);
         if (req.body.due_date) homework.due_date = new Date(req.body.due_date);
         await homework.save();
 
-        res.json({ message: 'Homework updated successfully', homework });
+        res.json({
+            success: true,
+            message: `${homework.category || 'Homework'} updated successfully`,
+            homework,
+            data: { homework }
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
 const deleteHomework = async (req, res) => {
     try {
         const homework = await Homework.findById(req.params.id);
-        if (!homework) return res.status(404).json({ message: 'Homework not found' });
+        if (!homework) return res.status(404).json({ success: false, message: 'Homework / Assignment not found' });
+
+        // Teacher role authorization check
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const teacherIds = [req.user._id?.toString(), teacher?._id?.toString(), teacher?.user_id?.toString()].filter(Boolean);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, homework.school_id);
+            const isCreator = teacherIds.includes(homework.created_by?.toString()) ||
+                              teacherIds.includes(homework.teacher_id?.toString());
+            const hasClass = homework.assigned_classes?.some(c => authorizedClassIds.includes(c.toString()));
+
+            if (!isCreator && !hasClass && authorizedClassIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You do not have permission to delete this homework/assignment'
+                });
+            }
+        }
 
         await HomeworkAssignment.deleteMany({ homework_id: homework._id });
         await HomeworkSubmission.deleteMany({ homework_id: homework._id });
@@ -338,9 +475,12 @@ const deleteHomework = async (req, res) => {
         await HomeworkNotification.deleteMany({ homework_id: homework._id });
         await Homework.findByIdAndDelete(homework._id);
 
-        res.json({ message: 'Homework and associated records deleted successfully' });
+        res.json({
+            success: true,
+            message: `${homework.category || 'Homework'} and associated records deleted successfully`
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -511,10 +651,10 @@ const evaluateSubmission = async (req, res) => {
     try {
         const { submission_id, marks_obtained, remarks, status } = req.body;
 
-        if (!submission_id) return res.status(400).json({ message: 'Submission ID is required' });
+        if (!submission_id) return res.status(400).json({ success: false, message: 'Submission ID is required' });
 
         const submission = await HomeworkSubmission.findById(submission_id).populate('homework_id');
-        if (!submission) return res.status(404).json({ message: 'Homework submission not found' });
+        if (!submission) return res.status(404).json({ success: false, message: 'Homework submission not found' });
 
         let review = await HomeworkReview.findOne({ submission_id });
         if (review) {
@@ -553,9 +693,14 @@ const evaluateSubmission = async (req, res) => {
             type: 'Reviewed'
         });
 
-        res.json({ message: 'Homework evaluated successfully', review });
+        res.json({
+            success: true,
+            message: 'Homework evaluated successfully',
+            review,
+            data: { review }
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
@@ -564,14 +709,32 @@ const getClassHomework = async (req, res) => {
         const school_id = await getSchoolId(req.user);
         const { classId } = req.params;
 
-        const homeworks = await Homework.find({ school_id, assigned_classes: classId })
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, school_id);
+            if (!authorizedClassIds.includes(classId.toString()) && authorizedClassIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You are not authorized to view homework for this class'
+                });
+            }
+        }
+
+        const query = { school_id, assigned_classes: classId };
+        if (req.baseUrl.includes('assignment')) {
+            query.category = 'Assignment';
+        } else if (req.baseUrl.includes('teacher/homework')) {
+            query.category = 'Homework';
+        }
+
+        const homeworks = await Homework.find(query)
             .populate('assigned_classes', 'class class_name section')
             .sort({ createdAt: -1 })
             .lean();
 
         res.json({
             success: true,
-            message: 'Class homework retrieved successfully',
+            message: `${query.category || 'Class'} homework retrieved successfully`,
             data: {
                 classId,
                 totalRecords: homeworks.length,
@@ -588,7 +751,18 @@ const getSectionHomework = async (req, res) => {
         const school_id = await getSchoolId(req.user);
         const { classId, section } = req.params;
 
-        const homeworks = await Homework.find({
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, school_id);
+            if (!authorizedClassIds.includes(classId.toString()) && authorizedClassIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You are not authorized to view homework for this class'
+                });
+            }
+        }
+
+        const query = {
             school_id,
             assigned_classes: classId,
             $or: [
@@ -596,14 +770,21 @@ const getSectionHomework = async (req, res) => {
                 { assigned_section: '' },
                 { assigned_section: { $exists: false } }
             ]
-        })
+        };
+        if (req.baseUrl.includes('assignment')) {
+            query.category = 'Assignment';
+        } else if (req.baseUrl.includes('teacher/homework')) {
+            query.category = 'Homework';
+        }
+
+        const homeworks = await Homework.find(query)
             .populate('assigned_classes', 'class class_name section')
             .sort({ createdAt: -1 })
             .lean();
 
         res.json({
             success: true,
-            message: 'Section homework retrieved successfully',
+            message: `${query.category || 'Section'} homework retrieved successfully`,
             data: {
                 classId,
                 section,
@@ -631,6 +812,26 @@ const getSubjectHomework = async (req, res) => {
             query.subject_name = new RegExp(subjectId, 'i');
         }
 
+        if (req.baseUrl.includes('assignment')) {
+            query.category = 'Assignment';
+        } else if (req.baseUrl.includes('teacher/homework')) {
+            query.category = 'Homework';
+        }
+
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const teacherIds = [req.user._id, teacher?._id, teacher?.user_id].filter(Boolean);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, school_id);
+            query.$and = query.$and || [];
+            query.$and.push({
+                $or: [
+                    { created_by: { $in: teacherIds } },
+                    { teacher_id: { $in: teacherIds } },
+                    { assigned_classes: { $in: authorizedClassIds } }
+                ]
+            });
+        }
+
         const homeworks = await Homework.find(query)
             .populate('assigned_classes', 'class class_name section')
             .sort({ createdAt: -1 })
@@ -638,7 +839,7 @@ const getSubjectHomework = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Subject homework retrieved successfully',
+            message: `${query.category || 'Subject'} homework retrieved successfully`,
             data: {
                 subjectId,
                 totalRecords: homeworks.length,
@@ -1136,6 +1337,176 @@ const getHomeworkNotifications = async (req, res) => {
     }
 };
 
+// ----------------------------------------------------
+// 5. Update Status & Submission Status Details
+// ----------------------------------------------------
+const updateHomeworkStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ success: false, message: 'Status is required' });
+        }
+
+        const validStatuses = ['Active', 'Completed', 'Cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid status. Allowed values are: ${validStatuses.join(', ')}`
+            });
+        }
+
+        const homework = await Homework.findById(id);
+        if (!homework) {
+            return res.status(404).json({ success: false, message: 'Homework / Assignment not found' });
+        }
+
+        // Authorization check for teachers
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const teacherIds = [req.user._id?.toString(), teacher?._id?.toString(), teacher?.user_id?.toString()].filter(Boolean);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, homework.school_id);
+            const isCreator = teacherIds.includes(homework.created_by?.toString()) || teacherIds.includes(homework.teacher_id?.toString());
+            const hasAssignedClass = homework.assigned_classes?.some(cid => authorizedClassIds.includes(cid.toString()));
+
+            if (!isCreator && !hasAssignedClass && authorizedClassIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You are not authorized to update the status of this homework/assignment'
+                });
+            }
+        }
+
+        homework.status = status;
+        await homework.save();
+
+        res.json({
+            success: true,
+            message: `${homework.category || 'Homework'} status updated to ${status} successfully`,
+            data: {
+                homeworkId: homework._id,
+                title: homework.title,
+                category: homework.category || 'Homework',
+                status: homework.status,
+                updatedAt: homework.updatedAt
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+const getHomeworkSubmissionStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const homework = await Homework.findById(id)
+            .populate('assigned_classes', 'class class_name section')
+            .populate('created_by', 'name email');
+
+        if (!homework) {
+            return res.status(404).json({ success: false, message: 'Homework / Assignment not found' });
+        }
+
+        // Authorization check for teachers
+        if (req.user && req.user.role === 'Teacher') {
+            const teacher = await getTeacherProfileHelper(req.user._id);
+            const teacherIds = [req.user._id?.toString(), teacher?._id?.toString(), teacher?.user_id?.toString()].filter(Boolean);
+            const authorizedClassIds = await getTeacherClassIdsHelper(teacher?._id || req.user._id, homework.school_id);
+            const isCreator = teacherIds.includes(homework.created_by?._id?.toString()) ||
+                              teacherIds.includes(homework.created_by?.toString()) ||
+                              teacherIds.includes(homework.teacher_id?.toString());
+            const hasClass = homework.assigned_classes?.some(c => authorizedClassIds.includes(c._id ? c._id.toString() : c.toString()));
+
+            if (!isCreator && !hasClass && authorizedClassIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You do not have permission to view submission status for this homework/assignment'
+                });
+            }
+        }
+
+        const assignments = await HomeworkAssignment.find({ homework_id: homework._id })
+            .populate({
+                path: 'student_id',
+                select: 'student_name roll_no admission_number class section class_id photo parent_phone parent_name',
+                populate: { path: 'class_id', select: 'class section class_name' }
+            })
+            .lean();
+
+        const submissions = await HomeworkSubmission.find({ homework_id: homework._id }).lean();
+        const submissionMap = new Map(submissions.map(s => [s.student_id?.toString(), s]));
+
+        const reviews = await HomeworkReview.find({ homework_id: homework._id }).lean();
+        const reviewMap = new Map(reviews.map(r => [r.student_id?.toString(), r]));
+
+        const studentStatusList = assignments.map(a => {
+            const st = a.student_id;
+            if (!st) return null;
+            const sub = submissionMap.get(st._id.toString());
+            const rev = reviewMap.get(st._id.toString());
+
+            let currentStatus = a.status || 'Pending';
+            if (rev) currentStatus = 'Reviewed';
+            else if (sub) currentStatus = sub.is_late ? 'Late' : 'Submitted';
+
+            return {
+                assignmentId: a._id,
+                studentId: st._id,
+                studentName: st.student_name,
+                admissionNumber: st.admission_number,
+                rollNo: st.roll_no || null,
+                class: st.class_id?.class || st.class || 'N/A',
+                section: st.class_id?.section || st.section || 'N/A',
+                status: currentStatus,
+                submittedAt: sub?.submitted_at || null,
+                attachmentUrl: sub?.attachment_url || '',
+                submissionNotes: sub?.submission_notes || '',
+                isLate: sub?.is_late || false,
+                marksObtained: rev?.marks_obtained !== undefined ? rev.marks_obtained : null,
+                maxMarks: homework.max_marks || 100,
+                teacherRemarks: rev?.remarks || '',
+                evaluatedAt: rev?.evaluated_at || null
+            };
+        }).filter(Boolean);
+
+        const totalAssigned = studentStatusList.length;
+        const totalSubmitted = studentStatusList.filter(s => ['Submitted', 'Reviewed', 'Late'].includes(s.status)).length;
+        const totalReviewed = studentStatusList.filter(s => s.status === 'Reviewed').length;
+        const totalLate = studentStatusList.filter(s => s.isLate || s.status === 'Late').length;
+        const pendingSubmissions = Math.max(0, totalAssigned - totalSubmitted);
+        const submissionRate = totalAssigned > 0 ? parseFloat(((totalSubmitted / totalAssigned) * 100).toFixed(1)) : 0;
+
+        const firstClass = homework.assigned_classes && homework.assigned_classes.length > 0 ? homework.assigned_classes[0] : null;
+
+        res.json({
+            success: true,
+            message: 'Homework submission status retrieved successfully',
+            data: {
+                homeworkId: homework._id,
+                title: homework.title,
+                category: homework.category || 'Homework',
+                subjectName: homework.subject_name,
+                className: firstClass?.class || firstClass?.class_name || 'N/A',
+                sectionName: homework.assigned_section || firstClass?.section || 'All',
+                assignedDate: homework.assigned_date,
+                dueDate: homework.due_date,
+                submissionDate: homework.due_date,
+                status: homework.status,
+                totalStudents: totalAssigned,
+                submittedStudents: totalSubmitted,
+                pendingStudents: pendingSubmissions,
+                reviewedStudents: totalReviewed,
+                lateStudents: totalLate,
+                submissionRate,
+                students: studentStatusList
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     createHomework,
     getHomeworkList,
@@ -1158,5 +1529,7 @@ module.exports = {
     getStudentHomeworkReport,
     getClassHomeworkReport,
     getSubmissionStatusReport,
-    getHomeworkNotifications
+    getHomeworkNotifications,
+    updateHomeworkStatus,
+    getHomeworkSubmissionStatus
 };

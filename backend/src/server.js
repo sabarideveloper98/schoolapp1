@@ -113,6 +113,7 @@ app.use('/api/transport', transportRoutes);
 app.use('/api/school-admin/transport', transportRoutes);
 app.use('/api/schooladmin/transport', transportRoutes);
 app.use('/api/homework', homeworkRoutes);
+app.use('/api/assignments', homeworkRoutes);
 app.use('/api/school-admin/homework', homeworkRoutes);
 app.use('/api/schooladmin/homework', homeworkRoutes);
 app.use('/api/timetable', timetableRoutes);

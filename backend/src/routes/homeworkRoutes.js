@@ -23,7 +23,9 @@ const {
     getStudentHomeworkReport,
     getClassHomeworkReport,
     getSubmissionStatusReport,
-    getHomeworkNotifications
+    getHomeworkNotifications,
+    updateHomeworkStatus,
+    getHomeworkSubmissionStatus
 } = require('../controllers/homeworkController');
 
 // Homework Stats & Notifications
@@ -48,10 +50,20 @@ router.get('/class/:classId', protect, getClassHomework);
 router.get('/class/:classId/section/:section', protect, getSectionHomework);
 router.get('/subject/:subjectId', protect, getSubjectHomework);
 
+// Specific Homework Submission Status Breakdown
+router.get('/:id/submission-status', protect, getHomeworkSubmissionStatus);
+router.get('/submission-status/:id', protect, getHomeworkSubmissionStatus);
+
 // Student Feed & Actions
 router.get('/student-feed', protect, getStudentHomework);
 router.post('/submit', protect, submitHomework);
 router.post('/evaluate', protect, evaluateSubmission);
+router.post('/review', protect, evaluateSubmission);
+
+// Homework Status Update Routes (PATCH & PUT)
+router.patch('/:id/status', protect, updateHomeworkStatus);
+router.put('/:id/status', protect, updateHomeworkStatus);
+router.patch('/status/:id', protect, updateHomeworkStatus);
 
 // Homework CRUD (Legacy & RESTful Routes)
 router.get('/list', protect, getHomeworkList);

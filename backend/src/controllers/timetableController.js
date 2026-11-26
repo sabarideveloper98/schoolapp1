@@ -17,6 +17,7 @@ const Subject = require('../models/Subject');
 const Student = require('../models/Student');
 const { detectConflicts } = require('../services/conflictDetectionService');
 const { generateTimetables } = require('../services/timetableGeneratorService');
+const { getEnrichedTeacherSchedule } = require('../services/teacherTimetableService');
 
 const getSchoolId = async (user) => {
     if (!user) return null;
@@ -142,84 +143,45 @@ const getTeacherTimetableByTeacherId = async (req, res) => {
                 || (req.user.reference_id ? await Teacher.findById(req.user.reference_id) : null);
         }
 
-        if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+        if (!teacher) return res.status(404).json({ success: false, message: 'Teacher not found' });
+
+        // Authorization: If the logged-in user is a Teacher, verify they can only view their own timetable
+        if (req.user && req.user.role === 'Teacher') {
+            const isOwnTimetable =
+                (req.user.reference_id && req.user.reference_id.toString() === teacher._id.toString()) ||
+                (teacher.user_id && teacher.user_id.toString() === req.user._id.toString()) ||
+                (teacher._id.toString() === req.user._id.toString());
+            if (!isOwnTimetable) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied: You can only view your own timetable'
+                });
+            }
+        }
 
         const school_id = teacher.school_id || (await getSchoolId(req.user));
-        const settings = await TimetableSettings.findOne({ school_id }) || {};
-        const periods = await PeriodConfig.find({ school_id }).sort({ order: 1 });
-
-        const scheduleMap = new Map();
-        const teacherIds = [teacher._id];
-        if (teacher.user_id) teacherIds.push(teacher.user_id);
-
-        // 1. Fetch from TimetableEntry collection
-        const entries = await TimetableEntry.find({ teacher_id: { $in: teacherIds } })
-            .populate({
-                path: 'timetable_id',
-                populate: { path: 'class_id' }
-            })
-            .populate('subject_id');
-
-        entries.forEach(e => {
-            if (!e.day || !e.period_name) return;
-            const cls = e.timetable_id?.class_id;
-            const clsName = cls ? (cls.section ? `${cls.class}-${cls.section}` : cls.class) : 'Class';
-            const key = `${e.day}-${e.period_name.toUpperCase()}`;
-            scheduleMap.set(key, {
-                _id: e._id,
-                day: e.day,
-                period_name: e.period_name,
-                subject_name: e.subject_id?.name || 'General',
-                subjectName: e.subject_id?.name || 'General',
-                className: clsName,
-                class_name: clsName,
-                room_no: e.room_no || ''
-            });
-        });
-
-        // 2. Fetch from Timetable collection
-        const timetables = await Timetable.find({ school_id }).populate('class_id schedule.subject_id');
-        timetables.forEach(tt => {
-            const cls = tt.class_id;
-            const clsName = cls ? (cls.section ? `${cls.class}-${cls.section}` : cls.class) : 'Class';
-            (tt.schedule || []).forEach(slot => {
-                const sTid = slot.teacher_id?.toString();
-                if (sTid && teacherIds.some(id => id.toString() === sTid) && slot.day && slot.period_name) {
-                    const key = `${slot.day}-${slot.period_name.toUpperCase()}`;
-                    if (!scheduleMap.has(key)) {
-                        scheduleMap.set(key, {
-                            _id: slot._id,
-                            day: slot.day,
-                            period_name: slot.period_name,
-                            subject_name: slot.subject_id?.name || (slot.is_lab ? 'Lab' : 'General'),
-                            subjectName: slot.subject_id?.name || (slot.is_lab ? 'Lab' : 'General'),
-                            className: clsName,
-                            class_name: clsName,
-                            room_no: slot.room || ''
-                        });
-                    }
-                }
-            });
-        });
-
-        const schedule = Array.from(scheduleMap.values());
-        const totalPeriods = schedule.length;
-        const maxAllowed = settings.max_teacher_weekly_periods || 36;
-        const workloadStatus = totalPeriods > maxAllowed ? 'OVERLOADED' : 'OK';
+        const enriched = await getEnrichedTeacherSchedule(teacher, school_id);
 
         res.json({
+            success: true,
+            message: 'Teacher timetable fetched successfully',
+            data: {
+                teacherId: teacher.teacher_id || teacher._id,
+                teacherName: teacher.name || `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || 'Teacher',
+                timetable: enriched.schedule
+            },
             teacher,
-            settings,
-            periods,
-            totalPeriods,
-            maxAllowed,
-            workloadStatus,
-            schedule,
-            entries: schedule
+            settings: enriched.settings,
+            periods: enriched.periods,
+            totalPeriods: enriched.totalPeriods,
+            maxAllowed: enriched.maxAllowed,
+            workloadStatus: enriched.workloadStatus,
+            schedule: enriched.schedule,
+            entries: enriched.schedule
         });
     } catch (error) {
         console.error('getTeacherTimetableByTeacherId error:', error);
-        res.status(500).json({ message: 'Failed to fetch teacher timetable', error: error.message });
+        res.status(500).json({ success: false, message: 'Failed to fetch teacher timetable', error: error.message });
     }
 };
 
